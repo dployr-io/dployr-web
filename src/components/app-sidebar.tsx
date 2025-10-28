@@ -1,11 +1,20 @@
-import { NavFooter } from '@/components/nav-footer';
-import { NavMain } from '@/components/nav-main';
-import { NavUser } from '@/components/nav-user';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { type NavItem } from '@/types';
+import { NavFooter } from "@/components/nav-footer";
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { type NavItem } from "@/types";
 import {
     Bell,
     BookOpen,
+    BoxesIcon,
     CircleGauge,
     Container,
     Factory,
@@ -15,69 +24,64 @@ import {
     Logs,
     MessageCircleQuestion,
     SquareChevronRight,
-} from 'lucide-react';
-import AppLogo from './app-logo';
+} from "lucide-react";
+import AppLogo from "./app-logo";
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
-        href: '/dashboard',
+        title: "Dashboard",
+        href: "/dashboard",
         icon: LayoutGrid,
     },
+      {
+        title: "Services",
+        href: "/services",
+        icon: BoxesIcon,
+    },
     {
-        title: 'Deployments',
-        href: '/deployments',
+        title: "Deployments",
+        href: "/deployments",
         icon: Factory,
     },
     {
-        title: 'Logs',
-        href: '/logs',
+        title: "Logs",
+        href: "/logs",
         icon: Logs,
     },
     {
-        title: 'Console',
-        href: '/console',
+        title: "Console",
+        href: "/console",
         icon: SquareChevronRight,
     },
 ];
 
 const secondaryNavItems: NavItem[] = [
     {
-        title: 'Resources',
-        href: '/resources',
+        title: "Resources",
+        href: "/resources",
         icon: CircleGauge,
     },
     {
-        title: 'Remotes',
-        href: '/remotes',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Images',
-        href: '/images',
-        icon: Container,
-    },
-    {
-        title: 'Specs',
-        href: '/specs',
+        title: "Specs",
+        href: "/specs",
         icon: FileSliders,
+    },
+    {
+        title: "Notifications",
+        href: "/notifications",
+        icon: Bell,
     },
 ];
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Notifications',
-        href: '/notifications',
-        icon: Bell,
-    },
-    {
-        title: 'Support',
-        href: 'https://dployr.io/support',
+        title: "Support",
+        href: "https://dployr.dev/support",
         icon: MessageCircleQuestion,
     },
     {
-        title: 'Docs',
-        href: 'https://dployr.io/docs',
+        title: "Docs",
+        href: "https://dployr.dev/docs",
         icon: BookOpen,
     },
 ];
@@ -89,7 +93,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <a href={'/dashboard'}>
+                            <a href={"/dashboard"}>
                                 <AppLogo />
                             </a>
                         </SidebarMenuButton>

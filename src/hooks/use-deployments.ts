@@ -11,12 +11,14 @@ export function useDeployments() {
         queryKey: ['deployments', spec],
         queryFn: async () => {
             try {
-                const response = await axios.get('/deployments/fetch', {
+                const response = await axios.get('/deployments', {
                     params: Object.fromEntries(params),
                 });
-                return response.data;
+                const data = response.data;
+                return Array.isArray(data) ? data : [];
             } catch (error) {
                 console.error((error as Error).message || 'An unknown error occoured while retrieving deployments');
+                return [];
             }
         },
         staleTime: 5 * 60 * 1000,
@@ -27,7 +29,7 @@ export function useDeployments() {
     const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const paginatedDeployments = deployments?.slice(startIndex, endIndex) || [];
+    const paginatedDeployments = Array.isArray(deployments) ? deployments.slice(startIndex, endIndex) : [];
 
     const goToPage = (page: number) => {
         setCurrentPage(Math.max(1, Math.min(page, totalPages)));

@@ -1,6 +1,6 @@
 import { parseLog } from '@/lib/utils';
 import type { Blueprint, LogLevel, Service } from '@/types';
-import { Log } from '@/types';
+import type { Log } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 
 export function useLogs(filterItem?: Blueprint | Service | null) {

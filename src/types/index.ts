@@ -42,11 +42,14 @@ export interface ApiResponse {
     error?: string;
 }
 
+export type Role = 'user' | 'admin';
+
 export interface User {
     id: string;
     name: string;
     email: string;
     avatar?: string;
+    role: Role;
     created_at: Date;
     updated_at: Date;
     [key: string]: unknown; // This allows for additional properties...

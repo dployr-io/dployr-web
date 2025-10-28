@@ -9,12 +9,57 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SpecsRouteImport } from './routes/specs'
+import { Route as ServicesRouteImport } from './routes/services'
+import { Route as ResourcesRouteImport } from './routes/resources'
+import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as LogsRouteImport } from './routes/logs'
+import { Route as DeploymentsRouteImport } from './routes/deployments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsUsersRouteImport } from './routes/settings.users'
+import { Route as SettingsProfilecopyRouteImport } from './routes/settings.profile copy'
+import { Route as SettingsConfigRouteImport } from './routes/settings.config'
 
+const SpecsRoute = SpecsRouteImport.update({
+  id: '/specs',
+  path: '/specs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesRoute = ServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResourcesRoute = ResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogsRoute = LogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeploymentsRoute = DeploymentsRouteImport.update({
+  id: '/deployments',
+  path: '/deployments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConsoleRoute = ConsoleRouteImport.update({
+  id: '/console',
+  path: '/console',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +67,181 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsUsersRoute = SettingsUsersRouteImport.update({
+  id: '/settings/users',
+  path: '/settings/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsProfilecopyRoute = SettingsProfilecopyRouteImport.update({
+  id: '/settings/profile copy',
+  path: '/settings/profile copy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsConfigRoute = SettingsConfigRouteImport.update({
+  id: '/settings/config',
+  path: '/settings/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/console': typeof ConsoleRoute
   '/dashboard': typeof DashboardRoute
+  '/deployments': typeof DeploymentsRoute
+  '/logs': typeof LogsRoute
+  '/notifications': typeof NotificationsRoute
+  '/resources': typeof ResourcesRoute
+  '/services': typeof ServicesRoute
+  '/specs': typeof SpecsRoute
+  '/settings/config': typeof SettingsConfigRoute
+  '/settings/profile copy': typeof SettingsProfilecopyRoute
+  '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/console': typeof ConsoleRoute
   '/dashboard': typeof DashboardRoute
+  '/deployments': typeof DeploymentsRoute
+  '/logs': typeof LogsRoute
+  '/notifications': typeof NotificationsRoute
+  '/resources': typeof ResourcesRoute
+  '/services': typeof ServicesRoute
+  '/specs': typeof SpecsRoute
+  '/settings/config': typeof SettingsConfigRoute
+  '/settings/profile copy': typeof SettingsProfilecopyRoute
+  '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/console': typeof ConsoleRoute
   '/dashboard': typeof DashboardRoute
+  '/deployments': typeof DeploymentsRoute
+  '/logs': typeof LogsRoute
+  '/notifications': typeof NotificationsRoute
+  '/resources': typeof ResourcesRoute
+  '/services': typeof ServicesRoute
+  '/specs': typeof SpecsRoute
+  '/settings/config': typeof SettingsConfigRoute
+  '/settings/profile copy': typeof SettingsProfilecopyRoute
+  '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/console'
+    | '/dashboard'
+    | '/deployments'
+    | '/logs'
+    | '/notifications'
+    | '/resources'
+    | '/services'
+    | '/specs'
+    | '/settings/config'
+    | '/settings/profile copy'
+    | '/settings/users'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard'
-  id: '__root__' | '/' | '/dashboard'
+  to:
+    | '/'
+    | '/console'
+    | '/dashboard'
+    | '/deployments'
+    | '/logs'
+    | '/notifications'
+    | '/resources'
+    | '/services'
+    | '/specs'
+    | '/settings/config'
+    | '/settings/profile copy'
+    | '/settings/users'
+  id:
+    | '__root__'
+    | '/'
+    | '/console'
+    | '/dashboard'
+    | '/deployments'
+    | '/logs'
+    | '/notifications'
+    | '/resources'
+    | '/services'
+    | '/specs'
+    | '/settings/config'
+    | '/settings/profile copy'
+    | '/settings/users'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConsoleRoute: typeof ConsoleRoute
   DashboardRoute: typeof DashboardRoute
+  DeploymentsRoute: typeof DeploymentsRoute
+  LogsRoute: typeof LogsRoute
+  NotificationsRoute: typeof NotificationsRoute
+  ResourcesRoute: typeof ResourcesRoute
+  ServicesRoute: typeof ServicesRoute
+  SpecsRoute: typeof SpecsRoute
+  SettingsConfigRoute: typeof SettingsConfigRoute
+  SettingsProfilecopyRoute: typeof SettingsProfilecopyRoute
+  SettingsUsersRoute: typeof SettingsUsersRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/specs': {
+      id: '/specs'
+      path: '/specs'
+      fullPath: '/specs'
+      preLoaderRoute: typeof SpecsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services': {
+      id: '/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources': {
+      id: '/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof ResourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logs': {
+      id: '/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof LogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deployments': {
+      id: '/deployments'
+      path: '/deployments'
+      fullPath: '/deployments'
+      preLoaderRoute: typeof DeploymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/console': {
+      id: '/console'
+      path: '/console'
+      fullPath: '/console'
+      preLoaderRoute: typeof ConsoleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -65,12 +251,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/users': {
+      id: '/settings/users'
+      path: '/settings/users'
+      fullPath: '/settings/users'
+      preLoaderRoute: typeof SettingsUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/profile copy': {
+      id: '/settings/profile copy'
+      path: '/settings/profile copy'
+      fullPath: '/settings/profile copy'
+      preLoaderRoute: typeof SettingsProfilecopyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/config': {
+      id: '/settings/config'
+      path: '/settings/config'
+      fullPath: '/settings/config'
+      preLoaderRoute: typeof SettingsConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConsoleRoute: ConsoleRoute,
   DashboardRoute: DashboardRoute,
+  DeploymentsRoute: DeploymentsRoute,
+  LogsRoute: LogsRoute,
+  NotificationsRoute: NotificationsRoute,
+  ResourcesRoute: ResourcesRoute,
+  ServicesRoute: ServicesRoute,
+  SpecsRoute: SpecsRoute,
+  SettingsConfigRoute: SettingsConfigRoute,
+  SettingsProfilecopyRoute: SettingsProfilecopyRoute,
+  SettingsUsersRoute: SettingsUsersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
