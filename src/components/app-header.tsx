@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useInitials } from '@/hooks/use-initials';
 import { cn } from '@/lib/utils';
-import { User, type BreadcrumbItem, type NavItem, type SharedData } from '@/types';
+import type { User, BreadcrumbItem, NavItem } from '@/types';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
 import AppLogo from './app-logo';
 import AppLogoIcon from './app-logo-icon';
@@ -44,14 +44,14 @@ interface AppHeaderProps {
 export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
     const getInitials = useInitials();
 
-     const user: User = {
-            id: "123",
-            name: "Jon Doe",
-            email: "email@example.com",
-            avatar: "",
-            created_at: new Date(),
-            updated_at: new Date(),
-        };
+    const user: User = {
+        id: "123",
+        name: "Jon Doe",
+        email: "email@example.com",
+        avatar: "",
+        created_at: new Date(),
+        updated_at: new Date(),
+    };
 
     return (
         <>

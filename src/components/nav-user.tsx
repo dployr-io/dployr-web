@@ -12,7 +12,7 @@ import {
 import { UserInfo } from "@/components/user-info";
 import { UserMenuContent } from "@/components/user-menu-content";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { User, type SharedData } from "@/types";
+import type { User } from "@/types";
 import { ChevronsUpDown } from "lucide-react";
 
 export function NavUser() {
@@ -48,8 +48,8 @@ export function NavUser() {
                             isMobile
                                 ? "bottom"
                                 : state === "collapsed"
-                                  ? "left"
-                                  : "bottom"
+                                    ? "left"
+                                    : "bottom"
                         }
                     >
                         <UserMenuContent user={user} />

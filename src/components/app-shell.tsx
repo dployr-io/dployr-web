@@ -1,5 +1,4 @@
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { SharedData } from '@/types';
 
 interface AppShellProps {
     children: React.ReactNode;

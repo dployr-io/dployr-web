@@ -1,5 +1,4 @@
 import AppLogoIcon from '@/components/app-logo-icon';
-import { type SharedData } from '@/types';
 import { type PropsWithChildren } from 'react';
 
 interface AuthLayoutProps {

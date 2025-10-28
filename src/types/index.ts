@@ -1,6 +1,11 @@
-import { LucideIcon } from 'lucide-react';
-import { Runtime } from '.';
-import { dnsProviders } from './runtimes';
+import type { LucideIcon } from 'lucide-react';
+import { dnsProviders, runtimes, logLevels } from './runtimes';
+
+export type Runtime = (typeof runtimes)[number];
+export type DnsProvider = (typeof dnsProviders)[number];
+export type BlueprintFormat = 'yaml' | 'json';
+export type LogChannel = 'production' | 'local';
+export type LogLevel = (typeof logLevels)[number];
 
 export interface Auth {
     user: User;
@@ -101,16 +106,6 @@ export interface Blueprint {
     created_at: Date;
     updated_at: Date;
 }
-
-export type Runtime = (typeof runtimes)[number];
-
-export type DnsProvider = (typeof dnsProviders)[number];
-
-export type BlueprintFormat = 'yaml' | 'json';
-
-export type LogChannel = 'production' | 'local';
-
-export type LogLevel = (typeof logLevels)[number];
 
 export interface Log {
     id: string;
