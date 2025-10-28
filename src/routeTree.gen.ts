@@ -19,7 +19,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsUsersRouteImport } from './routes/settings.users'
-import { Route as SettingsProfilecopyRouteImport } from './routes/settings.profile copy'
+import { Route as SettingsSystemRouteImport } from './routes/settings.system'
 import { Route as SettingsConfigRouteImport } from './routes/settings.config'
 
 const SpecsRoute = SpecsRouteImport.update({
@@ -72,9 +72,9 @@ const SettingsUsersRoute = SettingsUsersRouteImport.update({
   path: '/settings/users',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsProfilecopyRoute = SettingsProfilecopyRouteImport.update({
-  id: '/settings/profile copy',
-  path: '/settings/profile copy',
+const SettingsSystemRoute = SettingsSystemRouteImport.update({
+  id: '/settings/system',
+  path: '/settings/system',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsConfigRoute = SettingsConfigRouteImport.update({
@@ -94,7 +94,7 @@ export interface FileRoutesByFullPath {
   '/services': typeof ServicesRoute
   '/specs': typeof SpecsRoute
   '/settings/config': typeof SettingsConfigRoute
-  '/settings/profile copy': typeof SettingsProfilecopyRoute
+  '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRoutesByTo {
@@ -108,7 +108,7 @@ export interface FileRoutesByTo {
   '/services': typeof ServicesRoute
   '/specs': typeof SpecsRoute
   '/settings/config': typeof SettingsConfigRoute
-  '/settings/profile copy': typeof SettingsProfilecopyRoute
+  '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRoutesById {
@@ -123,7 +123,7 @@ export interface FileRoutesById {
   '/services': typeof ServicesRoute
   '/specs': typeof SpecsRoute
   '/settings/config': typeof SettingsConfigRoute
-  '/settings/profile copy': typeof SettingsProfilecopyRoute
+  '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
 }
 export interface FileRouteTypes {
@@ -139,7 +139,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/specs'
     | '/settings/config'
-    | '/settings/profile copy'
+    | '/settings/system'
     | '/settings/users'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -153,7 +153,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/specs'
     | '/settings/config'
-    | '/settings/profile copy'
+    | '/settings/system'
     | '/settings/users'
   id:
     | '__root__'
@@ -167,7 +167,7 @@ export interface FileRouteTypes {
     | '/services'
     | '/specs'
     | '/settings/config'
-    | '/settings/profile copy'
+    | '/settings/system'
     | '/settings/users'
   fileRoutesById: FileRoutesById
 }
@@ -182,7 +182,7 @@ export interface RootRouteChildren {
   ServicesRoute: typeof ServicesRoute
   SpecsRoute: typeof SpecsRoute
   SettingsConfigRoute: typeof SettingsConfigRoute
-  SettingsProfilecopyRoute: typeof SettingsProfilecopyRoute
+  SettingsSystemRoute: typeof SettingsSystemRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
 }
 
@@ -258,11 +258,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/profile copy': {
-      id: '/settings/profile copy'
-      path: '/settings/profile copy'
-      fullPath: '/settings/profile copy'
-      preLoaderRoute: typeof SettingsProfilecopyRouteImport
+    '/settings/system': {
+      id: '/settings/system'
+      path: '/settings/system'
+      fullPath: '/settings/system'
+      preLoaderRoute: typeof SettingsSystemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/config': {
@@ -286,7 +286,7 @@ const rootRouteChildren: RootRouteChildren = {
   ServicesRoute: ServicesRoute,
   SpecsRoute: SpecsRoute,
   SettingsConfigRoute: SettingsConfigRoute,
-  SettingsProfilecopyRoute: SettingsProfilecopyRoute,
+  SettingsSystemRoute: SettingsSystemRoute,
   SettingsUsersRoute: SettingsUsersRoute,
 }
 export const routeTree = rootRouteImport

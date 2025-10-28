@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import "../css/app.css";
 import { Input } from "@/components/ui/input";
 import { useForm } from "@tanstack/react-form";
@@ -15,27 +15,82 @@ import {
     InputOTPSeparator,
     InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { setAuthToken, verifyOtp } from "@/lib/auth";
+import { toast } from "@/lib/toast";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
     component: App,
 });
 
 function App() {
+    const { login, isAuthenticated, isLoading } = useAuth();
+    const router = useRouter();
+    const [verifyOTP, setVerifyOtp] = useState(false);
+    const [otpValue, setOtpValue] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const form = useForm({
         defaultValues: {
             instance: "",
             email: "",
         },
         onSubmit: async ({ value }) => {
-            // Do something with form data
-            console.log(value);
-
-            setVerifyOtp(true);
+            try {
+                setIsSubmitting(true);
+                await login({
+                    email: value.email,
+                    expiry: "1h",
+                    instance: value.instance
+                });
+                setVerifyOtp(true);
+            } catch (error) {
+                toast.error(`Login failed: ${(error as Error).message}`);
+            } finally {
+                setIsSubmitting(false);
+            }
         },
     });
 
-    const [verifyOTP, setVerifyOtp] = useState(false);
+    useEffect(() => {
+        if (isAuthenticated) {
+            router.navigate({ to: '/dashboard' });
+        }
+    }, [isAuthenticated, router]);
+
+    const handleOtpComplete = async (value: string) => {
+        if (value.length === 6) {
+            // TOOD: impl
+            try {
+                setIsSubmitting(true);
+                const response = await verifyOtp({
+                    otp: value,
+                    email: form.state.values.email
+                });
+                setAuthToken(response.token);
+
+                router.navigate({ to: '/dashboard' });
+            } catch (error) {
+                console.error('OTP verification failed:', error);
+                setOtpValue("");
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="text-center">
+                     <Loader2 className="h-4 w-4 animate-spin" />
+                    <p>Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]">
@@ -57,7 +112,15 @@ function App() {
 
                             {verifyOTP ? (
                                 <div className="flex flex-col justify-center flex-1">
-                                    <InputOTP maxLength={6} >
+                                    <InputOTP
+                                        maxLength={6}
+                                        value={otpValue}
+                                        onChange={(value) => {
+                                            setOtpValue(value);
+                                            handleOtpComplete(value);
+                                        }}
+                                        disabled={isSubmitting}
+                                    >
                                         <InputOTPGroup>
                                             <InputOTPSlot index={0} />
                                             <InputOTPSlot index={1} />
@@ -74,6 +137,7 @@ function App() {
                                     <Button
                                         onClick={() => setVerifyOtp(false)}
                                         className="mt-12 w-fit"
+                                        disabled={isSubmitting}
                                     >
                                         Back
                                     </Button>
@@ -191,8 +255,12 @@ function App() {
                                         />
                                     </FieldGroup>
 
-                                    <Button type="submit" className="mt-6">
-                                        Submit
+                                    <Button
+                                        type="submit"
+                                        className="mt-6"
+                                        disabled={isSubmitting}
+                                    >
+                                        {isSubmitting ? 'Submitting...' : 'Submit'}
                                     </Button>
                                 </form>
                             )}

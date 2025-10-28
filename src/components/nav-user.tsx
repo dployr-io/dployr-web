@@ -12,21 +12,17 @@ import {
 import { UserInfo } from "@/components/user-info";
 import { UserMenuContent } from "@/components/user-menu-content";
 import { useIsMobile } from "@/hooks/use-mobile";
-import type { User } from "@/types";
+import { useAuth } from "@/hooks/use-auth";
 import { ChevronsUpDown } from "lucide-react";
 
 export function NavUser() {
-    // const { auth } = usePage<SharedData>().props;
     const { state } = useSidebar();
     const isMobile = useIsMobile();
-    const user: User = {
-        id: "123",
-        name: "Jon Doe",
-        email: "email@example.com",
-        avatar: "",
-        created_at: new Date(),
-        updated_at: new Date(),
-    };
+    const { user } = useAuth();
+
+    if (!user) {
+        return null;
+    }
 
     return (
         <SidebarMenu>

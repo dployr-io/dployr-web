@@ -1,7 +1,8 @@
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { type User } from '@/types';
+import { useAuth } from '@/hooks/use-auth';
+import { type User } from '@/lib/auth';
 import { LogOut, Settings } from 'lucide-react';
 
 interface UserMenuContentProps {
@@ -10,10 +11,11 @@ interface UserMenuContentProps {
 
 export function UserMenuContent({ user }: UserMenuContentProps) {
     const cleanup = useMobileNavigation();
+    const { logout } = useAuth();
 
     const handleLogout = () => {
         cleanup();
-        // router.flushAll();
+        logout();
     };
 
     return (
@@ -33,11 +35,9 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-                <a className="block w-full" href={'/signout'} onClick={handleLogout}>
-                    <LogOut className="mr-2" />
-                    Log out
-                </a>
+            <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2" />
+                Log out
             </DropdownMenuItem>
         </>
     );

@@ -1,10 +1,10 @@
-import type { LucideIcon } from 'lucide-react';
-import { dnsProviders, runtimes, logLevels } from './runtimes';
+import type { LucideIcon } from "lucide-react";
+import { dnsProviders, runtimes, logLevels } from "./runtimes";
 
 export type Runtime = (typeof runtimes)[number];
 export type DnsProvider = (typeof dnsProviders)[number];
-export type BlueprintFormat = 'yaml' | 'json';
-export type LogChannel = 'production' | 'local';
+export type BlueprintFormat = "yaml" | "json";
+export type LogChannel = "production" | "local";
 export type LogLevel = (typeof logLevels)[number];
 
 export interface Auth {
@@ -42,16 +42,32 @@ export interface ApiResponse {
     error?: string;
 }
 
-export type Role = 'user' | 'admin';
+export type UserRole = "user" | "admin";
+
+export interface AuthRequest {
+    email: string;
+    expiry: "15m" | "1h" | "never";
+    instance: string;
+}
+
+export interface OtpVerifyRequest {
+    email: string;
+    otp: string;
+}
+
+export interface AuthResponse {
+    token: string;
+    expires_at: string;
+    user: string; // email as identifier
+}
 
 export interface User {
     id: string;
-    name: string;
     email: string;
     avatar?: string;
-    role: Role;
-    created_at: Date;
-    updated_at: Date;
+    role: UserRole;
+    created_at?: Date | unknown;
+    updated_at?: Date | unknown;
     [key: string]: unknown; // This allows for additional properties...
 }
 
@@ -76,9 +92,9 @@ export interface DockerImage {
     name: string;
 }
 
-export type ServiceSource = 'image' | 'remote';
+export type ServiceSource = "image" | "remote";
 
-export type Status = 'pending' | 'in_progress' | 'failed' | 'completed';
+export type Status = "pending" | "in_progress" | "failed" | "completed";
 
 export interface Service {
     id: string;
