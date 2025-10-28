@@ -45,7 +45,7 @@ function App() {
                     expiry: "1h",
                     instance: value.instance
                 });
-                setVerifyOtp(true);
+                // setVerifyOtp(true);
             } catch (error) {
                 toast.error(`Login failed: ${(error as Error).message}`);
             } finally {
@@ -260,6 +260,7 @@ function App() {
                                         className="mt-6"
                                         disabled={isSubmitting}
                                     >
+                                        {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                                         {isSubmitting ? 'Submitting...' : 'Submit'}
                                     </Button>
                                 </form>
