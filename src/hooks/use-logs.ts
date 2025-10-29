@@ -1,13 +1,13 @@
-import { parseLog } from '@/lib/utils';
-import type { Blueprint, LogLevel, Service } from '@/types';
-import type { Log } from '@/types';
-import { useEffect, useRef, useState } from 'react';
+import { parseLog } from "@/lib/utils";
+import type { Deployment, LogLevel, Service } from "@/types";
+import type { Log } from "@/types";
+import { useEffect, useRef, useState } from "react";
 
-export function useLogs(filterItem?: Blueprint | Service | null) {
+export function useLogs(filterItem?: Deployment | Service | null) {
     const [logs, setLogs] = useState<Log[]>([]);
     const [filteredLogs, setFilteredLogs] = useState<Log[]>([]);
-    const [selectedLevel, setSelectedLevel] = useState<'ALL' | LogLevel>('ALL');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState<"ALL" | LogLevel>("ALL");
+    const [searchQuery, setSearchQuery] = useState("");
     const logsEndRef = useRef<HTMLDivElement | null>(null);
     const hasSeenValidLog = useRef(false);
 
@@ -15,7 +15,7 @@ export function useLogs(filterItem?: Blueprint | Service | null) {
         // Reset the flag when filterItem changes
         hasSeenValidLog.current = false;
 
-        const eventSource = new EventSource('/logs/stream');
+        const eventSource = new EventSource("/logs/stream");
 
         eventSource.onmessage = (event) => {
             const log = parseLog(event.data);
@@ -33,9 +33,13 @@ export function useLogs(filterItem?: Blueprint | Service | null) {
 
                     const status = filterItem.status;
 
-                    if (status === 'completed' || status === 'failed') {
-                        const logTimeInSecs = Math.floor(new Date(logTime).getTime() / 1000);
-                        const updatedTimeInSecs = Math.floor(new Date(filterItem.updated_at).getTime() / 1000);
+                    if (status === "completed" || status === "failed") {
+                        const logTimeInSecs = Math.floor(
+                            new Date(logTime).getTime() / 1000,
+                        );
+                        const updatedTimeInSecs = Math.floor(
+                            new Date(filterItem.updated_at).getTime() / 1000,
+                        );
 
                         if (logTimeInSecs > updatedTimeInSecs) {
                             return;
@@ -59,7 +63,7 @@ export function useLogs(filterItem?: Blueprint | Service | null) {
         };
 
         eventSource.onerror = (error) => {
-            console.error('SSE connection error:', error);
+            console.error("SSE connection error:", error);
             eventSource.close();
         };
 
@@ -72,12 +76,16 @@ export function useLogs(filterItem?: Blueprint | Service | null) {
     useEffect(() => {
         let filtered = logs;
 
-        if (selectedLevel !== 'ALL') {
-            filtered = filtered.filter((log) => log.level_name === selectedLevel);
+        if (selectedLevel !== "ALL") {
+            filtered = filtered.filter(
+                (log) => log.level_name === selectedLevel,
+            );
         }
 
         if (searchQuery) {
-            filtered = filtered.filter((log) => log.message.toLowerCase().includes(searchQuery.toLowerCase()));
+            filtered = filtered.filter((log) =>
+                log.message.toLowerCase().includes(searchQuery.toLowerCase()),
+            );
         }
 
         setFilteredLogs(filtered);
@@ -85,7 +93,7 @@ export function useLogs(filterItem?: Blueprint | Service | null) {
 
     // Auto-scroll to bottom when new logs arrive
     useEffect(() => {
-        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [filteredLogs]);
 
     return {

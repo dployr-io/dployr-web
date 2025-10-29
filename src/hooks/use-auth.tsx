@@ -26,8 +26,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryKey: ["auth", "verify"],
         queryFn: verifyAuth,
         enabled:
-            !!localStorage.getItem("auth_token") &&
-            !!localStorage.getItem("instance_url"),
+            !!localStorage.getItem("dployr_auth_token") &&
+            !!localStorage.getItem("dployr_instance_url"),
         retry: false,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = () => {
         removeAuthToken();
-        localStorage.removeItem("instance_url");
+        localStorage.removeItem("dployr_instance_url");
         queryClient.removeQueries({ queryKey: ["auth"] });
         window.location.href = "/";
     };

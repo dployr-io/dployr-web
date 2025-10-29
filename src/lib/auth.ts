@@ -4,14 +4,14 @@ import axios from "axios";
 import { toast } from "./toast";
 
 function getInstanceUrl(): string | null {
-    return localStorage.getItem("instance_url");
+    return localStorage.getItem("dployr_instance_url");
 }
 
 export function setInstanceUrl(url: string): void {
-    localStorage.setItem("instance_url", url);
+    localStorage.setItem("dployr_instance_url", url);
 }
 
-function createApiInstance(token?: string | unknown) {
+export function createApiInstance(token?: string | unknown) {
     const instanceUrl = getInstanceUrl();
     if (!instanceUrl) {
         toast.error("Please sign in first.");
@@ -65,16 +65,16 @@ export async function verifyAuth(): Promise<User> {
 }
 
 export function getAuthToken(): string | null {
-    return localStorage.getItem("auth_token");
+    return localStorage.getItem("dployr_auth_token");
 }
 
 export function setAuthToken(token: string): void {
-    localStorage.setItem("auth_token", token);
+    localStorage.setItem("dployr_auth_token", token);
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 }
 
 export function removeAuthToken(): void {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("instance_url");
+    localStorage.removeItem("dployr_auth_token");
+    localStorage.removeItem("dployr_instance_url");
     delete axios.defaults.headers.common["Authorization"];
 }

@@ -1,23 +1,29 @@
-import type { Blueprint } from '@/types';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
-import { useState } from 'react';
+import { createApiInstance, getAuthToken } from "@/lib/auth";
+import type { Deployment } from "@/types";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 export function useDeployments() {
     const params = new URLSearchParams(window.location.search);
-    const spec = params.get('spec');
+    const spec = params.get("spec");
 
-    const { data: deployments, isLoading } = useQuery<Blueprint[]>({
-        queryKey: ['deployments', spec],
+    const { data: deployments, isLoading } = useQuery<Deployment[]>({
+        queryKey: ["deployments", spec],
         queryFn: async () => {
+            const token = getAuthToken();
+            const api = createApiInstance(token);
+
             try {
-                const response = await axios.get('/deployments', {
+                const response = await api?.get("/deployments", {
                     params: Object.fromEntries(params),
                 });
-                const data = response.data;
+                const data = response?.data;
                 return Array.isArray(data) ? data : [];
             } catch (error) {
-                console.error((error as Error).message || 'An unknown error occoured while retrieving deployments');
+                console.error(
+                    (error as Error).message ||
+                        "An unknown error occoured while retrieving deployments",
+                );
                 return [];
             }
         },
@@ -29,7 +35,9 @@ export function useDeployments() {
     const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const paginatedDeployments = Array.isArray(deployments) ? deployments.slice(startIndex, endIndex) : [];
+    const paginatedDeployments = Array.isArray(deployments)
+        ? deployments.slice(startIndex, endIndex)
+        : [];
 
     const goToPage = (page: number) => {
         setCurrentPage(Math.max(1, Math.min(page, totalPages)));

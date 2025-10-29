@@ -14,13 +14,14 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LogsRouteImport } from './routes/logs'
-import { Route as DeploymentsRouteImport } from './routes/deployments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DeploymentsIndexRouteImport } from './routes/deployments/index'
 import { Route as SettingsUsersRouteImport } from './routes/settings.users'
 import { Route as SettingsSystemRouteImport } from './routes/settings.system'
 import { Route as SettingsConfigRouteImport } from './routes/settings.config'
+import { Route as DeploymentsIdRouteImport } from './routes/deployments/$id'
 
 const SpecsRoute = SpecsRouteImport.update({
   id: '/specs',
@@ -47,11 +48,6 @@ const LogsRoute = LogsRouteImport.update({
   path: '/logs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DeploymentsRoute = DeploymentsRouteImport.update({
-  id: '/deployments',
-  path: '/deployments',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -65,6 +61,11 @@ const ConsoleRoute = ConsoleRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeploymentsIndexRoute = DeploymentsIndexRouteImport.update({
+  id: '/deployments/',
+  path: '/deployments/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsUsersRoute = SettingsUsersRouteImport.update({
@@ -82,49 +83,57 @@ const SettingsConfigRoute = SettingsConfigRouteImport.update({
   path: '/settings/config',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeploymentsIdRoute = DeploymentsIdRouteImport.update({
+  id: '/deployments/$id',
+  path: '/deployments/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/console': typeof ConsoleRoute
   '/dashboard': typeof DashboardRoute
-  '/deployments': typeof DeploymentsRoute
   '/logs': typeof LogsRoute
   '/notifications': typeof NotificationsRoute
   '/resources': typeof ResourcesRoute
   '/services': typeof ServicesRoute
   '/specs': typeof SpecsRoute
+  '/deployments/$id': typeof DeploymentsIdRoute
   '/settings/config': typeof SettingsConfigRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/deployments': typeof DeploymentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/console': typeof ConsoleRoute
   '/dashboard': typeof DashboardRoute
-  '/deployments': typeof DeploymentsRoute
   '/logs': typeof LogsRoute
   '/notifications': typeof NotificationsRoute
   '/resources': typeof ResourcesRoute
   '/services': typeof ServicesRoute
   '/specs': typeof SpecsRoute
+  '/deployments/$id': typeof DeploymentsIdRoute
   '/settings/config': typeof SettingsConfigRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/deployments': typeof DeploymentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/console': typeof ConsoleRoute
   '/dashboard': typeof DashboardRoute
-  '/deployments': typeof DeploymentsRoute
   '/logs': typeof LogsRoute
   '/notifications': typeof NotificationsRoute
   '/resources': typeof ResourcesRoute
   '/services': typeof ServicesRoute
   '/specs': typeof SpecsRoute
+  '/deployments/$id': typeof DeploymentsIdRoute
   '/settings/config': typeof SettingsConfigRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
+  '/deployments/': typeof DeploymentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,58 +141,62 @@ export interface FileRouteTypes {
     | '/'
     | '/console'
     | '/dashboard'
-    | '/deployments'
     | '/logs'
     | '/notifications'
     | '/resources'
     | '/services'
     | '/specs'
+    | '/deployments/$id'
     | '/settings/config'
     | '/settings/system'
     | '/settings/users'
+    | '/deployments'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/console'
     | '/dashboard'
-    | '/deployments'
     | '/logs'
     | '/notifications'
     | '/resources'
     | '/services'
     | '/specs'
+    | '/deployments/$id'
     | '/settings/config'
     | '/settings/system'
     | '/settings/users'
+    | '/deployments'
   id:
     | '__root__'
     | '/'
     | '/console'
     | '/dashboard'
-    | '/deployments'
     | '/logs'
     | '/notifications'
     | '/resources'
     | '/services'
     | '/specs'
+    | '/deployments/$id'
     | '/settings/config'
     | '/settings/system'
     | '/settings/users'
+    | '/deployments/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConsoleRoute: typeof ConsoleRoute
   DashboardRoute: typeof DashboardRoute
-  DeploymentsRoute: typeof DeploymentsRoute
   LogsRoute: typeof LogsRoute
   NotificationsRoute: typeof NotificationsRoute
   ResourcesRoute: typeof ResourcesRoute
   ServicesRoute: typeof ServicesRoute
   SpecsRoute: typeof SpecsRoute
+  DeploymentsIdRoute: typeof DeploymentsIdRoute
   SettingsConfigRoute: typeof SettingsConfigRoute
   SettingsSystemRoute: typeof SettingsSystemRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
+  DeploymentsIndexRoute: typeof DeploymentsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -223,13 +236,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LogsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/deployments': {
-      id: '/deployments'
-      path: '/deployments'
-      fullPath: '/deployments'
-      preLoaderRoute: typeof DeploymentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -249,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deployments/': {
+      id: '/deployments/'
+      path: '/deployments'
+      fullPath: '/deployments'
+      preLoaderRoute: typeof DeploymentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/users': {
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deployments/$id': {
+      id: '/deployments/$id'
+      path: '/deployments/$id'
+      fullPath: '/deployments/$id'
+      preLoaderRoute: typeof DeploymentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -279,15 +299,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConsoleRoute: ConsoleRoute,
   DashboardRoute: DashboardRoute,
-  DeploymentsRoute: DeploymentsRoute,
   LogsRoute: LogsRoute,
   NotificationsRoute: NotificationsRoute,
   ResourcesRoute: ResourcesRoute,
   ServicesRoute: ServicesRoute,
   SpecsRoute: SpecsRoute,
+  DeploymentsIdRoute: DeploymentsIdRoute,
   SettingsConfigRoute: SettingsConfigRoute,
   SettingsSystemRoute: SettingsSystemRoute,
   SettingsUsersRoute: SettingsUsersRoute,
+  DeploymentsIndexRoute: DeploymentsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,7 +1,7 @@
-import type { Blueprint } from '@/types';
+import type { Deployment } from "@/types";
 
 interface Props {
-    blueprint?: Blueprint;
+    blueprint?: Deployment;
 }
 
 export default function SpecCard({ blueprint }: Props) {

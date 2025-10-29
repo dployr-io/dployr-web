@@ -1,16 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import "../css/app.css";
+import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
 import { Button } from "@/components/ui/button";
+import TimeAgo from "react-timeago";
 import {
     ArrowUpRightIcon,
     ChevronLeft,
     ChevronRight,
     Factory,
-    Table,
 } from "lucide-react";
 import {
+    Table,
     TableBody,
     TableCell,
     TableHead,
@@ -31,9 +32,9 @@ import {
     EmptyTitle,
 } from "@/components/ui/empty";
 import { useDeployments } from "@/hooks/use-deployments";
-import { useRemotes } from "@/hooks/use-remotes";
 import { ProtectedRoute } from "@/components/protected-route";
-export const Route = createFileRoute("/deployments")({
+import { formatWithoutSuffix } from "@/lib/utils";
+export const Route = createFileRoute("/deployments/")({
     component: Deployments,
 });
 
@@ -57,8 +58,6 @@ function Deployments() {
         goToNextPage,
         goToPreviousPage,
     } = useDeployments();
-
-    const { isLoading: isRemotesLoading } = useRemotes();
 
     return (
         <ProtectedRoute>
@@ -139,14 +138,18 @@ function Deployments() {
                                                       <TableRow
                                                           key={deployment.id}
                                                           className="h-16 cursor-pointer"
-                                                          onClick={() => {}}
+                                                          onClick={() => {
+                                                              window.location.href = `/deployments/${deployment.id}`;
+                                                          }}
                                                       >
                                                           <TableCell className="h-16 w-60 overflow-hidden align-middle font-medium">
                                                               <span className="block truncate">
-                                                                  {deployment
-                                                                      .config
-                                                                      ?.name ||
-                                                                      "-"}
+                                                                  {String(
+                                                                      deployment
+                                                                          .config
+                                                                          ?.name ||
+                                                                          "-",
+                                                                  )}
                                                               </span>
                                                           </TableCell>
                                                           <TableCell className="h-16 w-[120px] align-middle">
@@ -209,7 +212,14 @@ function Deployments() {
                                                                   )
                                                               ) : (
                                                                   <>
-                                                                      {/* <TimeAgo date={deployment.created_at} formatter={formatWithoutSuffix} /> */}
+                                                                      <TimeAgo
+                                                                          date={
+                                                                              deployment.created_at
+                                                                          }
+                                                                          formatter={
+                                                                              formatWithoutSuffix
+                                                                          }
+                                                                      />
                                                                   </>
                                                               )}
                                                           </TableCell>
@@ -225,30 +235,34 @@ function Deployments() {
                                                                   {getRuntimeIcon(
                                                                       deployment
                                                                           .config
-                                                                          ?.runtime ||
+                                                                          ?.runtime
+                                                                          ?.type ||
                                                                           "custom",
                                                                   )}
                                                                   <span>
-                                                                      {deployment
-                                                                          .config
-                                                                          ?.runtime ||
-                                                                          "-"}
+                                                                      {String(
+                                                                          deployment
+                                                                              .config
+                                                                              ?.runtime
+                                                                              ?.type ||
+                                                                              "-",
+                                                                      )}
                                                                   </span>
                                                               </div>
                                                           </TableCell>
                                                           <TableCell className="h-16 max-w-[320px] overflow-hidden align-middle">
                                                               <div className="flex min-w-0 items-center gap-2">
-                                                                  {isRemotesLoading &&
+                                                                  {
                                                                   !deployment
                                                                       .config
                                                                       ?.remote
-                                                                      ?.name ? (
+                                                                      ?.url ? (
                                                                       <div className="max-w-[320px]overflow-hidden align-middle">
                                                                           <Skeleton className="h-4 w-40" />
                                                                       </div>
                                                                   ) : (
                                                                       <>
-                                                                          {deployment.config?.remote?.provider?.includes(
+                                                                          {deployment.config?.remote?.url?.includes(
                                                                               "github",
                                                                           ) ? (
                                                                               <RxGithubLogo />
@@ -259,7 +273,11 @@ function Deployments() {
                                                                               {deployment
                                                                                   .config
                                                                                   ?.remote
-                                                                                  ? `${deployment.config.remote.name}/${deployment.config.remote.repository}`
+                                                                                  ? deployment.config.remote.url?.replace(
+                                                                                        /^https?:\/\//,
+                                                                                        "",
+                                                                                    ) ||
+                                                                                    "-"
                                                                                   : "-"}
                                                                           </span>
                                                                       </>
@@ -268,10 +286,12 @@ function Deployments() {
                                                           </TableCell>
                                                           <TableCell className="h-16 w-[200px] overflow-hidden text-right align-middle">
                                                               <span className="block truncate text-right">
-                                                                  {deployment
-                                                                      .config
-                                                                      ?.run_cmd ||
-                                                                      "-"}
+                                                                  {String(
+                                                                      deployment
+                                                                          .config
+                                                                          ?.run_cmd ||
+                                                                          "-",
+                                                                  )}
                                                               </span>
                                                           </TableCell>
                                                       </TableRow>
@@ -370,5 +390,5 @@ function Deployments() {
                 </div>
             </AppLayout>
         </ProtectedRoute>
-    );
+    )
 }

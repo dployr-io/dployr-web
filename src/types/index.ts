@@ -78,12 +78,8 @@ export interface Project {
 }
 
 export interface Remote {
-    id: string;
-    name: string;
-    repository: string;
-    branch: string;
-    provider: string;
-    commit_message?: string | null;
+    url: string;
+    commit_hash?: string | null;
     avatar_url?: string | null;
 }
 
@@ -96,17 +92,23 @@ export type ServiceSource = "image" | "remote";
 
 export type Status = "pending" | "in_progress" | "failed" | "completed";
 
+export interface RuntimeObj {
+    type: Runtime;
+    version?: string | null;
+}
+
 export interface Service {
     id: string;
     name: string;
+    description: string;
     status: Status;
-    runtime: Runtime;
+    runtime: RuntimeObj;
     remote?: Remote | null;
-    ci_remote?: Remote | null;
     run_cmd?: string | null;
-    working_dir?: string | null;
-    env_vars?: Record<string, string> | null;
     build_cmd?: string | null;
+    working_dir?: string | null;
+    static_dir?: string | null;
+    env_vars?: Record<string, string> | null;
     image?: string | null;
     port?: number | null;
     dns_provider?: DnsProvider | null;
@@ -118,7 +120,7 @@ export interface Service {
     updated_at: Date;
 }
 
-export interface Blueprint {
+export interface Deployment {
     id: string;
     config: Partial<Service>;
     status: Status;
@@ -132,6 +134,6 @@ export interface Log {
     level?: number | null;
     level_name?: LogLevel | null;
     datetime?: Date | null;
-    channe?: LogChannel;
+    channel?: LogChannel;
     context?: Record<string, unknown> | null;
 }
