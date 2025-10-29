@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import "../css/app.css";
+import "@/css/app.css";
 import { Input } from "@/components/ui/input";
 import { useForm } from "@tanstack/react-form";
 import {
@@ -43,7 +43,7 @@ function App() {
                 await login({
                     email: value.email,
                     expiry: "1h",
-                    instance: value.instance
+                    instance: value.instance,
                 });
                 // setVerifyOtp(true);
             } catch (error) {
@@ -56,7 +56,7 @@ function App() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            router.navigate({ to: '/dashboard' });
+            router.navigate({ to: "/dashboard" });
         }
     }, [isAuthenticated, router]);
 
@@ -67,13 +67,13 @@ function App() {
                 setIsSubmitting(true);
                 const response = await verifyOtp({
                     otp: value,
-                    email: form.state.values.email
+                    email: form.state.values.email,
                 });
                 setAuthToken(response.token);
 
-                router.navigate({ to: '/dashboard' });
+                router.navigate({ to: "/dashboard" });
             } catch (error) {
-                console.error('OTP verification failed:', error);
+                console.error("OTP verification failed:", error);
                 setOtpValue("");
             } finally {
                 setIsSubmitting(false);
@@ -85,7 +85,7 @@ function App() {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="text-center">
-                     <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     <p>Loading...</p>
                 </div>
             </div>
@@ -94,7 +94,6 @@ function App() {
 
     return (
         <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]">
-
             <div className="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0">
                 <main className="flex w-full max-w-[335px] flex-col-reverse lg:max-w-4xl lg:flex-row">
                     <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-5 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
@@ -260,8 +259,12 @@ function App() {
                                         className="mt-6"
                                         disabled={isSubmitting}
                                     >
-                                        {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                                        {isSubmitting ? 'Submitting...' : 'Submit'}
+                                        {isSubmitting && (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        )}
+                                        {isSubmitting
+                                            ? "Submitting..."
+                                            : "Submit"}
                                     </Button>
                                 </form>
                             )}
@@ -275,19 +278,13 @@ function App() {
             <div className="hidden h-14.5 lg:block"></div>
             <footer className="flex gap-4 text-muted-foreground">
                 <a className="cursor-pointer" href="https://dployr.dev">
-                    <p className="text-xs">
-                        Terms of use
-                    </p>
+                    <p className="text-xs">Terms of use</p>
                 </a>
                 <a className="cursor-pointer" href="https://dployr.dev">
-                    <p className="text-xs">
-                        Docs
-                    </p>
+                    <p className="text-xs">Docs</p>
                 </a>
                 <a className="cursor-pointer" href="https://dployr.dev">
-                    <p className="text-xs">
-                        Changelogs
-                    </p>
+                    <p className="text-xs">Changelogs</p>
                 </a>
             </footer>
         </div>

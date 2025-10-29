@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import "../css/app.css";
+import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
 import { FitAddon } from "@xterm/addon-fit";

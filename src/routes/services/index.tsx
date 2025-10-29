@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import "../css/app.css";
+import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ import { useState } from "react";
 import { useServices } from "@/hooks/use-services";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { ProtectedRoute } from "@/components/protected-route";
-export const Route = createFileRoute("/services")({
+export const Route = createFileRoute("/services/")({
     component: Services,
 });
 
@@ -86,7 +86,7 @@ function Services() {
                                     className="flex items-center gap-2"
                                     asChild
                                 >
-                                    <a href={"#"}>
+                                    <a href={"/deployments"}>
                                         <CirclePlus className="h-4 w-4" />
                                         Deploy Service
                                     </a>
@@ -111,7 +111,9 @@ function Services() {
                                     <EmptyContent>
                                         <div className="flex justify-center gap-2">
                                             <Button>
-                                                <a href={"#"}>Deploy Service</a>
+                                                <a href={"/deployments"}>
+                                                    Deploy Service
+                                                </a>
                                             </Button>
                                             <Button
                                                 variant="link"
@@ -119,7 +121,7 @@ function Services() {
                                                 className="text-muted-foreground"
                                                 size="sm"
                                             >
-                                                <a href="#">
+                                                <a href="https://dployr.dev/docs">
                                                     Learn More{" "}
                                                     <ArrowUpRightIcon />
                                                 </a>
@@ -172,11 +174,15 @@ function Services() {
                                                           <TableCell className="h-16 align-middle">
                                                               <div className="flex items-center gap-2">
                                                                   {getRuntimeIcon(
-                                                                      service.runtime.type,
+                                                                      service
+                                                                          .runtime
+                                                                          .type,
                                                                   )}
                                                                   <span>
                                                                       {
-                                                                          service.runtime.type
+                                                                          service
+                                                                              .runtime
+                                                                              .type
                                                                       }
                                                                   </span>
                                                               </div>

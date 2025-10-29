@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import "../css/app.css";
+import "@/css/app.css";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
