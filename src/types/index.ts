@@ -89,7 +89,16 @@ export interface DockerImage {
 
 export type ServiceSource = "image" | "remote";
 
-export type Status = "pending" | "in_progress" | "failed" | "completed";
+export type DeploymentStatus =
+    | "pending"
+    | "in_progress"
+    | "failed"
+    | "completed";
+
+export type ServiceStatus =
+    | "running"
+    | "stopped"
+    | "unknown";
 
 export interface RuntimeObj {
     type: Runtime;
@@ -100,7 +109,7 @@ export interface Service {
     id: string;
     name: string;
     description: string;
-    status: Status;
+    status: ServiceStatus;
     runtime: RuntimeObj;
     remote?: Remote | null;
     run_cmd?: string | null;
@@ -122,7 +131,7 @@ export interface Service {
 export interface Deployment {
     id: string;
     config: Partial<Service>;
-    status: Status;
+    status: DeploymentStatus;
     created_at: Date;
     updated_at: Date;
 }
