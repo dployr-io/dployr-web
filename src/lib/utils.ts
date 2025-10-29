@@ -1,7 +1,7 @@
 import type { Log, LogLevel } from '@/types';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { v4 as uuidv4 } from 'uuid';
+import { ulid } from 'ulid';
 
 /**
  * Merge Tailwind and custom class names.
@@ -67,39 +67,32 @@ export function toJson(obj: Record<string, unknown>): string {
 }
 
 /** Parse a log line into a Log object.
- * e.g.: [2025-10-07 02:14:06] local.ERROR: Something went wrong {"context":"value"}
- * defaults to INFO level_name.
+ * e.g.: {"id":"01K8R686XH6AST6AYHTQK1CZ99","level":"info","message":"creating workspace","timestamp":"2025-10-29T15:34:18.4177427+01:00"}
+ * defaults to INFO level.
  */
 export function parseLog(raw: string): Log {
-    const id = uuidv4();
-    if (!raw) return { id, message: '', level_name: 'INFO' };
+    const id = ulid();
+    if (!raw) return { id, message: '', level: 'INFO', timestamp: new Date() };
 
     try {
-        const logData = JSON.parse(JSON.parse(raw).message);
+        const logData = JSON.parse(raw);
 
-        if (logData.level_name && logData.message) {
+        if (logData.message) {
             return {
-                id,
+                id: logData.id || id,
                 message: logData.message,
-                level: parseInt(logData.level),
-                level_name: logData.level_name.toUpperCase() as LogLevel,
-                datetime: logData.datetime ? new Date(logData.datetime) : undefined,
-                context: logData.context,
+                level: (logData.level?.toUpperCase() || 'INFO') as LogLevel,
+                timestamp: logData.timestamp ? new Date(logData.timestamp) : new Date(),
             };
         }
     } catch (error) {
-        console.error((error as Error).message || 'An unknown error occoured while parsing log');
+        console.error((error as Error).message || 'An unknown error occurred while parsing log');
     }
 
-    return { id, message: raw, level_name: 'INFO' };
+    return { id: id, message: raw, level: 'INFO', timestamp: new Date() };
 }
 
-/** Tiny wrapper for fetch api to timeout requests and avoid zombie processes */
-export function fetchWithTimeout(url: string, options = {}, timeout = 10000) {
-    return Promise.race([fetch(url, options), new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), timeout))]);
-}
-
-export function formatWithoutSuffix (value: number, unit: string): string {
+export function formatWithoutSuffix(value: number, unit: string): string {
     const pluralizedUnit = value === 1 ? unit : `${unit}s`;
     return `${value} ${pluralizedUnit}`;
 };

@@ -3,7 +3,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import type { Log, LogLevel } from '@/types';
-import { logLevels } from '@/types/runtimes';
 import { ChevronDown } from 'lucide-react';
 
 interface Props {
@@ -20,10 +19,10 @@ const LogEntry = ({ log }: { log: Log }) => {
     return (
         <div className="flex items-start gap-3 border-b p-3">
             <div className="flex gap-2">
-                {log.datetime && (
+                {log.timestamp && (
                     <span
                         className={`min-w-16 text-xs whitespace-nowrap ${(() => {
-                            switch (log.level_name) {
+                            switch (log.level) {
                                 case 'INFO':
                                     return 'text-muted-foreground';
                                 case 'WARNING':
@@ -38,12 +37,12 @@ const LogEntry = ({ log }: { log: Log }) => {
                             }
                         })()}`}
                     >
-                        {log.datetime.toLocaleTimeString()}
+                        {log.timestamp.toLocaleTimeString()}
                     </span>
                 )}
                 <span
                     className={`text-xs ${(() => {
-                        switch (log.level_name) {
+                        switch (log.level) {
                             case 'INFO':
                                 return 'text-muted-foreground';
                             case 'WARNING':
@@ -68,7 +67,7 @@ const LogEntry = ({ log }: { log: Log }) => {
 export function LogsWindow({ logs, filteredLogs, selectedLevel, setSelectedLevel, searchQuery, setSearchQuery, logsEndRef }: Props) {
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border">
-            <div className="flex flex-shrink-0 gap-2 bg-neutral-50 p-2 dark:bg-neutral-900">
+            <div className="flex shrink-0 gap-2 bg-neutral-50 p-2 dark:bg-neutral-900">
                 {/* Log Level Filter */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -79,9 +78,7 @@ export function LogsWindow({ logs, filteredLogs, selectedLevel, setSelectedLevel
                         >
                             {selectedLevel === 'ALL'
                                 ? 'All logs'
-                                : logLevels[selectedLevel]
-                                  ? logLevels[selectedLevel].charAt(0).toUpperCase() + logLevels[selectedLevel].slice(1).toLowerCase()
-                                  : selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1).toLowerCase()}
+                                : selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1).toLowerCase()}
                             <ChevronDown className="ml-auto size-4 transition-transform group-data-[state=open]:rotate-180" />
                         </Button>
                     </DropdownMenuTrigger>

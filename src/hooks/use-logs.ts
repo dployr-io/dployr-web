@@ -1,84 +1,52 @@
 import { parseLog } from "@/lib/utils";
+import { getAuthToken } from "@/lib/auth";
 import type { Deployment, LogLevel, Service } from "@/types";
 import type { Log } from "@/types";
 import { useEffect, useRef, useState } from "react";
 
-export function useLogs(filterItem?: Deployment | Service | null) {
+export function useLogs(id?: string, filterItem?: Deployment | Service | null) {
     const [logs, setLogs] = useState<Log[]>([]);
     const [filteredLogs, setFilteredLogs] = useState<Log[]>([]);
     const [selectedLevel, setSelectedLevel] = useState<"ALL" | LogLevel>("ALL");
     const [searchQuery, setSearchQuery] = useState("");
     const logsEndRef = useRef<HTMLDivElement | null>(null);
-    const hasSeenValidLog = useRef(false);
 
     useEffect(() => {
-        // Reset the flag when filterItem changes
-        hasSeenValidLog.current = false;
+        if (!id) {
+            return;
+        }
 
-        const eventSource = new EventSource("/logs/stream");
+        const instanceUrl = localStorage.getItem("dployr_instance_url");
+        const token = getAuthToken();
+
+        if (!instanceUrl) {
+            console.error("Instance URL not found. Please sign in first.");
+            return;
+        }
+
+        const streamUrl = `${instanceUrl}/logs/stream?id=${encodeURIComponent(id)}`;
+        const urlWithAuth = token ? `${streamUrl}&token=${encodeURIComponent(token)}` : streamUrl;
+        const eventSource = new EventSource(urlWithAuth);
 
         eventSource.onmessage = (event) => {
             const log = parseLog(event.data);
-
-            if (filterItem) {
-                const logTime = log.datetime!.getTime();
-                const createdTime = new Date(filterItem.created_at).getTime();
-
-                // If log has a timestamp, check if it's in range
-                if (logTime) {
-                    // Filter out logs before creation time
-                    if (logTime < createdTime) {
-                        return;
-                    }
-
-                    const status = filterItem.status;
-
-                    if (status === "completed" || status === "failed") {
-                        const logTimeInSecs = Math.floor(
-                            new Date(logTime).getTime() / 1000,
-                        );
-                        const updatedTimeInSecs = Math.floor(
-                            new Date(filterItem.updated_at).getTime() / 1000,
-                        );
-
-                        if (logTimeInSecs > updatedTimeInSecs) {
-                            return;
-                        }
-                    }
-
-                    // This log is in range, mark that we've seen a valid log
-                    hasSeenValidLog.current = true;
-                } else {
-                    // Log has no timestamp - only include if
-                    // we've already seen a valid log in range
-                    // This is useful in tracking stack traces that
-                    // sometimes get broken into chucks in transit
-                    if (!hasSeenValidLog.current) {
-                        return;
-                    }
-                }
-            }
-
             setLogs((prevLogs) => [...prevLogs, log]);
         };
 
         eventSource.onerror = (error) => {
-            console.error("SSE connection error:", error);
+            console.error("Error occured while streaming logs:", error);
             eventSource.close();
         };
 
-        return () => {
-            eventSource.close();
-        };
-    }, [filterItem]);
+        return () => eventSource.close();
+    }, [filterItem, id]);
 
-    // Filter logs based on level and search query
     useEffect(() => {
         let filtered = logs;
 
         if (selectedLevel !== "ALL") {
             filtered = filtered.filter(
-                (log) => log.level_name === selectedLevel,
+                (log) => log.level === selectedLevel,
             );
         }
 
