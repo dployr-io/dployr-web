@@ -8,13 +8,13 @@ export const getRuntimeIcon = (runtime: Runtime) => {
     switch (runtime) {
         case 'static':
             return <FaServer size={14} />;
-        case 'go':
+        case 'golang':
             return <FaGolang size={22} />;
         case 'php':
             return <SiPhp size={20} />;
         case 'python':
             return <FaPython size={16} />;
-        case 'node-js':
+        case 'nodejs':
             return <FaNodeJs size={16} />;
         case 'ruby':
             return <SiRubyonrails size={18} />;

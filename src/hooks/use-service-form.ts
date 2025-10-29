@@ -57,7 +57,7 @@ const initialState: ServiceFormState = {
     name: "",
     workingDir: "",
     outputDir: "",
-    runtime: "node-js",
+    runtime: "nodejs",
     remote: null,
     // ciRemote: null,
     image: "",
@@ -147,7 +147,7 @@ function serviceFormReducer(
             return {
                 ...state,
                 source: action.payload,
-                runtime: action.payload === "image" ? "docker" : "node-js",
+                runtime: action.payload === "image" ? "docker" : "nodejs",
             };
         default:
             return state;
@@ -446,7 +446,7 @@ export function useServiceForm() {
         setField("runtime", value);
 
         switch (value) {
-            case "node-js": {
+            case "nodejs": {
                 setField("runCmdPlaceholder", "npm run start");
                 break;
             }
@@ -465,7 +465,7 @@ export function useServiceForm() {
                 );
                 break;
             }
-            case "go": {
+            case "golang": {
                 setField("runCmdPlaceholder", "./app");
                 break;
             }

@@ -9,8 +9,6 @@ import {
     ChevronLeft,
     ChevronRight,
     CirclePlus,
-    Hexagon,
-    Settings,
 } from "lucide-react";
 import {
     Table,
@@ -174,11 +172,11 @@ function Services() {
                                                           <TableCell className="h-16 align-middle">
                                                               <div className="flex items-center gap-2">
                                                                   {getRuntimeIcon(
-                                                                      service.runtime,
+                                                                      service.runtime.type,
                                                                   )}
                                                                   <span>
                                                                       {
-                                                                          service.runtime
+                                                                          service.runtime.type
                                                                       }
                                                                   </span>
                                                               </div>
