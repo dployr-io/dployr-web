@@ -30,6 +30,13 @@ export function useDeployments() {
         staleTime: 5 * 60 * 1000,
     });
 
+    const pathSegments = window.location.pathname.split("/");
+    const id = pathSegments[pathSegments.indexOf("deployments") + 1];
+
+    const selectedDeployment = id
+        ? deployments?.find((deployment) => deployment.id === id) || null
+        : null;
+
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
     const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
@@ -52,6 +59,7 @@ export function useDeployments() {
     };
 
     return {
+        selectedDeployment,
         deployments,
         paginatedDeployments,
         currentPage,
