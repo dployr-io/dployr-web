@@ -9,30 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SpecsRouteImport } from './routes/specs'
-import { Route as ServicesRouteImport } from './routes/services'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServicesIndexRouteImport } from './routes/services/index'
 import { Route as DeploymentsIndexRouteImport } from './routes/deployments/index'
 import { Route as SettingsUsersRouteImport } from './routes/settings.users'
 import { Route as SettingsSystemRouteImport } from './routes/settings.system'
 import { Route as SettingsConfigRouteImport } from './routes/settings.config'
+import { Route as ServicesIdRouteImport } from './routes/services/$id'
 import { Route as DeploymentsIdRouteImport } from './routes/deployments/$id'
 
-const SpecsRoute = SpecsRouteImport.update({
-  id: '/specs',
-  path: '/specs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServicesRoute = ServicesRouteImport.update({
-  id: '/services',
-  path: '/services',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResourcesRoute = ResourcesRouteImport.update({
   id: '/resources',
   path: '/resources',
@@ -63,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesIndexRoute = ServicesIndexRouteImport.update({
+  id: '/services/',
+  path: '/services/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DeploymentsIndexRoute = DeploymentsIndexRouteImport.update({
   id: '/deployments/',
   path: '/deployments/',
@@ -83,6 +78,11 @@ const SettingsConfigRoute = SettingsConfigRouteImport.update({
   path: '/settings/config',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesIdRoute = ServicesIdRouteImport.update({
+  id: '/services/$id',
+  path: '/services/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DeploymentsIdRoute = DeploymentsIdRouteImport.update({
   id: '/deployments/$id',
   path: '/deployments/$id',
@@ -96,13 +96,13 @@ export interface FileRoutesByFullPath {
   '/logs': typeof LogsRoute
   '/notifications': typeof NotificationsRoute
   '/resources': typeof ResourcesRoute
-  '/services': typeof ServicesRoute
-  '/specs': typeof SpecsRoute
   '/deployments/$id': typeof DeploymentsIdRoute
+  '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments': typeof DeploymentsIndexRoute
+  '/services': typeof ServicesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -111,13 +111,13 @@ export interface FileRoutesByTo {
   '/logs': typeof LogsRoute
   '/notifications': typeof NotificationsRoute
   '/resources': typeof ResourcesRoute
-  '/services': typeof ServicesRoute
-  '/specs': typeof SpecsRoute
   '/deployments/$id': typeof DeploymentsIdRoute
+  '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments': typeof DeploymentsIndexRoute
+  '/services': typeof ServicesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -127,13 +127,13 @@ export interface FileRoutesById {
   '/logs': typeof LogsRoute
   '/notifications': typeof NotificationsRoute
   '/resources': typeof ResourcesRoute
-  '/services': typeof ServicesRoute
-  '/specs': typeof SpecsRoute
   '/deployments/$id': typeof DeploymentsIdRoute
+  '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
   '/settings/system': typeof SettingsSystemRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments/': typeof DeploymentsIndexRoute
+  '/services/': typeof ServicesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -144,13 +144,13 @@ export interface FileRouteTypes {
     | '/logs'
     | '/notifications'
     | '/resources'
-    | '/services'
-    | '/specs'
     | '/deployments/$id'
+    | '/services/$id'
     | '/settings/config'
     | '/settings/system'
     | '/settings/users'
     | '/deployments'
+    | '/services'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -159,13 +159,13 @@ export interface FileRouteTypes {
     | '/logs'
     | '/notifications'
     | '/resources'
-    | '/services'
-    | '/specs'
     | '/deployments/$id'
+    | '/services/$id'
     | '/settings/config'
     | '/settings/system'
     | '/settings/users'
     | '/deployments'
+    | '/services'
   id:
     | '__root__'
     | '/'
@@ -174,13 +174,13 @@ export interface FileRouteTypes {
     | '/logs'
     | '/notifications'
     | '/resources'
-    | '/services'
-    | '/specs'
     | '/deployments/$id'
+    | '/services/$id'
     | '/settings/config'
     | '/settings/system'
     | '/settings/users'
     | '/deployments/'
+    | '/services/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -190,31 +190,17 @@ export interface RootRouteChildren {
   LogsRoute: typeof LogsRoute
   NotificationsRoute: typeof NotificationsRoute
   ResourcesRoute: typeof ResourcesRoute
-  ServicesRoute: typeof ServicesRoute
-  SpecsRoute: typeof SpecsRoute
   DeploymentsIdRoute: typeof DeploymentsIdRoute
+  ServicesIdRoute: typeof ServicesIdRoute
   SettingsConfigRoute: typeof SettingsConfigRoute
   SettingsSystemRoute: typeof SettingsSystemRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
   DeploymentsIndexRoute: typeof DeploymentsIndexRoute
+  ServicesIndexRoute: typeof ServicesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/specs': {
-      id: '/specs'
-      path: '/specs'
-      fullPath: '/specs'
-      preLoaderRoute: typeof SpecsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/services': {
-      id: '/services'
-      path: '/services'
-      fullPath: '/services'
-      preLoaderRoute: typeof ServicesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/resources': {
       id: '/resources'
       path: '/resources'
@@ -257,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/': {
+      id: '/services/'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/deployments/': {
       id: '/deployments/'
       path: '/deployments'
@@ -285,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/$id': {
+      id: '/services/$id'
+      path: '/services/$id'
+      fullPath: '/services/$id'
+      preLoaderRoute: typeof ServicesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/deployments/$id': {
       id: '/deployments/$id'
       path: '/deployments/$id'
@@ -302,13 +302,13 @@ const rootRouteChildren: RootRouteChildren = {
   LogsRoute: LogsRoute,
   NotificationsRoute: NotificationsRoute,
   ResourcesRoute: ResourcesRoute,
-  ServicesRoute: ServicesRoute,
-  SpecsRoute: SpecsRoute,
   DeploymentsIdRoute: DeploymentsIdRoute,
+  ServicesIdRoute: ServicesIdRoute,
   SettingsConfigRoute: SettingsConfigRoute,
   SettingsSystemRoute: SettingsSystemRoute,
   SettingsUsersRoute: SettingsUsersRoute,
   DeploymentsIndexRoute: DeploymentsIndexRoute,
+  ServicesIndexRoute: ServicesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

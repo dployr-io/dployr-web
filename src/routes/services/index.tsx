@@ -160,6 +160,9 @@ function Services() {
                                                       <TableRow
                                                           key={service.id}
                                                           className="h-16"
+                                                          onClick={() => {
+                                                              window.location.href = `/services/${service.id}`;
+                                                          }}
                                                       >
                                                           <TableCell className="h-16 align-middle font-medium">
                                                               {service.name}
@@ -174,15 +177,11 @@ function Services() {
                                                           <TableCell className="h-16 align-middle">
                                                               <div className="flex items-center gap-2">
                                                                   {getRuntimeIcon(
-                                                                      service
-                                                                          .runtime
-                                                                          .type,
+                                                                      service.runtime,
                                                                   )}
                                                                   <span>
                                                                       {
-                                                                          service
-                                                                              .runtime
-                                                                              .type
+                                                                          service.runtime_version
                                                                       }
                                                                   </span>
                                                               </div>

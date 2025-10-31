@@ -1,4 +1,4 @@
-import type { Log, LogLevel } from '@/types';
+import type { Blueprint, Log, LogLevel } from '@/types';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ulid } from 'ulid';
@@ -21,7 +21,7 @@ export function toWordUpperCase(value: string) {
         .join(' ');
 }
 
-export function toYaml(obj: Record<string, unknown>): string {
+export function toYaml(obj: Blueprint | Record<string, unknown>): string {
     // Parse nested JSON strings first
     const parsed = JSON.parse(JSON.stringify(obj), (key, value) => {
         if (typeof value === 'string') {
@@ -35,9 +35,9 @@ export function toYaml(obj: Record<string, unknown>): string {
     });
 
     const yamlLines: string[] = [];
-    function processObject(o: Record<string, unknown>, indent: number) {
-        for (const key in o) {
-            const value = o[key];
+    function processObject(blueprint: Record<string, unknown>, indent: number) {
+        for (const key in blueprint) {
+            const value = blueprint[key];
             const indentation = '  '.repeat(indent);
             if (typeof value === 'object' && value !== null) {
                 yamlLines.push(`${indentation}${key}:`);
@@ -47,11 +47,11 @@ export function toYaml(obj: Record<string, unknown>): string {
             }
         }
     }
-    processObject(parsed, 0);
+    processObject(parsed as Record<string, unknown>, 0);
     return yamlLines.join('\n');
 }
 
-export function toJson(obj: Record<string, unknown>): string {
+export function toJson(obj: Blueprint | Record<string, unknown>): string {
     const parsed = JSON.parse(JSON.stringify(obj), (key, value) => {
         if (typeof value === 'string') {
             try {
