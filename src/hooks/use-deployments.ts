@@ -4,19 +4,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 export function useDeployments() {
-    const params = new URLSearchParams(window.location.search);
-    const spec = params.get("spec");
-
     const { data: deployments, isLoading } = useQuery<Deployment[]>({
-        queryKey: ["deployments", spec],
+        queryKey: ["deployments"],
         queryFn: async () => {
             const token = getAuthToken();
             const api = createApiInstance(token);
 
             try {
-                const response = await api?.get("/deployments", {
-                    params: Object.fromEntries(params),
-                });
+                const response = await api?.get("/deployments");
                 const data = response?.data;
                 return Array.isArray(data) ? data : [];
             } catch (error) {

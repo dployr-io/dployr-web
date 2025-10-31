@@ -62,11 +62,6 @@ const secondaryNavItems: NavItem[] = [
         icon: CircleGauge,
     },
     {
-        title: "Specs",
-        href: "/specs",
-        icon: FileSliders,
-    },
-    {
         title: "Notifications",
         href: "/notifications",
         icon: Bell,
