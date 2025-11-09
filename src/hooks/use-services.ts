@@ -1,14 +1,19 @@
-import { createApiInstance, getAuthToken } from "@/lib/auth";
+
 import type { Service } from "@/types";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
 export function useServices() {
-    const token = getAuthToken();
-    const api = createApiInstance(token);
+    const token = null; // Temporary
+    const instance = "";
     const query = useQuery<Service[]>({
         queryKey: ["services"],
         queryFn: async () => {
-            const response = await api?.get(`/services`);
+            const response = await axios.get(`${instance}/services`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             return response?.data;
         },
         staleTime: 5 * 60 * 1000,

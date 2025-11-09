@@ -15,22 +15,38 @@ import {
     InputOTPSeparator,
     InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { setAuthToken, verifyOtp } from "@/lib/auth";
 import { toast } from "@/lib/toast";
-import { Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
+import { FaGithub, FaGoogle, FaMicrosoft } from "react-icons/fa6";
+import { Separator } from "@/components/ui/separator";
+import { z } from "zod";
+
+const loginSchema = z.object({
+    email: z.string().email("Please enter a valid email address"),
+});
 
 export const Route = createFileRoute("/")({
     component: App,
 });
 
 function App() {
-    const { login, isAuthenticated, isLoading } = useAuth();
+    const {
+        login,
+        verifyOtp,
+        isAuthenticated,
+        verifyOTP,
+        setVerifyOtp,
+        otpValue,
+        setOtpValue,
+        isSubmitting,
+        email: currentEmail,
+        handleGoogleSignIn,
+        handleMicrosoftSignIn,
+        handleGitHubSignIn,
+    } = useAuth();
     const router = useRouter();
-    const [verifyOTP, setVerifyOtp] = useState(false);
-    const [otpValue, setOtpValue] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm({
         defaultValues: {
@@ -39,58 +55,34 @@ function App() {
         },
         onSubmit: async ({ value }) => {
             try {
-                setIsSubmitting(true);
                 await login({
                     email: value.email,
-                    expiry: "1h",
-                    instance: value.instance,
                 });
-                // setVerifyOtp(true);
             } catch (error) {
                 toast.error(`Login failed: ${(error as Error).message}`);
-            } finally {
-                setIsSubmitting(false);
             }
         },
     });
+
+    const handleOtpComplete = async (value: string) => {
+        if (value.length === 6) {
+            try {
+                await verifyOtp({
+                    code: value,
+                    email: currentEmail,
+                });
+                router.navigate({ to: "/dashboard" });
+            } catch (error) {
+                console.error("OTP verification failed:", error);
+            }
+        }
+    };
 
     useEffect(() => {
         if (isAuthenticated) {
             router.navigate({ to: "/dashboard" });
         }
     }, [isAuthenticated, router]);
-
-    const handleOtpComplete = async (value: string) => {
-        if (value.length === 6) {
-            // TOOD: impl
-            try {
-                setIsSubmitting(true);
-                const response = await verifyOtp({
-                    otp: value,
-                    email: form.state.values.email,
-                });
-                setAuthToken(response.token);
-
-                router.navigate({ to: "/dashboard" });
-            } catch (error) {
-                console.error("OTP verification failed:", error);
-                setOtpValue("");
-            } finally {
-                setIsSubmitting(false);
-            }
-        }
-    };
-
-    if (isLoading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <p>Loading...</p>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]">
@@ -109,6 +101,46 @@ function App() {
                                 </div>
                             </div>
 
+                            {!verifyOTP && (
+                                <>
+                                    <div className="flex items-center ">
+                                        <div className="flex gap-4 justify-evenly">
+                                            <Button
+                                                onClick={handleGoogleSignIn}
+                                                className="w-fit"
+                                                disabled={isSubmitting}
+                                            >
+                                                <FaGoogle />
+                                            </Button>
+
+                                            <Button
+                                                onClick={handleMicrosoftSignIn}
+                                                className="w-fit"
+                                                disabled={isSubmitting}
+                                            >
+                                                <FaMicrosoft />
+                                            </Button>
+
+                                            <Button
+                                                onClick={handleGitHubSignIn}
+                                                className="w-fit"
+                                                disabled={isSubmitting}
+                                            >
+                                                <FaGithub />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="flex w-3/5 gap-2 align-middle items-center">
+                                        <div className="w-full">
+                                            <Separator />
+                                        </div>
+                                        <div>OR</div>
+                                        <div className="w-full">
+                                            <Separator />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                             {verifyOTP ? (
                                 <div className="flex flex-col justify-center flex-1">
                                     <InputOTP
@@ -116,7 +148,9 @@ function App() {
                                         value={otpValue}
                                         onChange={(value) => {
                                             setOtpValue(value);
-                                            handleOtpComplete(value);
+                                            if (value.length === 6) {
+                                                handleOtpComplete(value);
+                                            }
                                         }}
                                         disabled={isSubmitting}
                                     >
@@ -135,10 +169,10 @@ function App() {
 
                                     <Button
                                         onClick={() => setVerifyOtp(false)}
-                                        className="mt-12 w-fit"
+                                        className="mt-6 cursor-pointer w-fit"
                                         disabled={isSubmitting}
                                     >
-                                        Back
+                                        <ChevronLeft /> Back
                                     </Button>
                                 </div>
                             ) : (
@@ -150,59 +184,13 @@ function App() {
                                 >
                                     <FieldGroup>
                                         <form.Field
-                                            name="instance"
-                                            children={(field) => {
-                                                const isInvalid =
-                                                    field.state.meta
-                                                        .isTouched &&
-                                                    !field.state.meta.isValid;
-                                                return (
-                                                    <Field
-                                                        data-invalid={isInvalid}
-                                                    >
-                                                        <FieldLabel
-                                                            htmlFor={field.name}
-                                                        >
-                                                            Instance
-                                                        </FieldLabel>
-                                                        <Input
-                                                            id={field.name}
-                                                            name={field.name}
-                                                            value={
-                                                                field.state
-                                                                    .value
-                                                            }
-                                                            onBlur={
-                                                                field.handleBlur
-                                                            }
-                                                            onChange={(e) =>
-                                                                field.handleChange(
-                                                                    e.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            aria-invalid={
-                                                                isInvalid
-                                                            }
-                                                            placeholder="http://acme.inc"
-                                                            autoComplete="off"
-                                                        />
-                                                        {isInvalid && (
-                                                            <FieldError
-                                                                errors={
-                                                                    field.state
-                                                                        .meta
-                                                                        .errors
-                                                                }
-                                                            />
-                                                        )}
-                                                    </Field>
-                                                );
-                                            }}
-                                        />
-
-                                        <form.Field
                                             name="email"
+                                            validators={{
+                                                onChange: ({ value }) => {
+                                                    const result = loginSchema.shape.email.safeParse(value);
+                                                    return result.success ? undefined : result.error.issues[0].message;
+                                                },
+                                            }}
                                             children={(field) => {
                                                 const isInvalid =
                                                     field.state.meta
@@ -236,7 +224,7 @@ function App() {
                                                             aria-invalid={
                                                                 isInvalid
                                                             }
-                                                            placeholder="admin@acme.inc"
+                                                            placeholder="admin@acme.org"
                                                             autoComplete="off"
                                                         />
                                                         {isInvalid && (
@@ -244,7 +232,7 @@ function App() {
                                                                 errors={
                                                                     field.state
                                                                         .meta
-                                                                        .errors
+                                                                        .errors?.map(error => ({ message: error })) || []
                                                                 }
                                                             />
                                                         )}
@@ -256,15 +244,15 @@ function App() {
 
                                     <Button
                                         type="submit"
-                                        className="mt-6"
+                                        className="mt-6 cursor-pointer"
                                         disabled={isSubmitting}
                                     >
                                         {isSubmitting && (
                                             <Loader2 className="h-4 w-4 animate-spin" />
                                         )}
                                         {isSubmitting
-                                            ? "Submitting..."
-                                            : "Submit"}
+                                            ? "Signing in"
+                                            : "Sign in"}
                                     </Button>
                                 </form>
                             )}

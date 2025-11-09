@@ -43,37 +43,32 @@ export interface ApiResponse {
 
 export type UserRole = "user" | "admin";
 
-export interface AuthRequest {
-    email: string;
-    expiry: "15m" | "1h" | "never";
-    instance: string;
-}
-
 export interface OtpVerifyRequest {
     email: string;
     otp: string;
 }
 
-export interface AuthResponse {
-    token: string;
-    expires_at: string;
-    user: string; // email as identifier
-}
-
 export interface User {
     id: string;
     email: string;
-    avatar?: string;
-    role: UserRole;
-    created_at?: Date | unknown;
-    updated_at?: Date | unknown;
-    [key: string]: unknown; // This allows for additional properties...
+    name?: string;
+    picture?: string;
+    createdAt: number;
+    updatedAt: number;
 }
 
-export interface Project {
+export interface Cluster {
     id: string;
     name: string;
-    description: string;
+    users: string[]; // Array of user emails
+    roles: Record<string, string[]>; // role -> array of user emails
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface SessionData {
+    user: User;
+    cluster: Cluster;
 }
 
 export interface Remote {
@@ -96,10 +91,7 @@ export type DeploymentStatus =
     | "failed"
     | "completed";
 
-export type ServiceStatus =
-    | "running"
-    | "stopped"
-    | "unknown";
+export type ServiceStatus = "running" | "stopped" | "unknown";
 
 export interface RuntimeObj {
     type: Runtime;
