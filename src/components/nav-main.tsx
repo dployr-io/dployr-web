@@ -1,6 +1,6 @@
 import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { useRouterState } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 
 export function NavMain({ items = [], title }: { items: NavItem[]; title: string }) {
     const routerState = useRouterState();
@@ -20,10 +20,10 @@ export function NavMain({ items = [], title }: { items: NavItem[]; title: string
                                 isActive={isActive}
                                 tooltip={{ children: item.title }}
                             >
-                                <a href={item.href} >
+                                <Link to={item.href}>
                                     {item.icon && <item.icon />}
                                     <span>{item.title}</span>
-                                </a>
+                                </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     );

@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryKey: ['session'],
         queryFn: async () => {
             const res = await axios.get<SessionData>(
-                `${import.meta.env.VITE_API_URL}/api/auth/me`,
+                `${import.meta.env.VITE_BASE_URL}/v1/auth/me`,
                 {
                     withCredentials: true,
                 }
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loginMutation = useMutation({
         mutationFn: async (credentials: { email: string }) => {
             const res = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/auth/login/email`,
+                `${import.meta.env.VITE_BASE_URL}/v1/auth/login/email`,
                 { email: credentials.email },
                 {
                     withCredentials: true,
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const otpMutation = useMutation({
         mutationFn: async (data: { email: string; code: string }) => {
             const res = await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/auth/login/email/verify`,
+                `${import.meta.env.VITE_BASE_URL}/v1/auth/login/email/verify`,
                 {
                     email: data.email,
                     code: data.code,
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const updateProfileMutation = useMutation({
         mutationFn: async (data: { name: string, picture: string }) => {
             const res = await axios.patch(
-                `${import.meta.env.VITE_API_URL}/api/auth/me`,
+                `${import.meta.env.VITE_BASE_URL}/v1/auth/me`,
                 {
                     name: data.name,
                     picture: data.picture,
@@ -138,22 +138,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const handleGoogleSignIn = async () => {
-        window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/login/google`;
+        window.location.href = `${import.meta.env.VITE_BASE_URL}/v1/auth/login/google`;
     };
 
     const handleMicrosoftSignIn = async () => {
-        window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/login/microsoft`;
+        window.location.href = `${import.meta.env.VITE_BASE_URL}/v1/auth/login/microsoft`;
     };
 
     const handleGitHubSignIn = async () => {
-        window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/login/github`;
+        window.location.href = `${import.meta.env.VITE_BASE_URL}/v1/auth/login/github`;
     };
 
     const logout = async () => {
         try {
-            await axios.post(
-                `${import.meta.env.VITE_API_URL}/api/auth/logout`,
-                {},
+            await axios.get(
+                `${import.meta.env.VITE_BASE_URL}/v1/auth/logout`,
                 {
                     withCredentials: true,
                 }
@@ -162,8 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error("Logout error:", error);
         }
 
+        // Clear the session cookie
         document.cookie =
-            "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.dployr.dev;";
+            "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
         window.location.href = "/";
     };

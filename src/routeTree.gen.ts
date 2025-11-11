@@ -20,6 +20,7 @@ import { Route as ServicesIndexRouteImport } from './routes/services/index'
 import { Route as DeploymentsIndexRouteImport } from './routes/deployments/index'
 import { Route as SettingsUsersRouteImport } from './routes/settings/users'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
+import { Route as SettingsIntegrationsRouteImport } from './routes/settings/integrations'
 import { Route as SettingsConfigRouteImport } from './routes/settings/config'
 import { Route as ServicesIdRouteImport } from './routes/services/$id'
 import { Route as DeploymentsIdRouteImport } from './routes/deployments/$id'
@@ -79,6 +80,11 @@ const SettingsProfileRoute = SettingsProfileRouteImport.update({
   path: '/settings/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIntegrationsRoute = SettingsIntegrationsRouteImport.update({
+  id: '/settings/integrations',
+  path: '/settings/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsConfigRoute = SettingsConfigRouteImport.update({
   id: '/settings/config',
   path: '/settings/config',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/deployments/$id': typeof DeploymentsIdRoute
   '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments': typeof DeploymentsIndexRoute
@@ -121,6 +128,7 @@ export interface FileRoutesByTo {
   '/deployments/$id': typeof DeploymentsIdRoute
   '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments': typeof DeploymentsIndexRoute
@@ -138,6 +146,7 @@ export interface FileRoutesById {
   '/deployments/$id': typeof DeploymentsIdRoute
   '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments/': typeof DeploymentsIndexRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/deployments/$id'
     | '/services/$id'
     | '/settings/config'
+    | '/settings/integrations'
     | '/settings/profile'
     | '/settings/users'
     | '/deployments'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/deployments/$id'
     | '/services/$id'
     | '/settings/config'
+    | '/settings/integrations'
     | '/settings/profile'
     | '/settings/users'
     | '/deployments'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/deployments/$id'
     | '/services/$id'
     | '/settings/config'
+    | '/settings/integrations'
     | '/settings/profile'
     | '/settings/users'
     | '/deployments/'
@@ -205,6 +217,7 @@ export interface RootRouteChildren {
   DeploymentsIdRoute: typeof DeploymentsIdRoute
   ServicesIdRoute: typeof ServicesIdRoute
   SettingsConfigRoute: typeof SettingsConfigRoute
+  SettingsIntegrationsRoute: typeof SettingsIntegrationsRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
   DeploymentsIndexRoute: typeof DeploymentsIndexRoute
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/integrations': {
+      id: '/settings/integrations'
+      path: '/settings/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof SettingsIntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/config': {
       id: '/settings/config'
       path: '/settings/config'
@@ -325,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeploymentsIdRoute: DeploymentsIdRoute,
   ServicesIdRoute: ServicesIdRoute,
   SettingsConfigRoute: SettingsConfigRoute,
+  SettingsIntegrationsRoute: SettingsIntegrationsRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsUsersRoute: SettingsUsersRoute,
   DeploymentsIndexRoute: DeploymentsIndexRoute,

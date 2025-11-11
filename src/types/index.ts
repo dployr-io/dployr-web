@@ -41,7 +41,7 @@ export interface ApiResponse {
     error?: string;
 }
 
-export type UserRole = "user" | "admin";
+export type UserRole = "owner" | "admin" | "developer" | "viewer";
 
 export interface OtpVerifyRequest {
     email: string;
@@ -156,4 +156,13 @@ export interface Log {
     message: string;
     level: LogLevel | null;
     timestamp: Date;
+}
+
+export interface Integration {
+    id: string;
+    name: string;
+    description: string;
+    icon: React.ReactNode;
+    category: "email" | "remote" | "domain";
+    connected: boolean;
 }

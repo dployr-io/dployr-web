@@ -4,6 +4,7 @@ import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { type User } from '@/types';
 import { LogOut, Settings } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 
 interface UserMenuContentProps {
     user: User;
@@ -28,10 +29,10 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
-                    <a className="block w-full" href={'/settings/profile'} onClick={cleanup}>
+                    <Link className="block w-full" to="/settings/profile" onClick={cleanup}>
                         <Settings className="mr-2" />
                         Settings
-                    </a>
+                    </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

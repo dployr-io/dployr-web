@@ -16,16 +16,14 @@ import {
     BookOpen,
     BoxesIcon,
     CircleGauge,
-    Container,
     Factory,
-    FileSliders,
-    FolderGit2,
     LayoutGrid,
     Logs,
     MessageCircleQuestion,
     SquareChevronRight,
 } from "lucide-react";
 import AppLogo from "./app-logo";
+import { Link } from "@tanstack/react-router";
 
 const mainNavItems: NavItem[] = [
     {
@@ -33,7 +31,7 @@ const mainNavItems: NavItem[] = [
         href: "/dashboard",
         icon: LayoutGrid,
     },
-      {
+    {
         title: "Services",
         href: "/services",
         icon: BoxesIcon,
@@ -88,9 +86,9 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <a href={"/dashboard"}>
+                            <Link to="/dashboard">
                                 <AppLogo />
-                            </a>
+                            </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

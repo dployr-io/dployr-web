@@ -15,7 +15,7 @@ import {
     InputOTPSeparator,
     InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "@/lib/toast";
 import { ChevronLeft, Loader2 } from "lucide-react";
@@ -41,20 +41,22 @@ function App() {
         otpValue,
         setOtpValue,
         isSubmitting,
-        email: currentEmail,
         handleGoogleSignIn,
         handleMicrosoftSignIn,
         handleGitHubSignIn,
     } = useAuth();
     const router = useRouter();
 
+    const [email, setEmail] = useState("");
+
     const form = useForm({
         defaultValues: {
-            instance: "",
             email: "",
         },
         onSubmit: async ({ value }) => {
             try {
+                setEmail(email);
+
                 await login({
                     email: value.email,
                 });
@@ -67,13 +69,19 @@ function App() {
     const handleOtpComplete = async (value: string) => {
         if (value.length === 6) {
             try {
+                if (!email) {
+                    console.error("Attempt to verify otp without existing email");
+                    return;
+                }
+
                 await verifyOtp({
                     code: value,
-                    email: currentEmail,
+                    email: email,
                 });
                 router.navigate({ to: "/dashboard" });
             } catch (error) {
                 console.error("OTP verification failed:", error);
+                toast.error(`Login failed: ${(error as Error).message}`);
             }
         }
     };
@@ -188,6 +196,7 @@ function App() {
                                             validators={{
                                                 onChange: ({ value }) => {
                                                     const result = loginSchema.shape.email.safeParse(value);
+                                                    setEmail(value);
                                                     return result.success ? undefined : result.error.issues[0].message;
                                                 },
                                             }}

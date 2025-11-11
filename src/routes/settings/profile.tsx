@@ -140,7 +140,7 @@ function System() {
 
                                         return (
                                             <div className="mt-8 space-y-4">
-                                                <FieldLabel>Set avatar</FieldLabel>
+                                                <FieldLabel>Avatar</FieldLabel>
                                                 <div className="flex flex-wrap gap-4">
                                                     {avatars.map((avatar) => (
                                                         <button
