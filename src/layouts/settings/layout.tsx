@@ -3,38 +3,33 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { type PropsWithChildren } from 'react';
+import { Link, useLocation } from '@tanstack/react-router';
 
 const sidebarNavItems: NavItem[] = [
     {
         title: 'Profile',
-        href:'',
+        href: '/settings/profile',
         icon: null,
     },
     {
-        title: 'Password',
-        href: '',
-        icon: null,
-    },
-    {
-        title: 'System',
-        href: '',
+        title: 'Users',
+        href: '/settings/users',
         icon: null,
     },
     {
         title: 'Configuration',
-        href: '',
+        href: '/settings/config',
+        icon: null,
+    },
+    {
+        title: 'Integrations',
+        href: '/settings/integrations',
         icon: null,
     },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
-    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-    const version  = "1.0.0";
-
-    // When server-side rendering, we only render the layout on the client...
-    if (typeof window === 'undefined') {
-        return null;
-    }
+    const location = useLocation();
 
     return (
         <div className="flex flex-1 flex-col items-center px-4 py-6">
@@ -43,18 +38,18 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                     <nav className="flex flex-col space-y-1 space-x-0">
                         {sidebarNavItems.map((item, index) => (
                             <Button
-                                key={`${typeof item.href === item.href}-${index}`}
+                                key={`${item.href}-${index}`}
                                 size="sm"
                                 variant="ghost"
                                 asChild
                                 className={cn('w-full justify-start', {
-                                    'bg-muted': currentPath === item.href,
+                                    'bg-muted': location.pathname === item.href,
                                 })}
                             >
-                                <a href={item.href}>
+                                <Link to={item.href}>
                                     {item.icon && <item.icon className="h-4 w-4" />}
                                     {item.title}
-                                </a>
+                                </Link>
                             </Button>
                         ))}
                     </nav>
@@ -66,9 +61,18 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                     <section className="w-full space-y-12">{children}</section>
                 </div>
             </div>
-            <div className="mt-auto flex w-full justify-center">
-                <p className="text-xs text-muted-foreground">Version {version}</p>
-            </div>
+            <footer className="mt-auto flex w-full justify-center">
+
+                <div className="flex space-x-4 text-xs text-muted-foreground">
+                    <a href="https://status.dployr.dev" className="hover:underline">Status</a>
+                    <a href="https://dployr.dev/changelog" className="hover:underline">Changelog</a>
+                    <a href="https://dployr.dev/terms" className="hover:underline">Terms of Use</a>
+                    <a href="https://dployr.dev/privacy" className="hover:underline">Privacy Policy</a>
+                    <a href="https://docs.dployr.dev" className="hover:underline">Docs</a>
+                    <a href="https://dployr.dev/support" className="hover:underline">Support</a>
+                </div>
+
+            </footer>
         </div>
     );
 }

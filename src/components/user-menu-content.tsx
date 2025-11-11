@@ -28,7 +28,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
-                    <a className="block w-full" href={'/settings'} onClick={cleanup}>
+                    <a className="block w-full" href={'/settings/profile'} onClick={cleanup}>
                         <Settings className="mr-2" />
                         Settings
                     </a>

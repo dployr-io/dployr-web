@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Runtime } from '@/types';
+import type { Runtime } from '@/types';
 import { dnsProviders } from '@/types/runtimes';
 
 interface Props {

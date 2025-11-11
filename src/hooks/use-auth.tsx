@@ -2,12 +2,12 @@ import {
     createContext,
     useContext,
     useState,
-    useEffect,
     type ReactNode,
 } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import type { Cluster, SessionData, User } from "@/types";
+import axios from "axios";
 
 interface AuthContextType {
     user: User | null;
@@ -19,6 +19,7 @@ interface AuthContextType {
     handleGoogleSignIn: () => Promise<void>;
     handleMicrosoftSignIn: () => Promise<void>;
     handleGitHubSignIn: () => Promise<void>;
+    updateProfile: (data: { name: string, picture: string }) => Promise<User | Error>;
     logout: () => void;
     refetch: () => void;
     verifyOTP: boolean;
@@ -26,7 +27,6 @@ interface AuthContextType {
     otpValue: string;
     setOtpValue: (value: string) => void;
     isSubmitting: boolean;
-    email: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,54 +35,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [verifyOTP, setVerifyOtp] = useState(false);
     const [otpValue, setOtpValue] = useState("");
     const [email, setEmail] = useState("");
-    const [user, setUser] = useState<User | null>(null);
-    const [cluster, setClusters] = useState<Cluster | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const checkSession = async () => {
-            try {
-                const res = await fetch(
-                    `${import.meta.env.VITE_API_URL}/api/auth/me`,
-                    {
-                        credentials: "include",
-                    },
-                );
-
-                if (res.ok) {
-                    const data: SessionData = await res.json();
-                    setUser(data.user);
-                    setClusters(data.cluster);
-                } else {
-                    const error = await res.text();
-                    toast.error(error);
-                    setUser(null);
+    const { data: sessionData, isLoading, refetch } = useQuery({
+        queryKey: ['session'],
+        queryFn: async () => {
+            const res = await axios.get<SessionData>(
+                `${import.meta.env.VITE_API_URL}/api/auth/me`,
+                {
+                    withCredentials: true,
                 }
-            } catch (error) {
-                toast.error((error as Error).message);
-                setUser(null);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+            );
 
-        checkSession();
-    }, []);
+            return res.data;
+        },
+        retry: false,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+
+    const user = sessionData?.user ?? null;
+    const cluster = sessionData?.cluster ?? null;
 
     const loginMutation = useMutation({
         mutationFn: async (credentials: { email: string }) => {
-            const res = await fetch(
+            const res = await axios.post(
                 `${import.meta.env.VITE_API_URL}/api/auth/login/email`,
+                { email: credentials.email },
                 {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email: credentials.email }),
-                    credentials: "include",
-                },
+                    withCredentials: true,
+                }
             );
-
-            if (!res.ok) throw new Error("Invalid login");
-            return res.json();
+            return res.data;
         },
         onSuccess: (_, variables) => {
             setEmail(variables.email);
@@ -99,26 +81,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const otpMutation = useMutation({
         mutationFn: async (data: { email: string; code: string }) => {
-            const res = await fetch(
+            const res = await axios.post(
                 `${import.meta.env.VITE_API_URL}/api/auth/login/email/verify`,
                 {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        email: data.email,
-                        code: data.code,
-                    }),
-                    credentials: "include",
+                    email: data.email,
+                    code: data.code,
                 },
+                {
+                    withCredentials: true,
+                }
             );
-
-            if (!res.ok) throw new Error("Invalid OTP");
-            return res.json();
+            return res.data;
         },
         onSuccess: () => {
             setVerifyOtp(false);
             setOtpValue("");
             setEmail("");
+            refetch();
         },
         onError: (error: any) => {
             const errorMessage =
@@ -127,6 +106,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 "OTP verification failed. Please try again.";
             toast.error(errorMessage);
             setOtpValue("");
+        },
+    });
+
+    const updateProfileMutation = useMutation({
+        mutationFn: async (data: { name: string, picture: string }) => {
+            const res = await axios.patch(
+                `${import.meta.env.VITE_API_URL}/api/auth/me`,
+                {
+                    name: data.name,
+                    picture: data.picture,
+                },
+                {
+                    withCredentials: true,
+                }
+            );
+
+            return res.data as User;
+        },
+        onSuccess: () => {
+            refetch();
+            toast.success("Profile updated successfully");
+        },
+        onError: (error: any) => {
+            const errorMessage =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Failed to update profile";
+            toast.error(errorMessage);
         },
     });
 
@@ -144,10 +151,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         try {
-            await fetch(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {
-                method: "POST",
-                credentials: "include",
-            });
+            await axios.post(
+                `${import.meta.env.VITE_API_URL}/api/auth/logout`,
+                {},
+                {
+                    withCredentials: true,
+                }
+            );
         } catch (error) {
             console.error("Logout error:", error);
         }
@@ -155,7 +165,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         document.cookie =
             "session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.dployr.dev;";
 
-        setUser(null);
         window.location.href = "/";
     };
 
@@ -170,32 +179,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         handleGoogleSignIn,
         handleMicrosoftSignIn,
         handleGitHubSignIn,
+        updateProfile: updateProfileMutation.mutateAsync,
         logout,
-        refetch: async () => {
-            setIsLoading(true);
-            try {
-                const res = await fetch(
-                    `${import.meta.env.VITE_API_URL}/api/auth/me`,
-                    {
-                        credentials: "include",
-                    },
-                );
-                if (res.ok) {
-                    const data = await res.json();
-                    setUser(data.user);
-                }
-            } catch (error) {
-                console.error("Refetch failed:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        },
+        refetch,
         verifyOTP,
         setVerifyOtp,
         otpValue,
         setOtpValue,
         isSubmitting: loginMutation.isPending || otpMutation.isPending,
-        email,
     };
 
     return (

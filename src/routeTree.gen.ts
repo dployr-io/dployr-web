@@ -15,11 +15,12 @@ import { Route as LogsRouteImport } from './routes/logs'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ServicesIndexRouteImport } from './routes/services/index'
 import { Route as DeploymentsIndexRouteImport } from './routes/deployments/index'
-import { Route as SettingsUsersRouteImport } from './routes/settings.users'
-import { Route as SettingsSystemRouteImport } from './routes/settings.system'
-import { Route as SettingsConfigRouteImport } from './routes/settings.config'
+import { Route as SettingsUsersRouteImport } from './routes/settings/users'
+import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
+import { Route as SettingsConfigRouteImport } from './routes/settings/config'
 import { Route as ServicesIdRouteImport } from './routes/services/$id'
 import { Route as DeploymentsIdRouteImport } from './routes/deployments/$id'
 
@@ -53,6 +54,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicesIndexRoute = ServicesIndexRouteImport.update({
   id: '/services/',
   path: '/services/',
@@ -68,9 +74,9 @@ const SettingsUsersRoute = SettingsUsersRouteImport.update({
   path: '/settings/users',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsSystemRoute = SettingsSystemRouteImport.update({
-  id: '/settings/system',
-  path: '/settings/system',
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsConfigRoute = SettingsConfigRouteImport.update({
@@ -99,10 +105,11 @@ export interface FileRoutesByFullPath {
   '/deployments/$id': typeof DeploymentsIdRoute
   '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
-  '/settings/system': typeof SettingsSystemRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments': typeof DeploymentsIndexRoute
   '/services': typeof ServicesIndexRoute
+  '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -114,10 +121,11 @@ export interface FileRoutesByTo {
   '/deployments/$id': typeof DeploymentsIdRoute
   '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
-  '/settings/system': typeof SettingsSystemRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments': typeof DeploymentsIndexRoute
   '/services': typeof ServicesIndexRoute
+  '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -130,10 +138,11 @@ export interface FileRoutesById {
   '/deployments/$id': typeof DeploymentsIdRoute
   '/services/$id': typeof ServicesIdRoute
   '/settings/config': typeof SettingsConfigRoute
-  '/settings/system': typeof SettingsSystemRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/settings/users': typeof SettingsUsersRoute
   '/deployments/': typeof DeploymentsIndexRoute
   '/services/': typeof ServicesIndexRoute
+  '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,10 +156,11 @@ export interface FileRouteTypes {
     | '/deployments/$id'
     | '/services/$id'
     | '/settings/config'
-    | '/settings/system'
+    | '/settings/profile'
     | '/settings/users'
     | '/deployments'
     | '/services'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -162,10 +172,11 @@ export interface FileRouteTypes {
     | '/deployments/$id'
     | '/services/$id'
     | '/settings/config'
-    | '/settings/system'
+    | '/settings/profile'
     | '/settings/users'
     | '/deployments'
     | '/services'
+    | '/settings'
   id:
     | '__root__'
     | '/'
@@ -177,10 +188,11 @@ export interface FileRouteTypes {
     | '/deployments/$id'
     | '/services/$id'
     | '/settings/config'
-    | '/settings/system'
+    | '/settings/profile'
     | '/settings/users'
     | '/deployments/'
     | '/services/'
+    | '/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -193,10 +205,11 @@ export interface RootRouteChildren {
   DeploymentsIdRoute: typeof DeploymentsIdRoute
   ServicesIdRoute: typeof ServicesIdRoute
   SettingsConfigRoute: typeof SettingsConfigRoute
-  SettingsSystemRoute: typeof SettingsSystemRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
   DeploymentsIndexRoute: typeof DeploymentsIndexRoute
   ServicesIndexRoute: typeof ServicesIndexRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -243,6 +256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/services/': {
       id: '/services/'
       path: '/services'
@@ -264,11 +284,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/system': {
-      id: '/settings/system'
-      path: '/settings/system'
-      fullPath: '/settings/system'
-      preLoaderRoute: typeof SettingsSystemRouteImport
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings/config': {
@@ -305,10 +325,11 @@ const rootRouteChildren: RootRouteChildren = {
   DeploymentsIdRoute: DeploymentsIdRoute,
   ServicesIdRoute: ServicesIdRoute,
   SettingsConfigRoute: SettingsConfigRoute,
-  SettingsSystemRoute: SettingsSystemRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
   SettingsUsersRoute: SettingsUsersRoute,
   DeploymentsIndexRoute: DeploymentsIndexRoute,
   ServicesIndexRoute: ServicesIndexRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
