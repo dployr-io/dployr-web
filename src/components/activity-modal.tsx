@@ -17,10 +17,21 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useInitials } from "@/hooks/use-initials";
-import { Calendar, Clock, User, Settings, Shield, Database, Key, Search, Filter, ArrowUpDown } from "lucide-react";
+import {
+    Calendar,
+    Clock,
+    User,
+    Settings,
+    Shield,
+    Database,
+    Key,
+    Search,
+    Filter,
+    ArrowUpDown,
+} from "lucide-react";
 import type { User as UserType, UserRole } from "@/types";
 import { useState, useMemo, useEffect } from "react";
-import { useUsersActivityModal } from "@/hooks/use-users-url";
+import { useUrlState } from "@/hooks/use-url-state";
 
 interface ActivityItem {
     id: string;
@@ -52,7 +63,7 @@ const generateActivityData = (user: UserWithRole | null): ActivityItem[] => {
             action: "User Login",
             description: `User logged in from IP address 192.168.1.100`,
             category: "auth",
-            metadata: { ip: "192.168.1.100", device: "Chrome on Windows" }
+            metadata: { ip: "192.168.1.100", device: "Chrome on Windows" },
         },
         {
             id: "2",
@@ -60,7 +71,7 @@ const generateActivityData = (user: UserWithRole | null): ActivityItem[] => {
             action: "Profile Updated",
             description: `Updated profile information including display name and email preferences`,
             category: "settings",
-            metadata: { fields: ["displayName", "emailPreferences"] }
+            metadata: { fields: ["displayName", "emailPreferences"] },
         },
         {
             id: "3",
@@ -68,7 +79,7 @@ const generateActivityData = (user: UserWithRole | null): ActivityItem[] => {
             action: "Resource Access",
             description: `Accessed production cluster dashboard`,
             category: "data",
-            metadata: { resource: "production-cluster", permission: "read" }
+            metadata: { resource: "production-cluster", permission: "read" },
         },
         {
             id: "4",
@@ -76,7 +87,7 @@ const generateActivityData = (user: UserWithRole | null): ActivityItem[] => {
             action: "Role Modified",
             description: `User role changed to ${user.role}`,
             category: "permission",
-            metadata: { previousRole: "viewer", newRole: user.role }
+            metadata: { previousRole: "viewer", newRole: user.role },
         },
         {
             id: "5",
@@ -84,7 +95,7 @@ const generateActivityData = (user: UserWithRole | null): ActivityItem[] => {
             action: "API Key Usage",
             description: `Generated new API key for automation`,
             category: "security",
-            metadata: { keyType: "automation", expiresIn: "90 days" }
+            metadata: { keyType: "automation", expiresIn: "90 days" },
         },
         {
             id: "6",
@@ -92,7 +103,7 @@ const generateActivityData = (user: UserWithRole | null): ActivityItem[] => {
             action: "Settings Modified",
             description: `Changed notification preferences`,
             category: "settings",
-            metadata: { settings: ["email", "push", "slack"] }
+            metadata: { settings: ["email", "push", "slack"] },
         },
         {
             id: "7",
@@ -100,8 +111,8 @@ const generateActivityData = (user: UserWithRole | null): ActivityItem[] => {
             action: "Account Created",
             description: `User account was created and initial setup completed`,
             category: "auth",
-            metadata: { invitedBy: "admin@dployr.dev" }
-        }
+            metadata: { invitedBy: "admin@dployr.dev" },
+        },
     ];
 
     return activities;
@@ -141,26 +152,35 @@ const getCategoryColor = (category: ActivityItem["category"]) => {
     }
 };
 
-export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) {
+export function ActivityModal({
+    open,
+    onOpenChange,
+    user,
+}: ActivityModalProps) {
     const getInitials = useInitials();
     const activities = generateActivityData(user);
 
-    // Use nuqs hooks for URL state management
-    const [{ search, category, sortBy, sortOrder }, setActivityModalState] = useUsersActivityModal();
-    
-    // Local state for immediate UI updates
+    const { useUsersActivityModal } = useUrlState();
+    const [{ search, category, sortBy, sortOrder }, setActivityModalState] =
+        useUsersActivityModal();
+
+
     const [searchQuery, setSearchQuery] = useState(search);
     const [selectedCategory, setSelectedCategory] = useState(category);
-    const [localSortBy, setLocalSortBy] = useState<"timestamp" | "action" | "category">(sortBy);
-    const [localSortOrder, setLocalSortOrder] = useState<"asc" | "desc">(sortOrder);
+    const [localSortBy, setLocalSortBy] = useState<
+        "timestamp" | "action" | "category"
+    >(sortBy);
+    const [localSortOrder, setLocalSortOrder] = useState<"asc" | "desc">(
+        sortOrder,
+    );
 
-    // Update URL state when local state changes (debounced for search)
+    // Update URL
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             if (searchQuery !== search) {
                 setActivityModalState({ search: searchQuery });
             }
-        }, 300); // Debounce search updates
+        }, 100); // Debounce search updates
 
         return () => clearTimeout(timeoutId);
     }, [searchQuery, search, setActivityModalState]);
@@ -215,15 +235,22 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
 
         // Apply search filter
         if (searchQuery) {
-            filtered = filtered.filter(activity =>
-                activity.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                activity.description.toLowerCase().includes(searchQuery.toLowerCase())
+            filtered = filtered.filter(
+                (activity) =>
+                    activity.action
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                    activity.description
+                        .toLowerCase()
+                        .includes(searchQuery.toLowerCase()),
             );
         }
 
         // Apply category filter
         if (selectedCategory !== "all") {
-            filtered = filtered.filter(activity => activity.category === selectedCategory);
+            filtered = filtered.filter(
+                (activity) => activity.category === selectedCategory,
+            );
         }
 
         // Apply sorting
@@ -246,7 +273,13 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
         });
 
         return filtered;
-    }, [activities, searchQuery, selectedCategory, localSortBy, localSortOrder]);
+    }, [
+        activities,
+        searchQuery,
+        selectedCategory,
+        localSortBy,
+        localSortOrder,
+    ]);
 
     const clearFilters = () => {
         setSearchQuery("");
@@ -257,7 +290,7 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
             search: "",
             category: "all",
             sortBy: "timestamp",
-            sortOrder: "desc"
+            sortOrder: "desc",
         });
     };
 
@@ -270,7 +303,10 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
                     <div className="flex items-center justify-between pr-20">
                         <ResizableModalTitle className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
-                                <AvatarImage src={user?.picture} alt={displayName} />
+                                <AvatarImage
+                                    src={user?.picture}
+                                    alt={displayName}
+                                />
                                 <AvatarFallback>
                                     {getInitials(displayName)}
                                 </AvatarFallback>
@@ -307,9 +343,12 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
                         </div>
 
                         {/* Category Filter */}
-                        <Select value={selectedCategory} onValueChange={(value) => {
-                            setSelectedCategory(value);
-                        }}>
+                        <Select
+                            value={selectedCategory}
+                            onValueChange={(value) => {
+                                setSelectedCategory(value);
+                            }}
+                        >
                             <SelectTrigger className="w-40">
                                 <Filter className="h-4 w-4 mr-2 shrink-0" />
                                 <SelectValue
@@ -318,29 +357,80 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
                                 />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all" className="whitespace-nowrap">All Categories</SelectItem>
-                                <SelectItem value="auth" className="whitespace-nowrap">Auth</SelectItem>
-                                <SelectItem value="permission" className="whitespace-nowrap">Permission</SelectItem>
-                                <SelectItem value="data" className="whitespace-nowrap">Data</SelectItem>
-                                <SelectItem value="settings" className="whitespace-nowrap">Settings</SelectItem>
-                                <SelectItem value="security" className="whitespace-nowrap">Security</SelectItem>
+                                <SelectItem
+                                    value="all"
+                                    className="whitespace-nowrap"
+                                >
+                                    All Categories
+                                </SelectItem>
+                                <SelectItem
+                                    value="auth"
+                                    className="whitespace-nowrap"
+                                >
+                                    Auth
+                                </SelectItem>
+                                <SelectItem
+                                    value="permission"
+                                    className="whitespace-nowrap"
+                                >
+                                    Permission
+                                </SelectItem>
+                                <SelectItem
+                                    value="data"
+                                    className="whitespace-nowrap"
+                                >
+                                    Data
+                                </SelectItem>
+                                <SelectItem
+                                    value="settings"
+                                    className="whitespace-nowrap"
+                                >
+                                    Settings
+                                </SelectItem>
+                                <SelectItem
+                                    value="security"
+                                    className="whitespace-nowrap"
+                                >
+                                    Security
+                                </SelectItem>
                             </SelectContent>
                         </Select>
 
                         {/* Sort Controls */}
-                        <Select value={localSortBy} onValueChange={(value) => {
-                            setLocalSortBy(value as "timestamp" | "action" | "category");
-                        }}>
+                        <Select
+                            value={localSortBy}
+                            onValueChange={(value) => {
+                                setLocalSortBy(
+                                    value as
+                                        | "timestamp"
+                                        | "action"
+                                        | "category",
+                                );
+                            }}
+                        >
                             <SelectTrigger className="w-[120px]">
                                 <ArrowUpDown className="h-4 w-4 mr-2 shrink-0" />
-                                <SelectValue
-                                    className="whitespace-nowrap overflow-hidden"
-                                />
+                                <SelectValue className="whitespace-nowrap overflow-hidden" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="timestamp" className="whitespace-nowrap">Time</SelectItem>
-                                <SelectItem value="action" className="whitespace-nowrap">Action</SelectItem>
-                                <SelectItem value="category" className="whitespace-nowrap">Category</SelectItem>
+                                <SelectItem
+                                    value="timestamp"
+                                    className="whitespace-nowrap"
+                                >
+                                    Time
+                                </SelectItem>
+                                <SelectItem
+                                    value="action"
+                                    className="whitespace-nowrap"
+                                >
+                                    Action
+                                </SelectItem>
+                                <SelectItem
+                                    value="category"
+                                    className="whitespace-nowrap"
+                                >
+                                    Category
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -352,15 +442,23 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                    const newOrder = localSortOrder === "asc" ? "desc" : "asc";
+                                    const newOrder =
+                                        localSortOrder === "asc"
+                                            ? "desc"
+                                            : "asc";
                                     setLocalSortOrder(newOrder);
                                 }}
                                 className="h-8 whitespace-nowrap"
                             >
                                 <ArrowUpDown className="h-3 w-3 mr-1" />
-                                {localSortOrder === "asc" ? "↑ Oldest" : "↓ Newest"}
+                                {localSortOrder === "asc"
+                                    ? "↑ Oldest"
+                                    : "↓ Newest"}
                             </Button>
-                            {(searchQuery || selectedCategory !== "all" || localSortBy !== "timestamp" || localSortOrder !== "desc") && (
+                            {(searchQuery ||
+                                selectedCategory !== "all" ||
+                                localSortBy !== "timestamp" ||
+                                localSortOrder !== "desc") && (
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -374,7 +472,8 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
 
                         <div className="flex items-center gap-2">
                             <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                {filteredAndSortedActivities.length} of {activities.length} activities
+                                {filteredAndSortedActivities.length} of{" "}
+                                {activities.length} activities
                             </div>
                         </div>
                     </div>
@@ -389,19 +488,29 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
                                     {activities.length === 0 ? (
                                         <div>
                                             <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                            <p>No activity found for this user</p>
+                                            <p>
+                                                No activity found for this user
+                                            </p>
                                         </div>
                                     ) : (
                                         <div>
                                             <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                            <p>No activities match your current filters</p>
-                                            <p className="text-sm mt-1">Try adjusting your search or filter criteria</p>
+                                            <p>
+                                                No activities match your current
+                                                filters
+                                            </p>
+                                            <p className="text-sm mt-1">
+                                                Try adjusting your search or
+                                                filter criteria
+                                            </p>
                                         </div>
                                     )}
                                 </div>
                             ) : (
                                 filteredAndSortedActivities.map((activity) => {
-                                    const CategoryIcon = getCategoryIcon(activity.category);
+                                    const CategoryIcon = getCategoryIcon(
+                                        activity.category,
+                                    );
                                     return (
                                         <div
                                             key={activity.id}
@@ -433,7 +542,9 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
                                                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="h-3 w-3" />
-                                                        {formatTimestamp(activity.timestamp)}
+                                                        {formatTimestamp(
+                                                            activity.timestamp,
+                                                        )}
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Calendar className="h-3 w-3" />
@@ -441,21 +552,49 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
                                                     </div>
                                                 </div>
 
-                                                {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-                                                    <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
-                                                        <div className="font-medium mb-1">Additional Details:</div>
-                                                        <div className="space-y-1">
-                                                            {Object.entries(activity.metadata).map(([key, value]) => (
-                                                                <div key={key} className="flex gap-2">
-                                                                    <span className="font-medium capitalize">
-                                                                        {key.replace(/([A-Z])/g, ' $1').trim()}:
-                                                                    </span>
-                                                                    <span>{String(value)}</span>
-                                                                </div>
-                                                            ))}
+                                                {activity.metadata &&
+                                                    Object.keys(
+                                                        activity.metadata,
+                                                    ).length > 0 && (
+                                                        <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
+                                                            <div className="font-medium mb-1">
+                                                                Additional
+                                                                Details:
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                {Object.entries(
+                                                                    activity.metadata,
+                                                                ).map(
+                                                                    ([
+                                                                        key,
+                                                                        value,
+                                                                    ]) => (
+                                                                        <div
+                                                                            key={
+                                                                                key
+                                                                            }
+                                                                            className="flex gap-2"
+                                                                        >
+                                                                            <span className="font-medium capitalize">
+                                                                                {key
+                                                                                    .replace(
+                                                                                        /([A-Z])/g,
+                                                                                        " $1",
+                                                                                    )
+                                                                                    .trim()}
+                                                                                :
+                                                                            </span>
+                                                                            <span>
+                                                                                {String(
+                                                                                    value,
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
+                                                                    ),
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    )}
                                             </div>
                                         </div>
                                     );
