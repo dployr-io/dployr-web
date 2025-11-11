@@ -6,12 +6,12 @@ import {
 } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
-import type { Cluster, SessionData, User } from "@/types";
+import type { ApiSuccessResponse, Cluster, User } from "@/types";
 import axios from "axios";
 
 interface AuthContextType {
     user: User | null;
-    clusters: Cluster[];
+    cluster: Cluster | null;
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (data: { email: string }) => Promise<void>;
@@ -39,14 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sessionData, isLoading, refetch } = useQuery({
         queryKey: ['session'],
         queryFn: async () => {
-            const res = await axios.get<SessionData>(
+            const res = await axios.get<ApiSuccessResponse>(
                 `${import.meta.env.VITE_BASE_URL}/v1/auth/me`,
                 {
                     withCredentials: true,
                 }
             );
 
-            return res.data;
+            return res.data.data;
         },
         retry: false,
         staleTime: 5 * 60 * 1000, // 5 minutes
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const value: AuthContextType = {
         user,
-        clusters: cluster ? [cluster] : [],
+        cluster,
         isLoading:
             isLoading || loginMutation.isPending || otpMutation.isPending,
         isAuthenticated: !!user,

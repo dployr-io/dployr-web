@@ -1,15 +1,11 @@
 import { Outlet, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import { QueryClient } from '@tanstack/react-query'
-
-interface RouterContext {
-  queryClient: QueryClient
-}
+import { NuqsAdapter } from 'nuqs/adapters/tanstack-router'
 
 function RootComponent() {
   return (
-    <>
+    <NuqsAdapter>
       <Outlet />
       <TanStackDevtools
         config={{
@@ -22,13 +18,10 @@ function RootComponent() {
           },
         ]}
       />
-    </>
+    </NuqsAdapter>
   )
 }
 
 export const Route = createRootRoute({
-  context: ({ queryClient }: { queryClient: QueryClient }): RouterContext => ({
-    queryClient,
-  }),
   component: RootComponent,
 })

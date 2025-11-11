@@ -19,10 +19,11 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Copy } from "lucide-react";
 
 import AppLayout from "@/layouts/app-layout";
 import SettingsLayout from "@/layouts/settings/layout";
-import type { BreadcrumbItem, User, UserRole } from "@/types";
+import type { BreadcrumbItem, User, UserRole, UsersUrlState } from "@/types";
 import { useState } from "react";
 import {
     Table,
@@ -42,11 +43,20 @@ import {
     ChevronRight,
     Check,
     X,
+    UserPlus2,
+    Activity,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tooltip } from "@radix-ui/react-tooltip";
+import { ActivityModal } from "@/components/activity-modal";
+import { useClusters } from "@/hooks/use-clusters";
+import {
+    useUsersUrlState,
+    useUsersActivityModal,
+    copyCurrentUrl,
+} from "@/lib/url-state";
 
 export const Route = createFileRoute("/settings/users")({
     component: Profile,
@@ -59,53 +69,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Dummy user data
-const DUMMY_USERS: (User & { role: UserRole })[] = [
-    {
-        id: "001",
-        email: "alice.johnson@example.com",
-        name: "Alice Johnson",
-        picture: "https://i.pravatar.cc/150?img=1",
-        role: "owner",
-        createdAt: Date.now() - 86400000 * 30,
-        updatedAt: Date.now() - 86400000 * 2,
-    },
-    {
-        id: "002",
-        email: "bob.smith@example.com",
-        name: "Bob Smith",
-        picture: "https://i.pravatar.cc/150?img=12",
-        role: "admin",
-        createdAt: Date.now() - 86400000 * 60,
-        updatedAt: Date.now() - 86400000 * 5,
-    },
-    {
-        id: "003",
-        email: "carol.white@example.com",
-        name: "Carol White",
-        picture: "https://i.pravatar.cc/150?img=5",
-        role: "developer",
-        createdAt: Date.now() - 86400000 * 45,
-        updatedAt: Date.now() - 86400000 * 1,
-    },
-    {
-        id: "004",
-        email: "david.brown@example.com",
-        name: "David Brown",
-        role: "viewer",
-        createdAt: Date.now() - 86400000 * 90,
-        updatedAt: Date.now() - 86400000 * 10,
-    },
-    {
-        id: "005",
-        email: "emma.davis@example.com",
-        name: "Emma Davis",
-        picture: "https://i.pravatar.cc/150?img=9",
-        role: "developer",
-        createdAt: Date.now() - 86400000 * 15,
-        updatedAt: Date.now() - 86400000 * 3,
-    },
-];
 
 // Dummy invite data
 interface Invite {
@@ -151,42 +114,62 @@ const getRolePriority = (role: UserRole): number => {
 function Profile() {
     const getInitials = useInitials();
     const twoFactor = use2FA({ enabled: true });
-    const [users, setUsers] =
-        useState<(User & { role: UserRole })[]>(DUMMY_USERS);
-    const [removedUsers, setRemovedUsers] = useState<string[]>([]);
+    const { users } = useClusters();
+
+    // URL state management using nuqs
+    const [{ tab, page }, setTabAndPage] = useUsersUrlState();
+    const [{ open: activityOpen, userId: activityUserId, search, category, sortBy, sortOrder }, setActivityModal] = useUsersActivityModal();
+    
+    // Local state for non-URL state
     const [userToRemove, setUserToRemove] = useState<
         (User & { role: UserRole }) | null
     >(null);
     const [userToPromote, setUserToPromote] = useState<
         (User & { role: UserRole }) | null
     >(null);
+    const [userToViewActivity, setUserToViewActivity] = useState<
+        (User & { role: UserRole }) | null
+    >(null);
     const [newRole, setNewRole] = useState<UserRole>("viewer");
-    const [currentPage, setCurrentPage] = useState(1);
     const [invites, setInvites] = useState<Invite[]>(DUMMY_INVITES);
 
     // Sort users by role priority (highest first)
-    const sortedUsers = [...users].sort(
+    const sortedUsers = [...(users || [])].sort(
         (a, b) => getRolePriority(b.role) - getRolePriority(a.role),
     );
+
+    const urlState: UsersUrlState = {
+        tab,
+        page,
+        activityModal: {
+            open: activityOpen,
+            userId: activityUserId || null,
+            search,
+            category,
+            sortBy,
+            sortOrder,
+        },
+    };
+
+    const goToPage = (newPage: number) => {
+        const calculatedPage = Math.max(1, Math.min(newPage, Math.ceil(sortedUsers.length / itemsPerPage)));
+        setTabAndPage({ page: calculatedPage });
+    };
+
+    const goToPreviousPage = () => {
+        goToPage(page - 1);
+    };
+
+    const goToNextPage = () => {
+        goToPage(page + 1);
+    };
 
     // Pagination logic
     const itemsPerPage = 8;
     const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    const startIndex = (page - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
-
-    const goToPage = (page: number) => {
-        setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-    };
-
-    const goToPreviousPage = () => {
-        setCurrentPage((prev) => Math.max(1, prev - 1));
-    };
-
-    const goToNextPage = () => {
-        setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-    };
 
     const handleAcceptInvite = (inviteId: string) => {
         twoFactor.requireAuth(() => {
@@ -210,21 +193,6 @@ function Profile() {
             setUserToRemove(null);
 
             twoFactor.requireAuth(() => {
-                const newUsers = users.filter((u) => u.id !== user.id);
-                setUsers(newUsers);
-                setRemovedUsers([...removedUsers, user.id]);
-
-                // Reset to page 1 if current page would be empty
-                const newSortedUsers = [...newUsers].sort(
-                    (a, b) => getRolePriority(b.role) - getRolePriority(a.role),
-                );
-                const newTotalPages = Math.ceil(
-                    newSortedUsers.length / itemsPerPage,
-                );
-                if (currentPage > newTotalPages && newTotalPages > 0) {
-                    setCurrentPage(newTotalPages);
-                }
-
                 alert(`Removed user ${user.id}!`);
             });
         }
@@ -242,31 +210,66 @@ function Profile() {
             setUserToPromote(null);
 
             twoFactor.requireAuth(() => {
-                setUsers(
-                    users.map((u) => (u.id === user.id ? { ...u, role } : u)),
-                );
                 alert(`Promoted user ${user.id} to ${role}!`);
             });
         }
     };
+
+    const handleViewActivityClick = (user: User & { role: UserRole }) => {
+        setUserToViewActivity(user);
+        setActivityModal({
+            open: true,
+            userId: user.id,
+        });
+    };
+
+    const handleActivityModalClose = (open: boolean) => {
+        setActivityModal({ open });
+        if (!open) {
+            setUserToViewActivity(null);
+        }
+    };
+
+    const activityUser = activityOpen && activityUserId ?
+        sortedUsers.find(u => u.id === activityUserId) :
+        null;
+
+    if (activityOpen && activityUserId && !userToViewActivity && activityUser) {
+        setUserToViewActivity(activityUser);
+    }
 
     return (
         <ProtectedRoute>
             <AppLayout breadcrumbs={breadcrumbs}>
                 <SettingsLayout>
                     <div className="space-y-4">
-                        <Tabs defaultValue="users" className="w-full">
-                            <TabsList>
-                                <TabsTrigger value="users">Users</TabsTrigger>
-                                <TabsTrigger value="invites">
-                                    Invites
-                                </TabsTrigger>
-                            </TabsList>
+                        <Tabs
+                            value={tab}
+                            onValueChange={(value) => setTabAndPage({ tab: value as "users" | "invites" })}
+                            className="w-full"
+                        >
+                            <div className="flex w-full justify-between align-middle">
+                                <TabsList>
+                                    <TabsTrigger value="users">
+                                        Users
+                                    </TabsTrigger>
+                                    <TabsTrigger value="invites">
+                                        Invites
+                                    </TabsTrigger>
+                                </TabsList>
+                                <div className="flex items-center gap-2">
+                                    <Button onClick={() => {}}>
+                                        <UserPlus2 />
+                                        <p>Invite users</p>
+                                    </Button>
+                                </div>
+                            </div>
+
                             <TabsContent value="users" className="space-y-4">
                                 <Table className="overflow-hidden rounded-t-lg">
                                     <TableHeader className="gap-2 rounded-t-xl bg-neutral-50 p-2 dark:bg-neutral-900">
                                         <TableRow>
-                                            <TableHead className="w-[80px]">
+                                            <TableHead className="w-20">
                                                 Picture
                                             </TableHead>
                                             <TableHead className="w-[200px]">
@@ -284,9 +287,7 @@ function Profile() {
                                     <TableBody>
                                         {paginatedUsers.map((user) => {
                                             const displayName =
-                                                user.name ||
-                                                user.email ||
-                                                "Unknown User";
+                                                user.name || "-";
 
                                             return (
                                                 <TableRow key={user.id}>
@@ -313,7 +314,7 @@ function Profile() {
                                                         {displayName}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="text-sm text-neutral-600">
+                                                        <span className="text-sm">
                                                             {user.email}
                                                         </span>
                                                     </TableCell>
@@ -343,57 +344,81 @@ function Profile() {
                                                         </span>
                                                     </TableCell>
                                                     <TableCell className="text-right">
-                                                        {user.role !==
-                                                            "owner" && (
-                                                            <div className="flex justify-end gap-2">
-                                                                <Tooltip>
-                                                                    <TooltipTrigger
-                                                                        asChild
+                                                        <div className="flex justify-end gap-2">
+                                                            <Tooltip>
+                                                                <TooltipTrigger
+                                                                    asChild
+                                                                >
+                                                                    <Button
+                                                                        size="icon"
+                                                                        variant="outline"
+                                                                        onClick={() =>
+                                                                            handleViewActivityClick(
+                                                                                user,
+                                                                            )
+                                                                        }
+                                                                        className="h-8 w-8 cursor-pointer"
+                                                                        aria-label="View Activity"
                                                                     >
-                                                                        <Button
-                                                                            size="icon"
-                                                                            variant="outline"
-                                                                            onClick={() =>
-                                                                                handlePromoteClick(
-                                                                                    user,
-                                                                                )
-                                                                            }
-                                                                            className="h-8 w-8 cursor-pointer"
-                                                                            aria-label="Promote User"
+                                                                        <Activity className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    View Activity
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                            {user.role !==
+                                                                "owner" && (
+                                                                <>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger
+                                                                            asChild
                                                                         >
-                                                                            <Crown className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        Promote
-                                                                        User
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger
-                                                                        asChild
-                                                                    >
-                                                                        <Button
-                                                                            size="icon"
-                                                                            variant="destructive"
-                                                                            onClick={() =>
-                                                                                handleRemoveClick(
-                                                                                    user,
-                                                                                )
-                                                                            }
-                                                                            className="h-8 w-8 hover:bg-red-500 cursor-pointer"
-                                                                            aria-label="Remove User"
+                                                                            <Button
+                                                                                size="icon"
+                                                                                variant="outline"
+                                                                                onClick={() =>
+                                                                                    handlePromoteClick(
+                                                                                        user,
+                                                                                    )
+                                                                                }
+                                                                                className="h-8 w-8 cursor-pointer"
+                                                                                aria-label="Promote User"
+                                                                            >
+                                                                                <Crown className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            Promote
+                                                                            User
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger
+                                                                            asChild
                                                                         >
-                                                                            <Trash2 className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent>
-                                                                        Remove
-                                                                        User
-                                                                    </TooltipContent>
-                                                                </Tooltip>
-                                                            </div>
-                                                        )}
+                                                                            <Button
+                                                                                size="icon"
+                                                                                variant="destructive"
+                                                                                onClick={() =>
+                                                                                    handleRemoveClick(
+                                                                                        user,
+                                                                                    )
+                                                                                }
+                                                                                className="h-8 w-8 hover:bg-red-500 cursor-pointer"
+                                                                                aria-label="Remove User"
+                                                                            >
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent>
+                                                                            Remove
+                                                                            User
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -414,7 +439,7 @@ function Profile() {
                                             variant="outline"
                                             size="sm"
                                             onClick={goToPreviousPage}
-                                            disabled={currentPage === 1}
+                                            disabled={page === 1}
                                             className="flex items-center gap-1"
                                         >
                                             <ChevronLeft className="h-4 w-4" />
@@ -425,21 +450,21 @@ function Profile() {
                                             {Array.from(
                                                 { length: totalPages },
                                                 (_, i) => i + 1,
-                                            ).map((page) => (
+                                            ).map((pageNum) => (
                                                 <Button
-                                                    key={page}
+                                                    key={pageNum}
                                                     variant={
-                                                        currentPage === page
+                                                        page === pageNum
                                                             ? "default"
                                                             : "outline"
                                                     }
                                                     size="sm"
                                                     onClick={() =>
-                                                        goToPage(page)
+                                                        goToPage(pageNum)
                                                     }
                                                     className="h-8 w-8 p-0"
                                                 >
-                                                    {page}
+                                                    {pageNum}
                                                 </Button>
                                             ))}
                                         </div>
@@ -449,7 +474,7 @@ function Profile() {
                                             size="sm"
                                             onClick={goToNextPage}
                                             disabled={
-                                                currentPage === totalPages
+                                                page === totalPages
                                             }
                                             className="flex items-center gap-1"
                                         >
@@ -530,6 +555,13 @@ function Profile() {
                         onOpenChange={twoFactor.setIsOpen}
                         onVerify={twoFactor.verify}
                         isSubmitting={twoFactor.isVerifying}
+                    />
+
+                    {/* Activity Modal */}
+                    <ActivityModal
+                        open={urlState.activityModal.open}
+                        onOpenChange={handleActivityModalClose}
+                        user={userToViewActivity}
                     />
 
                     {/* Remove User Confirmation Dialog */}

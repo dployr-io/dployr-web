@@ -1,23 +1,23 @@
-import { createApiInstance, getAuthToken } from "@/lib/auth";
+
 import type { Deployment } from "@/types";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import { useState } from "react";
 
 export function useDeployments() {
     const { data: deployments, isLoading } = useQuery<Deployment[]>({
         queryKey: ["deployments"],
         queryFn: async () => {
-            const token = getAuthToken();
-            const api = createApiInstance(token);
+            const token = null;
 
             try {
-                const response = await api?.get("/deployments");
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/deployments`);
                 const data = response?.data;
                 return Array.isArray(data) ? data : [];
             } catch (error) {
                 console.error(
                     (error as Error).message ||
-                        "An unknown error occoured while retrieving deployments",
+                    "An unknown error occoured while retrieving deployments",
                 );
                 return [];
             }

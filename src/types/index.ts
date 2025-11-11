@@ -35,11 +35,67 @@ export interface SharedData {
     [key: string]: unknown;
 }
 
-export interface ApiResponse {
-    success: boolean;
-    data: unknown[] | Record<string, unknown>;
-    error?: string;
+export type UsersUrlState = {
+  tab: "users" | "invites";
+  page: number;
+  activityModal: {
+    open: boolean;
+    userId: string | null;
+    search: string;
+    category: string;
+    sortBy: "timestamp" | "action" | "category";
+    sortOrder: "asc" | "desc";
+  };
+};
+
+/**
+ * Pagination metadata
+ */
+export interface PaginationMeta {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
 }
+
+/**
+ * Paginated data wrapper
+ */
+export interface PaginatedData<T> {
+    items: T[];
+    pagination: PaginationMeta;
+}
+
+/**
+ * Standard success response with data
+ */
+export interface ApiSuccessResponse<T = any> {
+    success: true;
+    data: T;
+    message?: string;
+}
+
+/**
+ * Standard error response
+ */
+export interface ApiErrorResponse {
+    success: false;
+    error: {
+        message: string;
+        code?: string;
+        details?: Array<{
+            field: string;
+            message: string;
+        }>;
+    };
+}
+
+/**
+ * Union type for all API responses
+ */
+export type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 export type UserRole = "owner" | "admin" | "developer" | "viewer";
 

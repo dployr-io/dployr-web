@@ -7,6 +7,14 @@ export function useEnv() {
         database_url: "postgresql://localhost:5432/mydb",
         redis_url: "redis://localhost:6379",
         jwt_secret: "your-secret-key",
+        api_url_1: "https://api.example.com",
+        database_url_2: "postgresql://localhost:5432/mydb",
+        redis_url_2: "redis://localhost:6379",
+        jwt_secret_2: "your-secret-key",
+        api_url_3: "https://api.example.com",
+        database_url_3: "postgresql://localhost:5432/mydb",
+        redis_url_3: "redis://localhost:6379",
+        jwt_secret_3: "your-secret-key",
     };
 
     const [editingKey, setEditingKey] = useState<string | null>(null);

@@ -1,5 +1,4 @@
 import { parseLog } from "@/lib/utils";
-import { getAuthToken } from "@/lib/auth";
 import type { Deployment, LogLevel, Service } from "@/types";
 import type { Log } from "@/types";
 import { useEffect, useRef, useState } from "react";
@@ -16,15 +15,9 @@ export function useLogs(id?: string, filterItem?: Deployment | Service | null) {
             return;
         }
 
-        const instanceUrl = localStorage.getItem("dployr_instance_url");
-        const token = getAuthToken();
+        const token = null;
 
-        if (!instanceUrl) {
-            console.error("Instance URL not found. Please sign in first.");
-            return;
-        }
-
-        const streamUrl = `${instanceUrl}/logs/stream?id=${encodeURIComponent(id)}`;
+        const streamUrl = `${import.meta.env.VITE_BASE_URL}/logs/stream?id=${encodeURIComponent(id)}`;
         const urlWithAuth = token ? `${streamUrl}&token=${encodeURIComponent(token)}` : streamUrl;
         const eventSource = new EventSource(urlWithAuth);
 

@@ -5,11 +5,10 @@ import axios from "axios";
 
 export function useServices() {
     const token = null; // Temporary
-    const instance = "";
     const query = useQuery<Service[]>({
         queryKey: ["services"],
         queryFn: async () => {
-            const response = await axios.get(`${instance}/services`, {
+            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/services`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
