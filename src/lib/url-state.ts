@@ -1,5 +1,4 @@
 import {
-  useQueryState,
   useQueryStates,
   parseAsString,
   parseAsInteger,
@@ -10,11 +9,9 @@ import {
   type inferParserType,
 } from 'nuqs'
 
-
-
 export function useUsersUrlState() {
   return useQueryStates({
-    tab: parseAsStringLiteral(['users', 'invites']).withDefault('users'),
+    tab: parseAsStringLiteral(['users', 'invites-received', 'invites-sent']).withDefault('users'),
     page: parseAsInteger.withDefault(1),
   });
 }

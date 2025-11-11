@@ -36,7 +36,7 @@ export interface SharedData {
 }
 
 export type UsersUrlState = {
-  tab: "users" | "invites";
+  tab: "users" | "invites-received" | "invites-sent";
   page: number;
   activityModal: {
     open: boolean;

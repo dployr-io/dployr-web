@@ -17,10 +17,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useInitials } from "@/hooks/use-initials";
-import { Calendar, Clock, User, Settings, Shield, Database, Key, Search, Filter, ArrowUpDown, Copy } from "lucide-react";
+import { Calendar, Clock, User, Settings, Shield, Database, Key, Search, Filter, ArrowUpDown } from "lucide-react";
 import type { User as UserType, UserRole } from "@/types";
 import { useState, useMemo, useEffect } from "react";
-import { useUsersActivityModal, copyCurrentUrl } from "@/lib/url-state";
+import { useUsersActivityModal } from "@/hooks/use-users-url";
 
 interface ActivityItem {
     id: string;
@@ -373,15 +373,6 @@ export function ActivityModal({ open, onOpenChange, user }: ActivityModalProps) 
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={copyCurrentUrl}
-                                className="h-8 text-muted-foreground whitespace-nowrap"
-                            >
-                                <Copy className="h-3 w-3 mr-1" />
-                                Share URL
-                            </Button>
                             <div className="text-xs text-muted-foreground whitespace-nowrap">
                                 {filteredAndSortedActivities.length} of {activities.length} activities
                             </div>
