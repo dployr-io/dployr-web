@@ -2,14 +2,9 @@ import type { User, UserRole } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useAuth } from "./use-auth";
-import z from "zod";
 import { toast } from "@/lib/toast";
 
 const LOCALSTORAGE_KEY = "dployr-cluster-id";
-
-const addUsersSchema = z.object({
-  users: z.array(z.email())
-});
 
 
 export function useClusters() {
@@ -34,7 +29,55 @@ export function useClusters() {
         }
     }
 
-    // load invites
+    // load invites received
+    const { data: invitesReceived, isLoading: isLoadingInvitesReceived } = useQuery<{ clusterId: string; clusterName: string; ownerName: string }[]>({
+        queryKey: ["invites"],
+        queryFn: async (): Promise<{ clusterId: string; clusterName: string; ownerName: string }[]> => {
+            try {
+                const response = await axios.get(
+                    `${import.meta.env.VITE_BASE_URL}/v1/clusters/users/invites`,
+                    {
+                        withCredentials: true,
+                    },
+                );
+                const data = response?.data.data.items;
+
+                return Array.isArray(data) ? data as { clusterId: string; clusterName: string; ownerName: string }[] : [];
+            } catch (error) {
+                console.error(
+                    (error as Error).message ||
+                        "An unknown error occoured while retrieving cluster invites",
+                );
+                return [];
+            }
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
+    // load invites sent
+    const { data: invitesSent, isLoading: isLoadingInvitesSent } = useQuery<{ clusterId: string; clusterName: string; ownerName: string }[]>({
+        queryKey: ["invites"],
+        queryFn: async (): Promise<{ clusterId: string; clusterName: string; ownerName: string }[]> => {
+            try {
+                const response = await axios.get(
+                    `${import.meta.env.VITE_BASE_URL}/v1/clusters/users/invites?sent=true`,
+                    {
+                        withCredentials: true,
+                    },
+                );
+                const data = response?.data.data.items;
+
+                return Array.isArray(data) ? data as { clusterId: string; clusterName: string; ownerName: string }[] : [];
+            } catch (error) {
+                console.error(
+                    (error as Error).message ||
+                        "An unknown error occoured while retrieving cluster invites",
+                );
+                return [];
+            }
+        },
+        staleTime: 5 * 60 * 1000,
+    });
 
     // accept invite
 
@@ -66,11 +109,11 @@ export function useClusters() {
     });
 
     // add user
-    const { mutate: addUser, isPending: isAddingUser } = useMutation({
-        mutationFn: async (variables: { email: string }): Promise<void> => {
+    const { mutate: addUsers, isPending: isAddingUser } = useMutation({
+        mutationFn: async (variables: { users: string[] }): Promise<void> => {
             await axios.post(
                 `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`,
-                { email: variables.email },
+                { email: variables.users },
                 {
                     withCredentials: true,
                 }
@@ -94,8 +137,12 @@ export function useClusters() {
 
     return {
         users,
-        isLoading: isLoadingUsers,
-        addUser,
+        isLoadingUsers,
+        invitesReceived,
+        invitesSent,
+        isLoadingInvitesReceived,
+        isLoadingInvitesSent,
+        addUsers,
         isAddingUser,
         setCurrentCluster,
         clusterId,

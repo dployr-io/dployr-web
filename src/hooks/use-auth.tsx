@@ -39,21 +39,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sessionData, isLoading, refetch } = useQuery({
         queryKey: ['session'],
         queryFn: async () => {
-            const res = await axios.get<ApiSuccessResponse>(
-                `${import.meta.env.VITE_BASE_URL}/v1/auth/me`,
-                {
-                    withCredentials: true,
-                }
-            );
+            try {
+                const res = await axios.get<ApiSuccessResponse>(
+                    `${import.meta.env.VITE_BASE_URL}/v1/auth/me`,
+                    {
+                        withCredentials: true,
+                    }
+                );
 
-            return res.data.data;
+                return res.data.data;
+            } catch (error: any) {
+                // Only handle errors on the login page
+                if (window.location.pathname === '/') {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const existingError = urlParams.get('error');
+
+                    if (!existingError) {
+                        const errorData = error?.response?.data?.error;
+                        const errorMessage = typeof errorData === 'string'
+                            ? errorData
+                            : errorData?.message || error?.message || "Authentication failed";
+
+                        const newUrl = new URL(window.location.href);
+                        newUrl.searchParams.set('error', errorMessage);
+                        window.history.replaceState({}, '', newUrl.toString());
+                    }
+                }
+
+                throw error;
+            }
         },
         retry: false,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 
-    const user = sessionData?.user ?? null;
-    const cluster = sessionData?.cluster ?? null;
+    // session data
+    const user = (sessionData as any)?.user ?? null;
+    const cluster = (sessionData as any)?.cluster ?? null;
 
     const loginMutation = useMutation({
         mutationFn: async (credentials: { email: string }) => {

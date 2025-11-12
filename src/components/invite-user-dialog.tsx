@@ -1,13 +1,15 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { toast } from '@/lib/toast';
 import { X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface Props {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    handleSubmit: () => void;
 }
 
 interface EmailChip {
@@ -15,7 +17,7 @@ interface EmailChip {
     email: string;
 }
 
-export default function InviteUserDialog({ open, onOpenChange }: Props) {
+export default function InviteUserDialog({ open, onOpenChange, handleSubmit }: Props) {
     const [inputValue, setInputValue] = useState('');
     const [emailChips, setEmailChips] = useState<EmailChip[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -57,7 +59,7 @@ export default function InviteUserDialog({ open, onOpenChange }: Props) {
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Backspace' && inputValue === '' && emailChips.length > 0) {
-            // Remove last chip when backspace is pressed on empty input
+            // backspace removes last entry
             setEmailChips(emailChips.slice(0, -1));
         }
     };
@@ -66,29 +68,20 @@ export default function InviteUserDialog({ open, onOpenChange }: Props) {
         setEmailChips(emailChips.filter(chip => chip.id !== chipId));
     };
 
-    const handleSubmit = async () => {
+    const onSubmit = async () => {
         if (emailChips.length === 0) return;
 
         setIsSubmitting(true);
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            console.log('Inviting users:', emailChips.map(chip => chip.email));
-            alert(`Invited ${emailChips.length} user(s) successfully!`);
-            
-            // Reset form
-            setEmailChips([]);
-            setInputValue('');
+            handleSubmit();
             onOpenChange(false);
         } catch (error) {
-            alert('Failed to send invites. Please try again.');
+            toast.error('Failed to send invites. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Reset when modal closes
     useEffect(() => {
         if (!open) {
             setEmailChips([]);
@@ -109,8 +102,8 @@ export default function InviteUserDialog({ open, onOpenChange }: Props) {
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="emails">Email Addresses</Label>
+                    <Field>
+                        <FieldLabel htmlFor="emails">Email Addresses</FieldLabel>
                         <div className="relative">
                             <Input
                                 id="emails"
@@ -126,7 +119,7 @@ export default function InviteUserDialog({ open, onOpenChange }: Props) {
                                 {emailChips.length}/5
                             </div>
                         </div>
-                    </div>
+                    </Field>
 
                     {/* Email Chips */}
                     {emailChips.length > 0 && (
@@ -169,7 +162,7 @@ export default function InviteUserDialog({ open, onOpenChange }: Props) {
                     </Button>
                     <Button
                         type="button"
-                        onClick={handleSubmit}
+                        onClick={onSubmit}
                         disabled={isSubmitting || emailChips.length === 0}
                     >
                         {isSubmitting ? 'Sending Invites...' : `Send ${emailChips.length > 0 ? `(${emailChips.length})` : ''} Invite${emailChips.length !== 1 ? 's' : ''}`}

@@ -1,4 +1,4 @@
-import type { Blueprint, Log, LogLevel } from '@/types';
+import type { Blueprint, Log, LogLevel, UserRole } from '@/types';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ulid } from 'ulid';
@@ -95,4 +95,20 @@ export function parseLog(raw: string): Log {
 export function formatWithoutSuffix(value: number, unit: string): string {
     const pluralizedUnit = value === 1 ? unit : `${unit}s`;
     return `${value} ${pluralizedUnit}`;
+};
+
+// Role priority: higher number = higher privilege
+export const getRolePriority = (role: UserRole): number => {
+    switch (role) {
+        case "owner":
+            return 4;
+        case "admin":
+            return 3;
+        case "developer":
+            return 2;
+        case "viewer":
+            return 1;
+        default:
+            return 0;
+    }
 };

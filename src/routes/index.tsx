@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/input-otp";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useUrlState } from "@/hooks/use-url-state";
 import { toast } from "@/lib/toast";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { FaGithub, FaGoogle, FaMicrosoft } from "react-icons/fa6";
@@ -30,6 +31,26 @@ const loginSchema = z.object({
 export const Route = createFileRoute("/")({
     component: App,
 });
+
+function ErrorRibbon({
+    error,
+    onRemove
+}: {
+    error: { id: string; message: string };
+    onRemove: (id: string) => void;
+}) {
+    return (
+        <div className="py-2 px-4 bg-red-50 border border-red-200 rounded-md text-red-800 flex items-center justify-between mb-2">
+            <span className="text-sm">{error.message}</span>
+            <button
+                onClick={() => onRemove(error.id)}
+                className="text-red-600 hover:text-red-800 ml-2 text-lg font-bold"
+            >
+                ×
+            </button>
+        </div>
+    );
+}
 
 function App() {
     const {
@@ -46,8 +67,14 @@ function App() {
         handleGitHubSignIn,
     } = useAuth();
     const router = useRouter();
+    const { useAuthError } = useUrlState();
+    const [{ error: urlError }, setError] = useAuthError();
 
     const [email, setEmail] = useState("");
+    const errorMessage = urlError || "";
+    const clearError = () => {
+        setError({ error: "" });
+    };
 
     const form = useForm({
         defaultValues: {
@@ -56,12 +83,14 @@ function App() {
         onSubmit: async ({ value }) => {
             try {
                 setEmail(email);
+                clearError(); 
 
                 await login({
                     email: value.email,
                 });
             } catch (error) {
-                toast.error(`Login failed: ${(error as Error).message}`);
+                const errorMessage = error instanceof Error ? error.message : "Login failed";
+                setError({ error: errorMessage });
             }
         },
     });
@@ -70,7 +99,9 @@ function App() {
         if (value.length === 6) {
             try {
                 if (!email) {
-                    console.error("Attempt to verify otp without existing email");
+                    console.error(
+                        "Attempt to verify otp without existing email",
+                    );
                     return;
                 }
 
@@ -98,6 +129,15 @@ function App() {
                 <main className="flex w-full max-w-[335px] flex-col-reverse lg:max-w-4xl lg:flex-row">
                     <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-5 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
                         <div className="flex flex-col gap-6 min-h-60">
+                            {
+                                errorMessage && (
+                                    <ErrorRibbon
+                                        error={{ id: "url-error", message: errorMessage }}
+                                        onRemove={clearError}
+                                    />
+                                )
+                            }
+
                             <div className="flex flex-col gap-2">
                                 <div className="text-xl">
                                     {verifyOTP ? "Verify 2FA" : "Sign in"}
@@ -195,9 +235,15 @@ function App() {
                                             name="email"
                                             validators={{
                                                 onChange: ({ value }) => {
-                                                    const result = loginSchema.shape.email.safeParse(value);
+                                                    const result =
+                                                        loginSchema.shape.email.safeParse(
+                                                            value,
+                                                        );
                                                     setEmail(value);
-                                                    return result.success ? undefined : result.error.issues[0].message;
+                                                    return result.success
+                                                        ? undefined
+                                                        : result.error.issues[0]
+                                                            .message;
                                                 },
                                             }}
                                             children={(field) => {
@@ -239,9 +285,14 @@ function App() {
                                                         {isInvalid && (
                                                             <FieldError
                                                                 errors={
-                                                                    field.state
-                                                                        .meta
-                                                                        .errors?.map(error => ({ message: error })) || []
+                                                                    field.state.meta.errors?.map(
+                                                                        (
+                                                                            error,
+                                                                        ) => ({
+                                                                            message:
+                                                                                error,
+                                                                        }),
+                                                                    ) || []
                                                                 }
                                                             />
                                                         )}

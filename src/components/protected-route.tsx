@@ -22,7 +22,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/" />;
+        // Preserve error query param 
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const redirectPath = error ? `/?error=${encodeURIComponent(error)}` : '/';
+        return <Navigate to={redirectPath} />;
     }
 
     return <>{children}</>;

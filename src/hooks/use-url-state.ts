@@ -46,9 +46,21 @@ export function useUrlState() {
         });
     }
 
+    /**
+     * URL state management for auth errors 
+     * Error captured during oAuth redirects
+     * are tracked in this state
+     */
+    function useAuthError() {
+        return useQueryStates({
+            error: parseAsString.withDefault("")
+        });
+    };
+
     return {
         useUsersUrlState,
         useUsersActivityModal,
         useInviteUserDialog,
+        useAuthError,
     };
 }
