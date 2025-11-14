@@ -34,12 +34,9 @@ export function use2FA(options: Use2FAOptions = {}) {
 
   const requireAuth = (action: () => void) => {
     if (enabled) {
-
-        console.log("enabled is enabled")
       setPendingAction(() => action);
       setIsOpen(true);
     } else {
-        console.log("enabled is disabled")
       action();
     }
   };

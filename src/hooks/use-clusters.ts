@@ -8,224 +8,281 @@ import { useState } from "react";
 const LOCALSTORAGE_KEY = "dployr-cluster-id";
 
 export function useClusters() {
-    const { refetch, cluster } = useAuth();
-    const queryClient = useQueryClient();
-    const { useAppError } = useUrlState();
-    const [{ appError }, setError] = useAppError();
-    const [usersToAdd, setUsersToAdd] = useState<string[]>([]);
+  const { refetch, cluster } = useAuth();
+  const queryClient = useQueryClient();
+  const { useAppError } = useUrlState();
+  const [{ appError }, setError] = useAppError();
+  const [usersToAdd, setUsersToAdd] = useState<string[]>([]);
 
-    // Get cluster ID from localStorage first, then fallback to session data
-    const clusterId = (() => {
-        const storedId = localStorage.getItem(LOCALSTORAGE_KEY);
-        if (storedId) {
-            return storedId;
-        }
-        return cluster?.id || "";
-    })();
-
-    function setCurrentCluster(clusterId: string) {
-        if (clusterId) {
-            localStorage.setItem(LOCALSTORAGE_KEY, clusterId);
-            refetch();
-        } else {
-            localStorage.removeItem(LOCALSTORAGE_KEY);
-        }
+  // Get cluster ID from localStorage first, then fallback to session data
+  const clusterId = (() => {
+    const storedId = localStorage.getItem(LOCALSTORAGE_KEY);
+    if (storedId) {
+      return storedId;
     }
+    return cluster?.id || "";
+  })();
 
-    // load invites received
-    const { data: invitesReceived, isLoading: isLoadingInvitesReceived } = useQuery<User[]>({
-        queryKey: ["invites"],
-        queryFn: async (): Promise<User[]> => {
-            try {
-                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/users/invites`, {
-                    withCredentials: true,
-                });
-                const data = response?.data.data.items;
+  function setCurrentCluster(clusterId: string) {
+    if (clusterId) {
+      localStorage.setItem(LOCALSTORAGE_KEY, clusterId);
+      refetch();
+    } else {
+      localStorage.removeItem(LOCALSTORAGE_KEY);
+    }
+  }
 
-                return Array.isArray(data) ? (data as User[]) : [];
-            } catch (error) {
-                console.error((error as Error).message || "An unknown error occoured while retrieving cluster invites");
-                return [];
-            }
+  // load invites received
+  const { data: invitesReceived, isLoading: isLoadingInvitesReceived } = useQuery<
+    {
+      clusterId: string;
+      clusterName: string;
+      ownerName: string;
+    }[]
+  >({
+    queryKey: ["invites-received"],
+    queryFn: async (): Promise<
+      {
+        clusterId: string;
+        clusterName: string;
+        ownerName: string;
+      }[]
+    > => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/users/invites`, {
+          withCredentials: true,
+        });
+        const data = response?.data.data.invites;
+
+        return Array.isArray(data)
+          ? (data as {
+              clusterId: string;
+              clusterName: string;
+              ownerName: string;
+            }[])
+          : [];
+      } catch (error) {
+        console.error((error as Error).message || "An unknown error occoured while retrieving cluster invites");
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // load invites sent
+  const { data: invitesSent, isLoading: isLoadingInvitesSent } = useQuery<User[]>({
+    queryKey: ["invites", clusterId],
+    queryFn: async (): Promise<User[]> => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users?showInvites=true`, {
+          withCredentials: true,
+        });
+        const data = response?.data.data.items;
+
+        return Array.isArray(data) ? (data as User[]) : [];
+      } catch (error) {
+        console.error((error as Error).message || "An unknown error occoured while retrieving cluster invites");
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // accept invite
+  async function acceptInvite(id: string) {
+    try {
+      await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${id}/users/invites/accept`, {
+        withCredentials: true,
+      });
+      queryClient.invalidateQueries({ queryKey: ['invites-received'] });
+    } catch (error: any) {
+      const errorData = error?.response?.data?.error;
+      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+      const helpLink = error?.response?.data?.error.helpLink;
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
         },
-        staleTime: 5 * 60 * 1000,
-    });
+      });
+    }
+  }
 
-    // load invites sent
-    const { data: invitesSent, isLoading: isLoadingInvitesSent } = useQuery<User[]>({
-        queryKey: ["invites", clusterId],
-        queryFn: async (): Promise<User[]> => {
-            try {
-                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users?showInvites=true`, {
-                    withCredentials: true,
-                });
-                const data = response?.data.data.items;
-
-                return Array.isArray(data) ? (data as User[]) : [];
-            } catch (error) {
-                console.error((error as Error).message || "An unknown error occoured while retrieving cluster invites");
-                return [];
-            }
+  // reject invite
+  async function declineInvite(id: string) {
+    try {
+      await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${id}/users/invites/reject`, {
+        withCredentials: true,
+      });
+      queryClient.invalidateQueries({ queryKey: ['invites-received'] });
+    } catch (error: any) {
+      const errorData = error?.response?.data?.error;
+      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+      const helpLink = error?.response?.data?.error.helpLink;
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
         },
-        staleTime: 5 * 60 * 1000,
-    });
+      });
+    }
+  }
 
-    // accept invite
+  // load all users
+  const { data: users, isLoading: isLoadingUsers } = useQuery<(User & { role: UserRole })[]>({
+    queryKey: ["users", clusterId],
+    queryFn: async (): Promise<(User & { role: UserRole })[]> => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`, {
+          withCredentials: true,
+        });
+        const data = response?.data.data.items;
 
-    // reject invite
+        return Array.isArray(data) ? (data as (User & { role: UserRole })[]) : [];
+      } catch (error) {
+        console.error((error as Error).message || "An unknown error occoured while retrieving deployments");
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-    // load all users
-    const { data: users, isLoading: isLoadingUsers } = useQuery<(User & { role: UserRole })[]>({
-        queryKey: ["users", clusterId],
-        queryFn: async (): Promise<(User & { role: UserRole })[]> => {
-            try {
-                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`, {
-                    withCredentials: true,
-                });
-                const data = response?.data.data.items;
+  // add user
+  const addUsers = useMutation({
+    mutationFn: async (users: string[]): Promise<void> => {
+      await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`,
+        { users },
+        {
+          withCredentials: true,
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
 
-                return Array.isArray(data) ? (data as (User & { role: UserRole })[]) : [];
-            } catch (error) {
-                console.error((error as Error).message || "An unknown error occoured while retrieving deployments");
-                return [];
-            }
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      console.log(helpLink);
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
         },
-        staleTime: 5 * 60 * 1000,
-    });
+      });
+    },
+  });
 
-    // add user
-    const addUsers = useMutation({
-        mutationFn: async (users: string[]): Promise<void> => {
-            await axios.post(
-                `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`,
-                { users },
-                {
-                    withCredentials: true,
-                }
-            );
+  // cancel invites
+  const removeInvites = useMutation({
+    mutationFn: async (users: string[]): Promise<void> => {
+      await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users/remove`,
+        { users },
+        {
+          withCredentials: true,
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
+      queryClient.invalidateQueries({ queryKey: ['invites-received'] });
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
+      });
+    },
+  });
+
+  // remove user
+  const removeUsers = useMutation({
+    mutationFn: async (users: string[]): Promise<void> => {
+      await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`,
+        { users },
+        {
+          withCredentials: true,
+        }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users", clusterId] });
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
         },
-        onError: (error: any) => {
-            const errorData = error?.response?.data?.error;
-            const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+      });
+    },
+  });
 
-            const helpLink = error?.response?.data?.error.helpLink;
+  // transfer ownership
 
-            console.log(helpLink);
+  // integrations
+  const { data: integrations, isLoading: isLoadingIntegrations } = useQuery<any>({
+    queryKey: ["integrations"],
+    queryFn: async (): Promise<any> => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/integrations`, {
+          withCredentials: true,
+        });
+        const data = response?.data.data;
 
-            setError({
-                appError: {
-                    message: errorMessage,
-                    helpLink,
-                },
-            });
-        },
-    });
+        return data;
+      } catch (error: any) {
+        const errorData = error?.response?.data?.error;
+        const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while loading integrations.";
 
-    // cancel invites
-    const removeInvites = useMutation({
-        mutationFn: async (users: string[]): Promise<void> => {
-            await axios.post(
-                `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users/remove`,
-                { users },
-                {
-                    withCredentials: true,
-                }
-            );
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
-        },
-        onError: (error: any) => {
-            const errorData = error?.response?.data?.error;
-            const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+        const helpLink = error?.response?.data?.error.helpLink;
 
-            const helpLink = error?.response?.data?.error.helpLink;
+        setError({
+          appError: {
+            message: errorMessage,
+            helpLink,
+          },
+        });
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-            setError({
-                appError: {
-                    message: errorMessage,
-                    helpLink,
-                },
-            });
-        },
-    });
-
-    // remove user
-    const removeUsers = useMutation({
-        mutationFn: async (users: string[]): Promise<void> => {
-            await axios.post(
-                `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`,
-                { users },
-                {
-                    withCredentials: true,
-                }
-            );
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["users", clusterId] });
-        },
-        onError: (error: any) => {
-            const errorData = error?.response?.data?.error;
-            const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
-
-            const helpLink = error?.response?.data?.error.helpLink;
-
-            setError({
-                appError: {
-                    message: errorMessage,
-                    helpLink,
-                },
-            });
-        },
-    });
-
-    // transfer ownership
-
-    // integrations
-    const { data: integrations, isLoading: isLoadingIntegrations } = useQuery<any>({
-        queryKey: ["integrations"],
-        queryFn: async (): Promise<any> => {
-            try {
-                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/integrations`, {
-                    withCredentials: true,
-                });
-                const data = response?.data.data;
-
-                return data;
-            } catch (error: any) {
-                const errorData = error?.response?.data?.error;
-                const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while loading integrations.";
-
-                const helpLink = error?.response?.data?.error.helpLink;
-
-                setError({
-                    appError: {
-                        message: errorMessage,
-                        helpLink,
-                    },
-                });
-            }
-        },
-        staleTime: 5 * 60 * 1000,
-    });
-
-    return {
-        users,
-        integrations,
-        usersToAdd,
-        isLoadingUsers,
-        invitesReceived,
-        invitesSent,
-        isLoadingInvitesReceived,
-        isLoadingInvitesSent,
-        addUsers,
-        setUsersToAdd,
-        setCurrentCluster,
-        removeInvites,
-        removeUsers,
-        clusterId,
-    };
+  return {
+    users,
+    integrations,
+    usersToAdd,
+    isLoadingUsers,
+    invitesReceived,
+    invitesSent,
+    isLoadingInvitesReceived,
+    isLoadingInvitesSent,
+    addUsers,
+    acceptInvite,
+    declineInvite,
+    setUsersToAdd,
+    setCurrentCluster,
+    removeInvites,
+    removeUsers,
+    clusterId,
+  };
 }
