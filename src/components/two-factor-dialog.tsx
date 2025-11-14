@@ -53,7 +53,7 @@ export function TwoFactorDialog({
             onOpenChange(false);
         } catch (err) {
             setError(
-                (err as Error).message || "Invalid code. Please try again.",
+                (err as Error).message || "Invalid code. Please check and try again.",
             );
         }
     };

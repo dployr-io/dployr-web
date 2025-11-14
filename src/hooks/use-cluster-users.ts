@@ -2,15 +2,13 @@ import { useUsersUrlState, useUsersActivityModal } from "@/lib/url-state";
 import type { User, UserRole, UsersUrlState } from "@/types";
 import { useState } from "react";
 import { useClusters } from "@/hooks/use-clusters";
-import { useClustersForm } from "@/hooks/use-clusters-form";
 import { getRolePriority } from "@/lib/utils";
 import { useUrlState } from "@/hooks/use-url-state";
 import { use2FA } from "@/hooks/use-2fa";
 
 export function useClusterUsers() {
-    const { addUsersForm } = useClustersForm();
     const twoFactor = use2FA({ enabled: true });
-    const { users, isLoadingUsers } = useClusters();
+    const { users, isLoadingUsers, addUsers, removeUsers, removeInvites } = useClusters();
     const [{ tab, page }, setTabAndPage] = useUsersUrlState();
     const [
         {
@@ -24,22 +22,21 @@ export function useClusterUsers() {
         setActivityModal,
     ] = useUsersActivityModal();
 
-    const { useInviteUserDialog } = useUrlState();
+    const { useAppError, useInviteUserDialog } = useUrlState();
+    const [{ appError }, setError] = useAppError();
 
     // Local state for non-URL state
-    const [userToRemove, setUserToRemove] = useState<
-        (User & { role: UserRole }) | null
-    >(null);
-    const [userToPromote, setUserToPromote] = useState<
-        (User & { role: UserRole }) | null
-    >(null);
-    const [userToViewActivity, setUserToViewActivity] = useState<
-        (User & { role: UserRole }) | null
-    >(null);
+    const [userToRemove, setUserToRemove] = useState<User | null>(null);
+    const [userToPromote, setUserToPromote] = useState<(User & { role: UserRole }) | null>(null);
+    const [userToViewActivity, setUserToViewActivity] = useState<(User & { role: UserRole }) | null>(null);
     const [newRole, setNewRole] = useState<UserRole>("viewer");
-    const { invitesReceived, invitesSent, isLoadingInvitesReceived, isLoadingInvitesSent } = useClusters();
-    const [{ inviteOpen: inviteDialogOpen }, setInviteDialogOpen] =
-        useInviteUserDialog();
+    const {
+        invitesReceived,
+        invitesSent,
+        isLoadingInvitesReceived,
+        isLoadingInvitesSent,
+    } = useClusters();
+    const [{ inviteOpen: inviteDialogOpen }, setInviteDialogOpen] = useInviteUserDialog();
 
     // Sort users by role priority (highest first)
     const sortedUsers = [...(users || [])].sort(
@@ -83,14 +80,10 @@ export function useClusterUsers() {
     const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
 
     const handleAcceptInvite = (inviteId: string) => {
-        twoFactor.requireAuth(() => {
-
-        });
+        twoFactor.requireAuth(() => { });
     };
 
-    const handleDeclineInvite = (inviteId: string) => {
-
-    };
+    const handleDeclineInvite = (inviteId: string) => { };
 
     const handleRemoveClick = (user: User & { role: UserRole }) => {
         setUserToRemove(user);
@@ -98,11 +91,8 @@ export function useClusterUsers() {
 
     const handleRemoveConfirm = () => {
         if (userToRemove) {
-            const user = userToRemove;
-            setUserToRemove(null);
-
             twoFactor.requireAuth(() => {
-                alert(`Removed user ${user.id}!`);
+                removeInvites.mutateAsync([userToRemove.id]);
             });
         }
     };
@@ -140,6 +130,12 @@ export function useClusterUsers() {
     };
 
     const handleInviteUsersDialogClose = (inviteOpen: boolean) => {
+        setError({
+            appError: {
+                message: "",
+                helpLink: ""
+            },
+        });
         setInviteDialogOpen({ inviteOpen });
     };
 
@@ -153,7 +149,6 @@ export function useClusterUsers() {
     }
 
     return {
-        addUsersForm,
         twoFactor,
         users,
         isLoadingUsers,
@@ -191,6 +186,9 @@ export function useClusterUsers() {
         startIndex,
         endIndex,
         paginatedUsers,
+        addUsers,
+        removeInvites,
+        removeUsers,
         handleAcceptInvite,
         handleDeclineInvite,
         handleRemoveClick,

@@ -1,64 +1,60 @@
 import { useState } from "react";
 
 interface Use2FAOptions {
-    enabled?: boolean;
-    onVerify?: (code: string) => Promise<void>;
+  enabled?: boolean;
 }
 
 export function use2FA(options: Use2FAOptions = {}) {
-    const { enabled = false, onVerify } = options;
-    const [isOpen, setIsOpen] = useState(false);
-    const [isVerifying, setIsVerifying] = useState(false);
-    const [pendingAction, setPendingAction] = useState<(() => void) | null>(
-        null,
-    );
+  const { enabled = false } = options;
+  const [isOpen, setIsOpen] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-    const verify = async (code: string) => {
-        setIsVerifying(true);
-        try {
-            // Custom verification logic if provided
-            if (onVerify) {
-                await onVerify(code);
-            } else {
-                // Default verification - simulate API call
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-                if (code.length < 4) {
-                    throw new Error("Invalid 2FA code");
-                }
-            }
+  const verify = async (code: string) => {
+    setIsVerifying(true);
+    try {
+      if (code.length < 4) {
+        throw new Error("Invalid code. Please check and try again.");
+      }
 
-            // Execute pending action after successful verification
-            if (pendingAction) {
-                pendingAction();
-                setPendingAction(null);
-            }
+      // TODO: Implement code validation
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-            setIsOpen(false);
-        } finally {
-            setIsVerifying(false);
-        }
-    };
-
-    const requireAuth = (action: () => void) => {
-        if (enabled) {
-            setPendingAction(() => action);
-            setIsOpen(true);
-        } else {
-            action();
-        }
-    };
-
-    const cancel = () => {
-        setIsOpen(false);
+      // Execute pending action after successful verification
+      if (pendingAction) {
+        pendingAction();
         setPendingAction(null);
-    };
+      }
 
-    return {
-        isOpen,
-        isVerifying,
-        verify,
-        requireAuth,
-        cancel,
-        setIsOpen,
-    };
+      setIsOpen(false);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const requireAuth = (action: () => void) => {
+    if (enabled) {
+
+        console.log("enabled is enabled")
+      setPendingAction(() => action);
+      setIsOpen(true);
+    } else {
+        console.log("enabled is disabled")
+      action();
+    }
+  };
+
+  const cancel = () => {
+    setIsOpen(false);
+    setPendingAction(null);
+  };
+
+  return {
+    isOpen,
+    isVerifying,
+    verify,
+    requireAuth,
+    cancel,
+    setIsOpen,
+  };
 }

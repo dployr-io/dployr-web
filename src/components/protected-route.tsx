@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate } from '@tanstack/react-router';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2 } from 'lucide-react';
+import AppLogoIcon from '@/components/app-logo-icon';
 
 interface ProtectedRouteProps {
     children: ReactNode;
@@ -13,10 +13,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <p>Loading...</p>
-                </div>
+                <AppLogoIcon
+                    className="size-16 fill-current text-muted-foreground"
+                    style={{
+                        animation: 'shimmerSpinZoom 4s cubic-bezier(0.6, 0, 0.2, 1) infinite'
+                    }}
+                />
             </div>
         );
     }

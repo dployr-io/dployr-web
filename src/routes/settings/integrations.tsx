@@ -4,15 +4,12 @@ import AppLayout from "@/layouts/app-layout";
 import SettingsLayout from "@/layouts/settings/layout";
 import type { BreadcrumbItem, Integration } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
-import { useState } from "react";
-import {
-    Mail,
-    MessageSquare,
-    Globe,
-} from "lucide-react";
+import { useMemo } from "react";
+import { Mail, MessageSquare, Globe } from "lucide-react";
 import { RxGithubLogo } from "react-icons/rx";
 import { FaGitlab, FaBitbucket } from "react-icons/fa6";
 import { IntegrationSection } from "@/components/integration-section";
+import { useClusters } from "@/hooks/use-clusters";
 
 export const Route = createFileRoute("/settings/integrations")({
     component: Integrations,
@@ -25,33 +22,28 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-
-
-const integrations: Integration[] = [
+const integrationDefinitions: Omit<Integration, "connected">[] = [
     // Email & Notifications
     {
-        id: "resend",
+        id: "resendMail",
         name: "Resend",
         description: "Send transactional emails with Resend",
         icon: <Mail className="h-5 w-5" />,
         category: "email",
-        connected: false,
     },
     {
-        id: "mailchimp",
+        id: "mailChimp",
         name: "Mailchimp",
         description: "Email marketing and automation platform",
         icon: <Mail className="h-5 w-5" />,
         category: "email",
-        connected: false,
     },
     {
-        id: "mailersend",
+        id: "mailerSend",
         name: "Mailersend",
         description: "Transactional email delivery service",
         icon: <Mail className="h-5 w-5" />,
         category: "email",
-        connected: false,
     },
     {
         id: "discord",
@@ -59,7 +51,6 @@ const integrations: Integration[] = [
         description: "Send notifications to Discord channels",
         icon: <MessageSquare className="h-5 w-5" />,
         category: "email",
-        connected: false,
     },
     {
         id: "slack",
@@ -67,32 +58,28 @@ const integrations: Integration[] = [
         description: "Send notifications to Slack workspaces",
         icon: <MessageSquare className="h-5 w-5" />,
         category: "email",
-        connected: false,
     },
     // Remotes
     {
-        id: "github",
+        id: "gitHub",
         name: "GitHub",
         description: "Connect your GitHub repositories",
         icon: <RxGithubLogo className="h-5 w-5" />,
         category: "remote",
-        connected: true,
     },
     {
-        id: "gitlab",
+        id: "gitLab",
         name: "GitLab",
         description: "Connect your GitLab repositories",
         icon: <FaGitlab className="h-5 w-5" />,
         category: "remote",
-        connected: false,
     },
     {
-        id: "bitbucket",
+        id: "bitBucket",
         name: "Bitbucket",
         description: "Connect your Bitbucket repositories",
         icon: <FaBitbucket className="h-5 w-5" />,
         category: "remote",
-        connected: false,
     },
     // Domains
     {
@@ -101,7 +88,6 @@ const integrations: Integration[] = [
         description: "Manage domains with GoDaddy",
         icon: <Globe className="h-5 w-5" />,
         category: "domain",
-        connected: false,
     },
     {
         id: "cloudflare",
@@ -109,7 +95,6 @@ const integrations: Integration[] = [
         description: "Manage domains and DNS with Cloudflare",
         icon: <Globe className="h-5 w-5" />,
         category: "domain",
-        connected: false,
     },
     {
         id: "route53",
@@ -117,35 +102,31 @@ const integrations: Integration[] = [
         description: "Amazon Route 53 DNS management",
         icon: <Globe className="h-5 w-5" />,
         category: "domain",
-        connected: false,
     },
 ];
 
 function Integrations() {
-    const [connectedIntegrations, setConnectedIntegrations] = useState<
-        Set<string>
-    >(new Set(integrations.filter((i) => i.connected).map((i) => i.id)));
+    const { integrations: apiIntegrations } = useClusters();
+
+    const integrations = useMemo(() => {
+        return integrationDefinitions.map((def) => ({
+            ...def,
+            connected: apiIntegrations?.[def.id as keyof typeof apiIntegrations] || false,
+        }));
+    }, [apiIntegrations]);
+
+    const connectedIntegrations = useMemo(() => {
+        return new Set(integrations.filter((i) => i.connected).map((i) => i.id));
+    }, [integrations]);
 
     const handleToggle = (id: string) => {
-        setConnectedIntegrations((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-            } else {
-                next.add(id);
-            }
-            return next;
-        });
+        // TODO: Implement API call to toggle integration
+        console.log("Toggle integration:", id);
     };
 
     const handleSettings = (id: string) => {
-        // Find the integration for logging/debugging
-        const integration = integrations.find((i) => i.id === id);
-        console.log(`Opening settings for integration: ${id}`, integration);
-        
-        // TODO: Implement integration settings modal or navigation
-        // For now, this is a placeholder that can be extended later
-        alert(`Settings for ${integration?.name || id} - Coming soon!`);
+        // TODO: Implement settings modal/page
+        console.log("Open settings for:", id);
     };
 
     const sections = [

@@ -2,14 +2,17 @@ import type { User, UserRole } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useAuth } from "./use-auth";
-import { toast } from "@/lib/toast";
+import { useUrlState } from "@/hooks/use-url-state";
+import { useState } from "react";
 
 const LOCALSTORAGE_KEY = "dployr-cluster-id";
-
 
 export function useClusters() {
     const { refetch, cluster } = useAuth();
     const queryClient = useQueryClient();
+    const { useAppError } = useUrlState();
+    const [{ appError }, setError] = useAppError();
+    const [usersToAdd, setUsersToAdd] = useState<string[]>([]);
 
     // Get cluster ID from localStorage first, then fallback to session data
     const clusterId = (() => {
@@ -30,24 +33,18 @@ export function useClusters() {
     }
 
     // load invites received
-    const { data: invitesReceived, isLoading: isLoadingInvitesReceived } = useQuery<{ clusterId: string; clusterName: string; ownerName: string }[]>({
+    const { data: invitesReceived, isLoading: isLoadingInvitesReceived } = useQuery<User[]>({
         queryKey: ["invites"],
-        queryFn: async (): Promise<{ clusterId: string; clusterName: string; ownerName: string }[]> => {
+        queryFn: async (): Promise<User[]> => {
             try {
-                const response = await axios.get(
-                    `${import.meta.env.VITE_BASE_URL}/v1/clusters/users/invites`,
-                    {
-                        withCredentials: true,
-                    },
-                );
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/users/invites`, {
+                    withCredentials: true,
+                });
                 const data = response?.data.data.items;
 
-                return Array.isArray(data) ? data as { clusterId: string; clusterName: string; ownerName: string }[] : [];
+                return Array.isArray(data) ? (data as User[]) : [];
             } catch (error) {
-                console.error(
-                    (error as Error).message ||
-                        "An unknown error occoured while retrieving cluster invites",
-                );
+                console.error((error as Error).message || "An unknown error occoured while retrieving cluster invites");
                 return [];
             }
         },
@@ -55,24 +52,18 @@ export function useClusters() {
     });
 
     // load invites sent
-    const { data: invitesSent, isLoading: isLoadingInvitesSent } = useQuery<{ clusterId: string; clusterName: string; ownerName: string }[]>({
-        queryKey: ["invites"],
-        queryFn: async (): Promise<{ clusterId: string; clusterName: string; ownerName: string }[]> => {
+    const { data: invitesSent, isLoading: isLoadingInvitesSent } = useQuery<User[]>({
+        queryKey: ["invites", clusterId],
+        queryFn: async (): Promise<User[]> => {
             try {
-                const response = await axios.get(
-                    `${import.meta.env.VITE_BASE_URL}/v1/clusters/users/invites?sent=true`,
-                    {
-                        withCredentials: true,
-                    },
-                );
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users?showInvites=true`, {
+                    withCredentials: true,
+                });
                 const data = response?.data.data.items;
 
-                return Array.isArray(data) ? data as { clusterId: string; clusterName: string; ownerName: string }[] : [];
+                return Array.isArray(data) ? (data as User[]) : [];
             } catch (error) {
-                console.error(
-                    (error as Error).message ||
-                        "An unknown error occoured while retrieving cluster invites",
-                );
+                console.error((error as Error).message || "An unknown error occoured while retrieving cluster invites");
                 return [];
             }
         },
@@ -88,20 +79,14 @@ export function useClusters() {
         queryKey: ["users", clusterId],
         queryFn: async (): Promise<(User & { role: UserRole })[]> => {
             try {
-                const response = await axios.get(
-                    `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`,
-                    {
-                        withCredentials: true,
-                    },
-                );
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`, {
+                    withCredentials: true,
+                });
                 const data = response?.data.data.items;
 
-                return Array.isArray(data) ? data as (User & { role: UserRole })[] : [];
+                return Array.isArray(data) ? (data as (User & { role: UserRole })[]) : [];
             } catch (error) {
-                console.error(
-                    (error as Error).message ||
-                        "An unknown error occoured while retrieving deployments",
-                );
+                console.error((error as Error).message || "An unknown error occoured while retrieving deployments");
                 return [];
             }
         },
@@ -109,11 +94,71 @@ export function useClusters() {
     });
 
     // add user
-    const { mutate: addUsers, isPending: isAddingUser } = useMutation({
-        mutationFn: async (variables: { users: string[] }): Promise<void> => {
+    const addUsers = useMutation({
+        mutationFn: async (users: string[]): Promise<void> => {
             await axios.post(
                 `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`,
-                { email: variables.users },
+                { users },
+                {
+                    withCredentials: true,
+                }
+            );
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
+        },
+        onError: (error: any) => {
+            const errorData = error?.response?.data?.error;
+            const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+
+            const helpLink = error?.response?.data?.error.helpLink;
+
+            console.log(helpLink);
+
+            setError({
+                appError: {
+                    message: errorMessage,
+                    helpLink,
+                },
+            });
+        },
+    });
+
+    // cancel invites
+    const removeInvites = useMutation({
+        mutationFn: async (users: string[]): Promise<void> => {
+            await axios.post(
+                `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users/remove`,
+                { users },
+                {
+                    withCredentials: true,
+                }
+            );
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
+        },
+        onError: (error: any) => {
+            const errorData = error?.response?.data?.error;
+            const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+
+            const helpLink = error?.response?.data?.error.helpLink;
+
+            setError({
+                appError: {
+                    message: errorMessage,
+                    helpLink,
+                },
+            });
+        },
+    });
+
+    // remove user
+    const removeUsers = useMutation({
+        mutationFn: async (users: string[]): Promise<void> => {
+            await axios.post(
+                `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/users`,
+                { users },
                 {
                     withCredentials: true,
                 }
@@ -123,28 +168,64 @@ export function useClusters() {
             queryClient.invalidateQueries({ queryKey: ["users", clusterId] });
         },
         onError: (error: any) => {
-            const errorMessage =
-                error?.response?.data?.message ||
-                error?.message ||
-                "An error occored while adding user.";
-            toast.error(errorMessage);
+            const errorData = error?.response?.data?.error;
+            const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+
+            const helpLink = error?.response?.data?.error.helpLink;
+
+            setError({
+                appError: {
+                    message: errorMessage,
+                    helpLink,
+                },
+            });
         },
     });
 
-    // remove user
-
     // transfer ownership
+
+    // integrations
+    const { data: integrations, isLoading: isLoadingIntegrations } = useQuery<any>({
+        queryKey: ["integrations"],
+        queryFn: async (): Promise<any> => {
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/integrations`, {
+                    withCredentials: true,
+                });
+                const data = response?.data.data;
+
+                return data;
+            } catch (error: any) {
+                const errorData = error?.response?.data?.error;
+                const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while loading integrations.";
+
+                const helpLink = error?.response?.data?.error.helpLink;
+
+                setError({
+                    appError: {
+                        message: errorMessage,
+                        helpLink,
+                    },
+                });
+            }
+        },
+        staleTime: 5 * 60 * 1000,
+    });
 
     return {
         users,
+        integrations,
+        usersToAdd,
         isLoadingUsers,
         invitesReceived,
         invitesSent,
         isLoadingInvitesReceived,
         isLoadingInvitesSent,
         addUsers,
-        isAddingUser,
+        setUsersToAdd,
         setCurrentCluster,
+        removeInvites,
+        removeUsers,
         clusterId,
     };
 }

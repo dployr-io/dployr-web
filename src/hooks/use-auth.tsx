@@ -1,13 +1,9 @@
-import {
-    createContext,
-    useContext,
-    useState,
-    type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import type { ApiSuccessResponse, Cluster, User } from "@/types";
 import axios from "axios";
+import { useUrlState } from "@/hooks/use-url-state";
 
 interface AuthContextType {
     user: User | null;
@@ -19,7 +15,10 @@ interface AuthContextType {
     handleGoogleSignIn: () => Promise<void>;
     handleMicrosoftSignIn: () => Promise<void>;
     handleGitHubSignIn: () => Promise<void>;
-    updateProfile: (data: { name: string, picture: string }) => Promise<User | Error>;
+    updateProfile: (data: {
+        name: string;
+        picture: string;
+    }) => Promise<User | Error>;
     logout: () => void;
     refetch: () => void;
     verifyOTP: boolean;
@@ -35,37 +34,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [verifyOTP, setVerifyOtp] = useState(false);
     const [otpValue, setOtpValue] = useState("");
     const [email, setEmail] = useState("");
+    const { useAuthError } = useUrlState();
+    const [{ authError }, setError] = useAuthError();
 
-    const { data: sessionData, isLoading, refetch } = useQuery({
-        queryKey: ['session'],
+    const {
+        data: sessionData,
+        isLoading,
+        refetch,
+    } = useQuery({
+        queryKey: ["session"],
         queryFn: async () => {
             try {
                 const res = await axios.get<ApiSuccessResponse>(
-                    `${import.meta.env.VITE_BASE_URL}/v1/auth/me`,
+                    `${import.meta.env.VITE_BASE_URL}/v1/users/me`,
                     {
                         withCredentials: true,
-                    }
+                    },
                 );
 
                 return res.data.data;
             } catch (error: any) {
-                // Only handle errors on the login page
-                if (window.location.pathname === '/') {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const existingError = urlParams.get('error');
+                const errorMessage =
+                    error?.response?.data?.error || "Authentication failed";
 
-                    if (!existingError) {
-                        const errorData = error?.response?.data?.error;
-                        const errorMessage = typeof errorData === 'string'
-                            ? errorData
-                            : errorData?.message || error?.message || "Authentication failed";
-
-                        const newUrl = new URL(window.location.href);
-                        newUrl.searchParams.set('error', errorMessage);
-                        window.history.replaceState({}, '', newUrl.toString());
-                    }
+                // don't set session errors in auth page
+                if (window.location.pathname !== "/") {
+                    setError({
+                        authError: errorMessage,
+                    });
                 }
-
+                
                 throw error;
             }
         },
@@ -84,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 { email: credentials.email },
                 {
                     withCredentials: true,
-                }
+                },
             );
             return res.data;
         },
@@ -93,11 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setVerifyOtp(true);
         },
         onError: (error: any) => {
-            const errorMessage =
-                error?.response?.data?.message ||
-                error?.message ||
-                "Login failed. Please try again.";
-            toast.error(errorMessage);
+            throw error;
         },
     });
 
@@ -111,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 },
                 {
                     withCredentials: true,
-                }
+                },
             );
             return res.data;
         },
@@ -122,17 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             refetch();
         },
         onError: (error: any) => {
-            const errorMessage =
-                error?.response?.data?.message ||
-                error?.message ||
-                "OTP verification failed. Please try again.";
-            toast.error(errorMessage);
             setOtpValue("");
+            throw error;
         },
     });
 
     const updateProfileMutation = useMutation({
-        mutationFn: async (data: { name: string, picture: string }) => {
+        mutationFn: async (data: { name: string; picture: string }) => {
             const res = await axios.patch(
                 `${import.meta.env.VITE_BASE_URL}/v1/auth/me`,
                 {
@@ -141,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 },
                 {
                     withCredentials: true,
-                }
+                },
             );
 
             return res.data as User;
@@ -151,11 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             toast.success("Profile updated successfully");
         },
         onError: (error: any) => {
-            const errorMessage =
-                error?.response?.data?.message ||
-                error?.message ||
-                "Failed to update profile";
-            toast.error(errorMessage);
+            throw(error);
         },
     });
 
@@ -173,14 +159,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         try {
-            await axios.get(
-                `${import.meta.env.VITE_BASE_URL}/v1/auth/logout`,
-                {
-                    withCredentials: true,
-                }
-            );
-        } catch (error) {
-            console.error("Logout error:", error);
+            await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/auth/logout`, {
+                withCredentials: true,
+            });
+        } catch (error: any) {
+            const errorMessage =
+                error?.response?.data?.error ||
+                "Error occored while trying to sign out";
+
+            console.error("Logout error:", errorMessage);
         }
 
         // Clear the session cookie

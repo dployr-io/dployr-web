@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Integration } from "@/types";
 import { use2FA } from "@/hooks/use-2fa";
-import { TwoFactorDialog } from "@/components/two-factor-dialog";
 
 interface Props {
     integration: Integration;
@@ -102,14 +101,6 @@ export function IntegrationCard({
                     {integration.description}
                 </CardDescription>
             </CardHeader>
-
-            {/* 2FA Dialog */}
-            <TwoFactorDialog
-                open={twoFactor.isOpen}
-                onOpenChange={twoFactor.setIsOpen}
-                onVerify={twoFactor.verify}
-                isSubmitting={twoFactor.isVerifying}
-            />
         </Card>
     );
 }

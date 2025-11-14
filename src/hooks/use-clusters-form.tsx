@@ -1,35 +1,56 @@
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
 import z from "zod";
-import { useClusters } from "./use-clusters";
+import { useClusters } from "@/hooks/use-clusters";
+import { useUrlState } from "@/hooks/use-url-state";
+import type { use2FA } from "@/hooks/use-2fa";
 
 const addUsersSchema = z.object({
-    users: z.array(z.email()),
+  users: z.array(z.email()),
 });
 
-export function useClustersForm() {
-    const [error, setError] = useState<string>("");
-    const { addUsers } = useClusters();
+export function useClustersForm(twoFactor: ReturnType<typeof use2FA>) {
+  const { useAppError, useInviteUserDialog } = useUrlState();
+  const [{ appError }, setError] = useAppError();
+  const [, setInviteDialogOpen] = useInviteUserDialog();
+  const { setUsersToAdd, addUsers } = useClusters();
 
-    const addUsersForm = useForm({
-        defaultValues: { users: [] },
-        onSubmit: async ({ value }) => {
-            const result = addUsersSchema.safeParse(value);
+  const form = useForm({
+    defaultValues: { users: [] as string[] },
+    onSubmit: async ({ value }) => {
+      const result = addUsersSchema.safeParse(value);
 
-            if (!result.success) {
-                const fieldErrors = result.error.flatten().fieldErrors;
-                setError(fieldErrors.users?.[0] || "Validation failed");
-                return false;
-            }
+      if (!result.success) {
+        const fieldErrors = result.error.flatten().fieldErrors;
+        setError({
+          appError: {
+            message: fieldErrors.users?.[0] || "Validation failed",
+            helpLink: "",
+          },
+        });
+        return;
+      }
 
-            addUsers(value)
-            setError("");
-        },
-    });
+      try {
+        twoFactor.requireAuth(async () => {
+          await addUsers.mutateAsync(value.users);
+        });
 
-    return {
-        addUsersForm,
-        error,
-        setError,
-    };
+        setUsersToAdd(value.users);
+        setError({
+          appError: {
+            message: "",
+            helpLink: "",
+          },
+        });
+        setInviteDialogOpen({ inviteOpen: false });
+      } catch (error) {
+        // Error is handled by the mutation's onError
+      }
+    },
+  });
+
+  return {
+    form,
+    appError,
+  };
 }

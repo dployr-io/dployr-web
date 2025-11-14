@@ -6,14 +6,11 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
-import { AuthProvider } from '@/hooks/use-auth'
 
 import reportWebVitals from './reportWebVitals.ts'
 import './css/app.css';
 
 import { initializeTheme } from '@/hooks/use-appearance';
-
-const appName = import.meta.env.VITE_APP_NAME || 'dployr';
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -51,10 +48,8 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <RouterProvider router={router} />
-        </AuthProvider>
-         <ReactQueryDevtools initialIsOpen={false} />
+        <RouterProvider router={router} />
+        <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </StrictMode>,
   )

@@ -4,7 +4,19 @@ import {
     parseAsBoolean,
     parseAsString,
     useQueryStates,
+    parseAsJson,
 } from "nuqs";
+import z from "zod";
+
+const appErrorSchema = z.object({
+    message: z.string(),
+    helpLink: z.url(),
+});
+
+const appNotificationSchema = z.object({
+    message: z.string(),
+    link: z.url(),
+});
 
 export function useUrlState() {
     /**
@@ -47,20 +59,40 @@ export function useUrlState() {
     }
 
     /**
-     * URL state management for auth errors 
+     * URL state management for auth errors
      * Error captured during oAuth redirects
      * are tracked in this state
      */
     function useAuthError() {
         return useQueryStates({
-            error: parseAsString.withDefault("")
+            authError: parseAsString.withDefault(""),
         });
-    };
+    }
+
+    function useAppError() {
+        return useQueryStates({
+            appError: parseAsJson(appErrorSchema.parse).withDefault({
+                message: "",
+                helpLink: "",
+            }),
+        });
+    }
+
+     function useAppNotification() {
+        return useQueryStates({
+            appNotification: parseAsJson(appNotificationSchema.parse).withDefault({
+                message: "",
+                link: "",
+            }),
+        });
+    }
 
     return {
         useUsersUrlState,
         useUsersActivityModal,
         useInviteUserDialog,
         useAuthError,
+        useAppError,
+        useAppNotification,
     };
 }

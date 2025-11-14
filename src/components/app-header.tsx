@@ -12,8 +12,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
-import AppLogo from './app-logo';
-import AppLogoIcon from './app-logo-icon';
+import AppLogo from '@/components/app-logo';
+import AppLogoIcon from '@/components/app-logo-icon';
 
 const mainNavItems: NavItem[] = [
     {
