@@ -6,6 +6,10 @@ import { type PropsWithChildren } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { AlertBanner } from "@/components/ui/alert-banner";
 import { useUrlState } from "@/hooks/use-url-state";
+import { useConfirmation } from "@/hooks/use-confirmation";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
+import { TwoFactorDialog } from "@/components/two-factor-dialog";
+import { use2FA } from "@/hooks/use-2fa";
 
 const sidebarNavItems: NavItem[] = [
   {
@@ -30,11 +34,17 @@ const sidebarNavItems: NavItem[] = [
   },
 ];
 
-export default function SettingsLayout({ children }: PropsWithChildren) {
+interface SettingsLayoutProps extends PropsWithChildren {
+  twoFactor: ReturnType<typeof use2FA>;
+  confirmation: ReturnType<typeof useConfirmation>;
+}
+
+export default function SettingsLayout({ children, twoFactor, confirmation }: SettingsLayoutProps) {
   const location = useLocation();
   const { useAppError, useAppNotification } = useUrlState();
   const [{ appError }, setError] = useAppError();
   const [{ appNotification }, setAppNotification] = useAppNotification();
+  const { pendingAction, setPendingAction } = confirmation;
 
   return (
     <div className="flex h-full min-h-0 flex-col px-4 pt-6">
@@ -93,6 +103,11 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
               }
             />
           )}
+
+          <ConfirmationDialog pendingAction={pendingAction} setPendingAction={setPendingAction} />
+
+          <TwoFactorDialog open={twoFactor.isOpen} onOpenChange={twoFactor.setIsOpen} onVerify={twoFactor.verify} isSubmitting={twoFactor.isVerifying} />
+
           <section className="w-full space-y-12 overflow-y-auto max-h-full">{children}</section>
         </div>
       </div>

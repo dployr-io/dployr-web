@@ -218,3 +218,8 @@ export interface Integration {
   category: "email" | "remote" | "domain";
   connected: boolean;
 }
+
+export interface PendingAction {
+  action: () => void;
+  prompt: string;
+}

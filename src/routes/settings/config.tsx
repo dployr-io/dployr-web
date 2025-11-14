@@ -10,6 +10,8 @@ import { useEnv } from "@/hooks/use-env";
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { use2FA } from "@/hooks/use-2fa";
+import { useConfirmation } from "@/hooks/use-confirmation";
 
 export const Route = createFileRoute("/settings/config")({
     component: ConfigPage,
@@ -33,6 +35,8 @@ function ConfigPage() {
         handleKeyboardPress,
         handleSave,
     } = useEnv();
+    const twoFactor = use2FA({ enabled: true });
+    const confirmation = useConfirmation();
 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
@@ -64,7 +68,7 @@ function ConfigPage() {
     return (
         <ProtectedRoute>
             <AppLayout breadcrumbs={breadcrumbs}>
-                <SettingsLayout>
+                <SettingsLayout twoFactor={twoFactor} confirmation={confirmation}>
                     <div className="space-y-4">
                         <ConfigTable
                             config={paginatedConfig}
@@ -83,8 +87,8 @@ function ConfigPage() {
                                     {configEntries.length === 0
                                         ? "No config entries found"
                                         : configEntries.length === 1
-                                          ? "Showing 1 of 1 entry"
-                                          : `Showing ${startIndex + 1} to ${Math.min(endIndex, configEntries.length)} of ${configEntries.length} entries`}
+                                            ? "Showing 1 of 1 entry"
+                                            : `Showing ${startIndex + 1} to ${Math.min(endIndex, configEntries.length)} of ${configEntries.length} entries`}
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <Button

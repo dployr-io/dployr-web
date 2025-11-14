@@ -15,6 +15,8 @@ import { Edit2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { use2FA } from "@/hooks/use-2fa";
+import { useConfirmation } from "@/hooks/use-confirmation";
 
 export const Route = createFileRoute("/settings/profile")({
   component: System,
@@ -31,11 +33,13 @@ function System() {
   const { user } = useAuth();
   const { editMode, setEditMode } = useSettings();
   const { form, error } = useSettingsForm();
+  const twoFactor = use2FA({ enabled: true });
+  const confirmation = useConfirmation();
 
   return (
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
-        <SettingsLayout>
+        <SettingsLayout twoFactor={twoFactor} confirmation={confirmation}>
           <div className="space-y-6">
             <div className="flex justify-between align-middle">
               <HeadingSmall title="Profile information" description="Update your name and email address" />
