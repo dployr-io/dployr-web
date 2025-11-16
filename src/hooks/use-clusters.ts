@@ -1,11 +1,10 @@
-import type { User, UserRole } from "@/types";
+import type { Integrations, User, UserRole } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useAuth } from "./use-auth";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useState } from "react";
-
-const LOCALSTORAGE_KEY = "dployr-cluster-id";
+import { LOCALSTORAGE_KEY } from "@/lib/constants";
 
 export function useClusters() {
   const { refetch, cluster } = useAuth();
@@ -56,10 +55,10 @@ export function useClusters() {
 
         return Array.isArray(data)
           ? (data as {
-              clusterId: string;
-              clusterName: string;
-              ownerName: string;
-            }[])
+            clusterId: string;
+            clusterName: string;
+            ownerName: string;
+          }[])
           : [];
       } catch (error) {
         console.error((error as Error).message || "An unknown error occoured while retrieving cluster invites");
@@ -240,9 +239,9 @@ export function useClusters() {
   // transfer ownership
 
   // integrations
-  const { data: integrations, isLoading: isLoadingIntegrations } = useQuery<any>({
-    queryKey: ["integrations"],
-    queryFn: async (): Promise<any> => {
+  const { data: integrations, isLoading: isLoadingIntegrations } = useQuery<Integrations>({
+    queryKey: ["integrations", clusterId],
+    queryFn: async (): Promise<Integrations> => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}/integrations`, {
           withCredentials: true,
@@ -253,7 +252,6 @@ export function useClusters() {
       } catch (error: any) {
         const errorData = error?.response?.data?.error;
         const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while loading integrations.";
-
         const helpLink = error?.response?.data?.error.helpLink;
 
         setError({
@@ -262,6 +260,7 @@ export function useClusters() {
             helpLink,
           },
         });
+        return {} as Integrations;
       }
     },
     staleTime: 5 * 60 * 1000,
@@ -274,6 +273,7 @@ export function useClusters() {
     isLoadingUsers,
     invitesReceived,
     invitesSent,
+    isLoadingIntegrations,
     isLoadingInvitesReceived,
     isLoadingInvitesSent,
     addUsers,

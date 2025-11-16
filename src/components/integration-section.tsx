@@ -1,14 +1,17 @@
 import { IntegrationCard } from "@/components/integration-card";
-import type { Integration } from "@/types";
+import type { IntegrationUI } from "@/types";
 import HeadingSmall from "@/components/heading-small";
+import { use2FA } from "@/hooks/use-2fa";
 
 interface IntegrationSectionProps {
     title: string;
     description: string;
-    integrations: Integration[];
+    integrations: IntegrationUI[];
     connectedIntegrations: Set<string>;
     onToggle: (id: string) => void;
+    onConnect: (id: string) => void;
     onSettings: (id: string) => void;
+    twoFactor: ReturnType<typeof use2FA>;
 }
 
 export function IntegrationSection({
@@ -17,7 +20,9 @@ export function IntegrationSection({
     integrations,
     connectedIntegrations,
     onToggle,
+    onConnect,
     onSettings,
+    twoFactor,
 }: IntegrationSectionProps) {
     return (
         <section className="space-y-6 mb-12">
@@ -29,7 +34,9 @@ export function IntegrationSection({
                         integration={integration}
                         isConnected={connectedIntegrations.has(integration.id)}
                         onToggle={onToggle}
+                        onConnect={onConnect}
                         onSettings={onSettings}
+                        twoFactor={twoFactor}
                     />
                 ))}
             </div>

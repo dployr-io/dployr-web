@@ -70,7 +70,7 @@ export function TwoFactorDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Verify 2FA</DialogTitle>
+                    <DialogTitle>Verify Code</DialogTitle>
                     <DialogDescription>
                         {email
                             ? `Enter the 2FA code sent to ${email}`
@@ -79,9 +79,9 @@ export function TwoFactorDialog({
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
                     <Field>
-                        <FieldLabel htmlFor="2fa-code">2FA Code</FieldLabel>
+                        <FieldLabel htmlFor="code">Code</FieldLabel>
                         <Input
-                            id="2fa-code"
+                            id="code"
                             type="text"
                             value={code}
                             onChange={handleCodeChange}

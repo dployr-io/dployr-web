@@ -210,16 +210,198 @@ export interface Log {
   timestamp: Date;
 }
 
-export interface Integration {
+export interface IntegrationField {
   id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  category: "email" | "remote" | "domain";
-  connected: boolean;
+  label: string;
+  type: "text" | "password" | "url";
+  placeholder?: string;
+  required?: boolean;
 }
 
-export interface PendingAction {
-  action: () => void;
-  prompt: string;
+export const integrationIds = ["resendMail", "mailChimp", "mailerSend", "discord", "slack", "gitHub", "gitLab", "bitBucket", "godaddy", "cloudflare", "route53"] as const;
+
+export type IntegrationType = (typeof integrationIds)[number];
+
+export type IntegrationCategory = "email" | "remote" | "domain";
+
+export interface IntegrationEmailCategory { }
+
+export interface IntegrationRemoteCategory { }
+
+export interface IntegrationDomainCategory { }
+
+export interface GitHubIntegration {
+  loginId: string;
+  installationId: number;
+  remotesCount: number;
+  installUrl: string;
 }
+
+export interface GitLabIntegration {
+  loginId: string;
+  installationId: number;
+  remotesCount: number;
+}
+
+export interface BitBucketIntegration {
+  id: string,
+  loginId: string;
+  installationId: number;
+  remotesCount: number;
+}
+
+export interface ResendMailIntegration {}
+
+export interface ZohoMailIntegration {}
+
+export interface MailerSendIntegration {}
+
+export interface MailChimpIntegration {}
+
+export interface DiscordIntegration {}
+
+export interface SlackIntegration {}
+
+export interface Integrations {
+  email: {
+    resendMail: ResendMailIntegration,
+    zohoMail: ZohoMailIntegration,
+    mailerSend: MailerSendIntegration,
+    mailChimp: MailChimpIntegration,
+  },
+  remote: {
+    gitHub: GitHubIntegration,
+    gitLab: GitLabIntegration,
+    bitBucket: BitBucketIntegration,
+  },
+  domain: {
+    discord: DiscordIntegration,
+    slack: SlackIntegration,
+  }
+}
+
+export interface IntegrationMetadata {
+  icon: string;
+  name: string;
+  description: string;
+  category: "email" | "remote" | "domain";
+  url: string;
+  connectType: "oauth" | "form";
+  fields?: IntegrationField[];
+}
+
+export interface IntegrationUI extends IntegrationMetadata {
+  id: string;
+  connected: boolean;
+  gitHub?: GitHubIntegration;
+  gitLab?: GitLabIntegration;
+  bitBucket?: BitBucketIntegration;
+}
+
+export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
+  gitHub: {
+    icon: "/icons/github.svg",
+    name: "GitHub",
+    description: "Connect your GitHub repositories",
+    category: "remote",
+    url: "https://github.com/apps/dployr-io",
+    connectType: "oauth",
+  },
+  gitLab: {
+    icon: "/icons/gitlab.svg",
+    name: "GitLab",
+    description: "Connect your GitLab repositories",
+    category: "remote",
+    url: "",
+    connectType: "oauth",
+  },
+  bitBucket: {
+    icon: "/icons/bitbucket.svg",
+    name: "Bitbucket",
+    description: "Connect your Bitbucket repositories",
+    category: "remote",
+    url: "",
+    connectType: "oauth",
+  },
+  resendMail: {
+    icon: "/icons/resend.svg",
+    name: "Resend",
+    description: "Send transactional emails with Resend",
+    category: "email",
+    url: "",
+    connectType: "form",
+    fields: [
+      { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
+    ],
+  },
+  mailChimp: {
+    icon: "/icons/mailchimp.svg",
+    name: "Mailchimp",
+    description: "Email marketing and automation platform",
+    category: "email",
+    url: "",
+    connectType: "oauth",
+  },
+  mailerSend: {
+    icon: "/icons/mailersend.svg",
+    name: "Mailersend",
+    description: "Transactional email delivery service",
+    category: "email",
+    url: "",
+    connectType: "form",
+    fields: [
+      { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
+    ],
+  },
+  discord: {
+    icon: "/icons/discord.svg",
+    name: "Discord",
+    description: "Send notifications to Discord channels",
+    category: "email",
+    url: "",
+    connectType: "oauth",
+  },
+  slack: {
+    icon: "/icons/slack.svg",
+    name: "Slack",
+    description: "Send notifications to Slack workspaces",
+    category: "email",
+    url: "",
+    connectType: "oauth",
+  },
+  godaddy: {
+    icon: "/icons/godaddy.svg",
+    name: "GoDaddy",
+    description: "Manage domains with GoDaddy",
+    category: "domain",
+    url: "",
+    connectType: "form",
+    fields: [
+      { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
+      { id: "apiSecret", label: "API Secret", type: "password", placeholder: "Enter API secret", required: true },
+    ],
+  },
+  cloudflare: {
+    icon: "/icons/cloudflare.svg",
+    name: "Cloudflare",
+    description: "Manage domains and DNS with Cloudflare",
+    category: "domain",
+    url: "",
+    connectType: "form",
+    fields: [
+      { id: "apiToken", label: "API Token", type: "password", placeholder: "Enter API token", required: true },
+    ],
+  },
+  route53: {
+    icon: "/icons/route53.svg",
+    name: "Route 53",
+    description: "Amazon Route 53 DNS management",
+    category: "domain",
+    url: "",
+    connectType: "form",
+    fields: [
+      { id: "accessKey", label: "Access Key ID", type: "text", placeholder: "Enter access key", required: true },
+      { id: "secretKey", label: "Secret Access Key", type: "password", placeholder: "Enter secret key", required: true },
+    ],
+  },
+};
