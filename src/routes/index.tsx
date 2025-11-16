@@ -108,7 +108,11 @@ function App() {
                         <FaMicrosoft />
                       </Button>
 
-                      <Button onClick={handleGitHubSignIn} className="w-fit" disabled={isSubmitting}>
+                      <Button
+                        onClick={() => handleGitHubSignIn}
+                        className="w-fit"
+                        disabled={isSubmitting}
+                      >
                         <FaGithub />
                       </Button>
                     </div>

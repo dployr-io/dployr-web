@@ -32,18 +32,31 @@ function Integrations() {
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  
   const integrations = useMemo<IntegrationUI[]>(() => {
-    return integrationIds.map(id => ({
-      id,
-      ...INTEGRATIONS_METADATA[id],
-      connected: false, // TODO: Get from apiIntegrations
-    }));
+    return integrationIds.map(id => {
+      const category = INTEGRATIONS_METADATA[id].category;
+      
+      // Check if integration is connected by looking at the appropriate category
+      let isConnected = false;
+      if (apiIntegrations && apiIntegrations[category]) {
+        const categoryIntegrations = apiIntegrations[category];
+        if (categoryIntegrations && categoryIntegrations[id as keyof typeof categoryIntegrations]) {
+          isConnected = true;
+        }
+      }
+      
+      return {
+        id,
+        ...INTEGRATIONS_METADATA[id],
+        connected: isConnected,
+      };
+    });
   }, [apiIntegrations]);
 
   const connectedIntegrations = useMemo(() => {
     return new Set(integrations.filter(i => i.connected).map(i => i.id));
   }, [integrations]);
-
   const handleToggle = (id: string) => {
     setSelectedIntegrationId(id);
     setDialogOpen(true);
@@ -97,6 +110,7 @@ function Integrations() {
           </div>
           <RemoteConnectDialog
             integration={selectedIntegration}
+            integrations={apiIntegrations}
             open={dialogOpen && selectedIntegration?.category === "remote"}
             onOpenChange={setDialogOpen}
           />

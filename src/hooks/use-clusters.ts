@@ -263,7 +263,7 @@ export function useClusters() {
         return {} as Integrations;
       }
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5m
   });
 
   return {

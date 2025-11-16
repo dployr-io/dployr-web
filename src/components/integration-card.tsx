@@ -15,10 +15,10 @@ interface Props {
   twoFactor: ReturnType<typeof use2FA>;
 }
 
-export function IntegrationCard({ integration, isConnected, onConnect, onSettings, twoFactor }: Props) {
+export function IntegrationCard({ integration, isConnected, onConnect, twoFactor }: Props) {
 
   return (
-    <Card className={cn("transition-all hover:shadow-md", isConnected && "border-primary/50")}>
+    <Card className={cn("transition-all hover:shadow-md", isConnected && "border-primary/50 border-2")}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -30,22 +30,6 @@ export function IntegrationCard({ integration, isConnected, onConnect, onSetting
             </div>
           </div>
           <div className="flex items-center gap-1">
-            {isConnected && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    onClick={() => onSettings(integration.id)}
-                    aria-label="Integration settings"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Settings</TooltipContent>
-              </Tooltip>
-            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -57,12 +41,12 @@ export function IntegrationCard({ integration, isConnected, onConnect, onSetting
                       onConnect(integration.id);
                     })
                   }
-                  aria-label={"Connect"}
+                  aria-label={isConnected ? "Manage" : "Connect"}
                 >
                   <Settings2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Connect</TooltipContent>
+              <TooltipContent>{isConnected ? "Manage" : "Connect"}</TooltipContent>
             </Tooltip>
           </div>
         </div>

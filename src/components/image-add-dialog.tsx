@@ -1,9 +1,4 @@
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useRemotes } from '@/hooks/use-remotes';
-import { Loader2 } from 'lucide-react';
 
 interface Props {
     open: boolean;
@@ -11,9 +6,6 @@ interface Props {
 }
 
 export default function ImageAddDialog({ open, setOpen }: Props) {
-    const { searchComplete, validationError, remoteRepo, selectedBranch, setRemoteRepo, getFormAction, getFormData, handleFormSuccess } =
-        useRemotes(setOpen);
-
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="sm:max-w-[425px]">

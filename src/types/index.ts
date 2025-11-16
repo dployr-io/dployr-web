@@ -250,17 +250,17 @@ export interface BitBucketIntegration {
   remotesCount: number;
 }
 
-export interface ResendMailIntegration {}
+export interface ResendMailIntegration { }
 
-export interface ZohoMailIntegration {}
+export interface ZohoMailIntegration { }
 
-export interface MailerSendIntegration {}
+export interface MailerSendIntegration { }
 
-export interface MailChimpIntegration {}
+export interface MailChimpIntegration { }
 
-export interface DiscordIntegration {}
+export interface DiscordIntegration { }
 
-export interface SlackIntegration {}
+export interface SlackIntegration { }
 
 export interface Integrations {
   email: {
@@ -285,7 +285,6 @@ export interface IntegrationMetadata {
   name: string;
   description: string;
   category: "email" | "remote" | "domain";
-  url: string;
   connectType: "oauth" | "form";
   fields?: IntegrationField[];
 }
@@ -304,7 +303,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "GitHub",
     description: "Connect your GitHub repositories",
     category: "remote",
-    url: "https://github.com/apps/dployr-io",
     connectType: "oauth",
   },
   gitLab: {
@@ -312,7 +310,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "GitLab",
     description: "Connect your GitLab repositories",
     category: "remote",
-    url: "",
     connectType: "oauth",
   },
   bitBucket: {
@@ -320,7 +317,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Bitbucket",
     description: "Connect your Bitbucket repositories",
     category: "remote",
-    url: "",
     connectType: "oauth",
   },
   resendMail: {
@@ -328,7 +324,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Resend",
     description: "Send transactional emails with Resend",
     category: "email",
-    url: "",
     connectType: "form",
     fields: [
       { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
@@ -339,7 +334,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Mailchimp",
     description: "Email marketing and automation platform",
     category: "email",
-    url: "",
     connectType: "oauth",
   },
   mailerSend: {
@@ -347,7 +341,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Mailersend",
     description: "Transactional email delivery service",
     category: "email",
-    url: "",
     connectType: "form",
     fields: [
       { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
@@ -358,7 +351,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Discord",
     description: "Send notifications to Discord channels",
     category: "email",
-    url: "",
     connectType: "oauth",
   },
   slack: {
@@ -366,7 +358,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Slack",
     description: "Send notifications to Slack workspaces",
     category: "email",
-    url: "",
     connectType: "oauth",
   },
   godaddy: {
@@ -374,7 +365,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "GoDaddy",
     description: "Manage domains with GoDaddy",
     category: "domain",
-    url: "",
     connectType: "form",
     fields: [
       { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
@@ -386,7 +376,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Cloudflare",
     description: "Manage domains and DNS with Cloudflare",
     category: "domain",
-    url: "",
     connectType: "form",
     fields: [
       { id: "apiToken", label: "API Token", type: "password", placeholder: "Enter API token", required: true },
@@ -397,7 +386,6 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Route 53",
     description: "Amazon Route 53 DNS management",
     category: "domain",
-    url: "",
     connectType: "form",
     fields: [
       { id: "accessKey", label: "Access Key ID", type: "text", placeholder: "Enter access key", required: true },

@@ -41,9 +41,12 @@ interface SettingsLayoutProps extends PropsWithChildren {
 
 export default function SettingsLayout({ children, twoFactor, confirmation }: SettingsLayoutProps) {
   const location = useLocation();
-  const { useAppError, useAppNotification } = useUrlState();
+  const { useAppError, useAppNotification, useAutoInitializeAppState } = useUrlState();
   const [{ appError }, setError] = useAppError();
   const [{ appNotification }, setAppNotification] = useAppNotification();
+  
+  // Auto-initialize app states from URL parameters
+  useAutoInitializeAppState(setError, setAppNotification);
   const { pendingAction, setPendingAction } = confirmation;
 
   return (
@@ -76,7 +79,7 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
           {appError.message && (
             <AlertBanner
               message={appError.message}
-              helpLink={appError.helpLink}
+              helpLink={appError.helpLink || ""}
               onDismiss={() =>
                 setError({
                   appError: {
@@ -91,7 +94,7 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
           {appNotification.message && (
             <AlertBanner
               message={appNotification.message}
-              helpLink={appNotification.link}
+              helpLink={appNotification.link || ""}
               variant="success"
               onDismiss={() =>
                 setAppNotification({
