@@ -13,8 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClustersIndexRouteImport } from './routes/clusters/index'
 import { Route as ClustersClusterIdRouteRouteImport } from './routes/clusters/$clusterId/route'
 import { Route as ClustersClusterIdResourcesRouteImport } from './routes/clusters/$clusterId/resources'
-import { Route as ClustersClusterIdNotificationsRouteImport } from './routes/clusters/$clusterId/notifications'
 import { Route as ClustersClusterIdLogsRouteImport } from './routes/clusters/$clusterId/logs'
+import { Route as ClustersClusterIdEventsRouteImport } from './routes/clusters/$clusterId/events'
 import { Route as ClustersClusterIdDashboardRouteImport } from './routes/clusters/$clusterId/dashboard'
 import { Route as ClustersClusterIdConsoleRouteImport } from './routes/clusters/$clusterId/console'
 import { Route as ClustersClusterIdSettingsRouteRouteImport } from './routes/clusters/$clusterId/settings/route'
@@ -48,15 +48,14 @@ const ClustersClusterIdResourcesRoute =
     path: '/resources',
     getParentRoute: () => ClustersClusterIdRouteRoute,
   } as any)
-const ClustersClusterIdNotificationsRoute =
-  ClustersClusterIdNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => ClustersClusterIdRouteRoute,
-  } as any)
 const ClustersClusterIdLogsRoute = ClustersClusterIdLogsRouteImport.update({
   id: '/logs',
   path: '/logs',
+  getParentRoute: () => ClustersClusterIdRouteRoute,
+} as any)
+const ClustersClusterIdEventsRoute = ClustersClusterIdEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
   getParentRoute: () => ClustersClusterIdRouteRoute,
 } as any)
 const ClustersClusterIdDashboardRoute =
@@ -133,8 +132,8 @@ export interface FileRoutesByFullPath {
   '/clusters/$clusterId/settings': typeof ClustersClusterIdSettingsRouteRouteWithChildren
   '/clusters/$clusterId/console': typeof ClustersClusterIdConsoleRoute
   '/clusters/$clusterId/dashboard': typeof ClustersClusterIdDashboardRoute
+  '/clusters/$clusterId/events': typeof ClustersClusterIdEventsRoute
   '/clusters/$clusterId/logs': typeof ClustersClusterIdLogsRoute
-  '/clusters/$clusterId/notifications': typeof ClustersClusterIdNotificationsRoute
   '/clusters/$clusterId/resources': typeof ClustersClusterIdResourcesRoute
   '/clusters/$clusterId/deployments/$id': typeof ClustersClusterIdDeploymentsIdRoute
   '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
@@ -152,8 +151,8 @@ export interface FileRoutesByTo {
   '/clusters/$clusterId/settings': typeof ClustersClusterIdSettingsRouteRouteWithChildren
   '/clusters/$clusterId/console': typeof ClustersClusterIdConsoleRoute
   '/clusters/$clusterId/dashboard': typeof ClustersClusterIdDashboardRoute
+  '/clusters/$clusterId/events': typeof ClustersClusterIdEventsRoute
   '/clusters/$clusterId/logs': typeof ClustersClusterIdLogsRoute
-  '/clusters/$clusterId/notifications': typeof ClustersClusterIdNotificationsRoute
   '/clusters/$clusterId/resources': typeof ClustersClusterIdResourcesRoute
   '/clusters/$clusterId/deployments/$id': typeof ClustersClusterIdDeploymentsIdRoute
   '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
@@ -172,8 +171,8 @@ export interface FileRoutesById {
   '/clusters/$clusterId/settings': typeof ClustersClusterIdSettingsRouteRouteWithChildren
   '/clusters/$clusterId/console': typeof ClustersClusterIdConsoleRoute
   '/clusters/$clusterId/dashboard': typeof ClustersClusterIdDashboardRoute
+  '/clusters/$clusterId/events': typeof ClustersClusterIdEventsRoute
   '/clusters/$clusterId/logs': typeof ClustersClusterIdLogsRoute
-  '/clusters/$clusterId/notifications': typeof ClustersClusterIdNotificationsRoute
   '/clusters/$clusterId/resources': typeof ClustersClusterIdResourcesRoute
   '/clusters/$clusterId/deployments/$id': typeof ClustersClusterIdDeploymentsIdRoute
   '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
@@ -193,8 +192,8 @@ export interface FileRouteTypes {
     | '/clusters/$clusterId/settings'
     | '/clusters/$clusterId/console'
     | '/clusters/$clusterId/dashboard'
+    | '/clusters/$clusterId/events'
     | '/clusters/$clusterId/logs'
-    | '/clusters/$clusterId/notifications'
     | '/clusters/$clusterId/resources'
     | '/clusters/$clusterId/deployments/$id'
     | '/clusters/$clusterId/services/$id'
@@ -212,8 +211,8 @@ export interface FileRouteTypes {
     | '/clusters/$clusterId/settings'
     | '/clusters/$clusterId/console'
     | '/clusters/$clusterId/dashboard'
+    | '/clusters/$clusterId/events'
     | '/clusters/$clusterId/logs'
-    | '/clusters/$clusterId/notifications'
     | '/clusters/$clusterId/resources'
     | '/clusters/$clusterId/deployments/$id'
     | '/clusters/$clusterId/services/$id'
@@ -231,8 +230,8 @@ export interface FileRouteTypes {
     | '/clusters/$clusterId/settings'
     | '/clusters/$clusterId/console'
     | '/clusters/$clusterId/dashboard'
+    | '/clusters/$clusterId/events'
     | '/clusters/$clusterId/logs'
-    | '/clusters/$clusterId/notifications'
     | '/clusters/$clusterId/resources'
     | '/clusters/$clusterId/deployments/$id'
     | '/clusters/$clusterId/services/$id'
@@ -280,18 +279,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClustersClusterIdResourcesRouteImport
       parentRoute: typeof ClustersClusterIdRouteRoute
     }
-    '/clusters/$clusterId/notifications': {
-      id: '/clusters/$clusterId/notifications'
-      path: '/notifications'
-      fullPath: '/clusters/$clusterId/notifications'
-      preLoaderRoute: typeof ClustersClusterIdNotificationsRouteImport
-      parentRoute: typeof ClustersClusterIdRouteRoute
-    }
     '/clusters/$clusterId/logs': {
       id: '/clusters/$clusterId/logs'
       path: '/logs'
       fullPath: '/clusters/$clusterId/logs'
       preLoaderRoute: typeof ClustersClusterIdLogsRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
+    }
+    '/clusters/$clusterId/events': {
+      id: '/clusters/$clusterId/events'
+      path: '/events'
+      fullPath: '/clusters/$clusterId/events'
+      preLoaderRoute: typeof ClustersClusterIdEventsRouteImport
       parentRoute: typeof ClustersClusterIdRouteRoute
     }
     '/clusters/$clusterId/dashboard': {
@@ -400,8 +399,8 @@ interface ClustersClusterIdRouteRouteChildren {
   ClustersClusterIdSettingsRouteRoute: typeof ClustersClusterIdSettingsRouteRouteWithChildren
   ClustersClusterIdConsoleRoute: typeof ClustersClusterIdConsoleRoute
   ClustersClusterIdDashboardRoute: typeof ClustersClusterIdDashboardRoute
+  ClustersClusterIdEventsRoute: typeof ClustersClusterIdEventsRoute
   ClustersClusterIdLogsRoute: typeof ClustersClusterIdLogsRoute
-  ClustersClusterIdNotificationsRoute: typeof ClustersClusterIdNotificationsRoute
   ClustersClusterIdResourcesRoute: typeof ClustersClusterIdResourcesRoute
   ClustersClusterIdDeploymentsIdRoute: typeof ClustersClusterIdDeploymentsIdRoute
   ClustersClusterIdServicesIdRoute: typeof ClustersClusterIdServicesIdRoute
@@ -415,8 +414,8 @@ const ClustersClusterIdRouteRouteChildren: ClustersClusterIdRouteRouteChildren =
       ClustersClusterIdSettingsRouteRouteWithChildren,
     ClustersClusterIdConsoleRoute: ClustersClusterIdConsoleRoute,
     ClustersClusterIdDashboardRoute: ClustersClusterIdDashboardRoute,
+    ClustersClusterIdEventsRoute: ClustersClusterIdEventsRoute,
     ClustersClusterIdLogsRoute: ClustersClusterIdLogsRoute,
-    ClustersClusterIdNotificationsRoute: ClustersClusterIdNotificationsRoute,
     ClustersClusterIdResourcesRoute: ClustersClusterIdResourcesRoute,
     ClustersClusterIdDeploymentsIdRoute: ClustersClusterIdDeploymentsIdRoute,
     ClustersClusterIdServicesIdRoute: ClustersClusterIdServicesIdRoute,

@@ -3,7 +3,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { type NavItem } from "@/types";
-import { Bell, BookOpen, BoxesIcon, ChevronsUpDown, CircleGauge, Factory, LayoutGrid, Logs, MessageCircleQuestion, Settings2, SquareChevronRight } from "lucide-react";
+import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, CircleGauge, Factory, LayoutGrid, Logs, MessageCircleQuestion, Settings2, SquareChevronRight } from "lucide-react";
 import AppLogo from "./app-logo";
 import { useClusterContext } from "@/hooks/use-cluster-context";
 import { useAuth } from "@/hooks/use-auth";
@@ -67,9 +67,9 @@ export function AppSidebar() {
       icon: CircleGauge,
     },
     {
-      title: "Notifications",
-      href: clusterId ? "/clusters/$clusterId/notifications" : "/notifications",
-      icon: Bell,
+      title: "Events",
+      href: clusterId ? "/clusters/$clusterId/events" : "/events",
+      icon: ActivitySquare,
     },
     {
       title: "Settings",

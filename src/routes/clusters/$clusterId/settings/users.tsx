@@ -72,7 +72,6 @@ function Profile() {
     handleRemoveConfirm,
     handlePromoteClick,
     handlePromoteConfirm,
-    handleViewActivityClick,
     handleActivityModalClose,
     handleInviteUsersDialogClose,
     isLoadingUsers,
@@ -189,14 +188,6 @@ function Profile() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button size="icon" variant="outline" onClick={() => handleViewActivityClick(user)} className="h-8 w-8 cursor-pointer" aria-label="View Activity">
-                                        <Activity className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>View Activity</TooltipContent>
-                                  </Tooltip>
                                   {user.role !== "owner" && (
                                     <>
                                       <Tooltip>

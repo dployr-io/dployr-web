@@ -96,14 +96,6 @@ export function useClusterUsers(setPendingAction: ReturnType<typeof useConfirmat
     }
   };
 
-  const handleViewActivityClick = (user: User & { role: UserRole }) => {
-    setUserToViewActivity(user);
-    setActivityModal({
-      open: true,
-      userId: user.id,
-    });
-  };
-
   const handleActivityModalClose = (open: boolean) => {
     setActivityModal({ open });
     if (!open) {
@@ -173,7 +165,6 @@ export function useClusterUsers(setPendingAction: ReturnType<typeof useConfirmat
     handleRemoveConfirm,
     handlePromoteClick,
     handlePromoteConfirm,
-    handleViewActivityClick,
     handleActivityModalClose,
     handleInviteUsersDialogClose,
     activityUser,

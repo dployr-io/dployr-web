@@ -47,7 +47,7 @@ function Deployments() {
                   <EmptyMedia variant="icon">
                     <Factory />
                   </EmptyMedia>
-                  <EmptyTitle>No Deployments Yet</EmptyTitle>
+                  <EmptyTitle>No deployments yet</EmptyTitle>
                   <EmptyDescription>You don&apos;t have any deployments yet. Get started by deploying your first service.</EmptyDescription>
                 </EmptyHeader>
                 <EmptyContent>

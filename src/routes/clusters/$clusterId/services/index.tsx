@@ -73,7 +73,7 @@ function Services() {
                     <EmptyMedia variant="icon">
                       <BoxesIcon />
                     </EmptyMedia>
-                    <EmptyTitle>No Services Yet</EmptyTitle>
+                    <EmptyTitle>No services yet</EmptyTitle>
                     <EmptyDescription>You haven&apos;t deployed any services yet. Get started by deploying your first service.</EmptyDescription>
                   </EmptyHeader>
                   <EmptyContent>

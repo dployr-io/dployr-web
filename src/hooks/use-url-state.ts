@@ -96,6 +96,19 @@ export function useUrlState() {
     }
 
     /**
+     * URL state management for cluster events page
+     */
+    function useEventsUrlState() {
+        return useQueryStates({
+            type: parseAsString.withDefault("ALL"),
+            search: parseAsString.withDefault(""),
+            sort: parseAsStringLiteral(["newest", "oldest"]).withDefault("newest"),
+            window: parseAsStringLiteral(["all", "24h", "7d", "30d"]).withDefault("all"),
+            page: parseAsInteger.withDefault(1),
+        });
+    }
+
+    /**
      * URL state management for users activity modal
      */
     function useUsersActivityModal() {
@@ -213,5 +226,6 @@ export function useUrlState() {
         useAppError,
         useAppNotification,
         useAutoInitializeAppState,
+        useEventsUrlState,
     };
 }

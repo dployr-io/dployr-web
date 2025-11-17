@@ -127,6 +127,39 @@ export interface SessionData {
   cluster: Cluster;
 }
 
+export interface EventActor {
+  id: string;
+  type: string;
+}
+
+export interface EventTarget {
+  id: string;
+}
+
+export interface ClusterEvent {
+  id: string;
+  timestamp: number;
+  type: string;
+  actor: EventActor;
+  targets?: EventTarget[];
+  timezone: string;
+  timezoneOffset: string;
+}
+
+export interface EventsResponse {
+  items: ClusterEvent[];
+  pagination: PaginationMeta;
+}
+
+export interface PaginationMeta {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 export interface Remote {
   url: string;
   branch: string;
