@@ -10,29 +10,7 @@ import { useConfirmation } from "@/hooks/use-confirmation";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { use2FA } from "@/hooks/use-2fa";
-
-const sidebarNavItems: NavItem[] = [
-  {
-    title: "Profile",
-    href: "/settings/profile",
-    icon: null,
-  },
-  {
-    title: "Users",
-    href: "/settings/users",
-    icon: null,
-  },
-  {
-    title: "Configuration",
-    href: "/settings/config",
-    icon: null,
-  },
-  {
-    title: "Integrations",
-    href: "/settings/integrations",
-    icon: null,
-  },
-];
+import { useClusterContext } from "@/hooks/use-cluster-context";
 
 interface SettingsLayoutProps extends PropsWithChildren {
   twoFactor: ReturnType<typeof use2FA>;
@@ -40,14 +18,36 @@ interface SettingsLayoutProps extends PropsWithChildren {
 }
 
 export default function SettingsLayout({ children, twoFactor, confirmation }: SettingsLayoutProps) {
+  const { clusterId } = useClusterContext();
   const location = useLocation();
   const { useAppError, useAppNotification, useAutoInitializeAppState } = useUrlState();
   const [{ appError }, setError] = useAppError();
   const [{ appNotification }, setAppNotification] = useAppNotification();
-  
-  // Auto-initialize app states from URL parameters
   useAutoInitializeAppState(setError, setAppNotification);
   const { pendingAction, setPendingAction } = confirmation;
+
+  const sidebarNavItems: NavItem[] = [
+    {
+      title: "Profile",
+      href: clusterId ? "/clusters/$clusterId/settings/profile" : "/settings/profile",
+      icon: null,
+    },
+    {
+      title: "Users",
+      href: clusterId ? "/clusters/$clusterId/settings/users" : "/settings/users",
+      icon: null,
+    },
+    {
+      title: "Configuration",
+      href: clusterId ? "/clusters/$clusterId/settings/config" : "/settings/config",
+      icon: null,
+    },
+    {
+      title: "Integrations",
+      href: clusterId ? "/clusters/$clusterId/settings/integrations" : "/settings/integrations",
+      icon: null,
+    },
+  ];
 
   return (
     <div className="flex h-full min-h-0 flex-col px-4 pt-6">

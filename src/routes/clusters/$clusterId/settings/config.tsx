@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
-
 import AppLayout from "@/layouts/app-layout";
 import SettingsLayout from "@/layouts/settings/layout";
 import type { BreadcrumbItem } from "@/types";

@@ -2,18 +2,15 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/clusters/$clusterId")({
   component: Outlet,
-  beforeLoad: ({ params, location }) => {
-    // Only redirect if we're not already on dashboard, console, logs, or notifications
-    const currentPath = location.pathname;
-    const isSubRoute = currentPath.includes('/dashboard') ||
-                      currentPath.includes('/console') ||
-                      currentPath.includes('/logs') ||
-                      currentPath.includes('/notifications') ||
-                      currentPath.includes('/settings') ||
-                      currentPath.includes('/services') ||
-                      currentPath.includes('/deployments');
+  beforeLoad: ({ params, location }) => { 
+    // redirect from cluster root
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    const expectedSegments = ['clusters', params.clusterId];
+    const isAtClusterRoot = pathSegments.length === expectedSegments.length &&
+                           pathSegments[0] === 'clusters' &&
+                           pathSegments[1] === params.clusterId;
     
-    if (!isSubRoute) {
+    if (isAtClusterRoot) {
       throw redirect({
         to: "/clusters/$clusterId/dashboard",
         params: { clusterId: params.clusterId }
