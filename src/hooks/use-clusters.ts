@@ -4,33 +4,25 @@ import axios from "axios";
 import { useAuth } from "./use-auth";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useState } from "react";
-import { LOCALSTORAGE_KEY } from "@/lib/constants";
 
 export function useClusters() {
-  const { refetch, cluster } = useAuth();
+  const { clusters } = useAuth();
   const queryClient = useQueryClient();
   const { useAppError } = useUrlState();
   const [{ appError }, setError] = useAppError();
   const [usersToAdd, setUsersToAdd] = useState<string[]>([]);
 
-  // Get cluster ID from localStorage first, then fallback to session data
-  const clusterId = (() => {
-    const storedId = localStorage.getItem(LOCALSTORAGE_KEY);
-    if (storedId) {
-      return storedId;
-    }
-    return cluster?.id || "";
-  })();
+  // Get cluster ID from URL path
+  function getClusterIdFromPath() {
+    const pathSegments = window.location.pathname.split('/');
+    const clusterIndex = pathSegments.indexOf('clusters');
+    return clusterIndex !== -1 && pathSegments[clusterIndex + 1] 
+      ? pathSegments[clusterIndex + 1]
+      : undefined;
+  };
 
-  function setCurrentCluster(clusterId: string) {
-    if (clusterId) {
-      localStorage.setItem(LOCALSTORAGE_KEY, clusterId);
-      refetch();
-    } else {
-      localStorage.removeItem(LOCALSTORAGE_KEY);
-    }
-  }
-
+  const clusterId = getClusterIdFromPath();
+  
   // load invites received
   const { data: invitesReceived, isLoading: isLoadingInvitesReceived } = useQuery<
     {
@@ -55,10 +47,10 @@ export function useClusters() {
 
         return Array.isArray(data)
           ? (data as {
-            clusterId: string;
-            clusterName: string;
-            ownerName: string;
-          }[])
+              clusterId: string;
+              clusterName: string;
+              ownerName: string;
+            }[])
           : [];
       } catch (error) {
         console.error((error as Error).message || "An unknown error occoured while retrieving cluster invites");
@@ -93,7 +85,7 @@ export function useClusters() {
       await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${id}/users/invites/accept`, {
         withCredentials: true,
       });
-      queryClient.invalidateQueries({ queryKey: ['invites-received'] });
+      queryClient.invalidateQueries({ queryKey: ["invites-received"] });
     } catch (error: any) {
       const errorData = error?.response?.data?.error;
       const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
@@ -113,7 +105,7 @@ export function useClusters() {
       await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/clusters/${id}/users/invites/reject`, {
         withCredentials: true,
       });
-      queryClient.invalidateQueries({ queryKey: ['invites-received'] });
+      queryClient.invalidateQueries({ queryKey: ["invites-received"] });
     } catch (error: any) {
       const errorData = error?.response?.data?.error;
       const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
@@ -190,7 +182,7 @@ export function useClusters() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
-      queryClient.invalidateQueries({ queryKey: ['invites-received'] });
+      queryClient.invalidateQueries({ queryKey: ["invites-received"] });
     },
     onError: (error: any) => {
       const errorData = error?.response?.data?.error;
@@ -268,6 +260,7 @@ export function useClusters() {
 
   return {
     users,
+    clusters,
     integrations,
     usersToAdd,
     isLoadingUsers,
@@ -280,7 +273,6 @@ export function useClusters() {
     acceptInvite,
     declineInvite,
     setUsersToAdd,
-    setCurrentCluster,
     removeInvites,
     removeUsers,
     clusterId,

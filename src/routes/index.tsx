@@ -15,7 +15,7 @@ import { z } from "zod";
 import { AlertBanner } from "@/components/ui/alert-banner";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.email("Please enter a valid email address"),
 });
 
 export const Route = createFileRoute("/")({
@@ -66,7 +66,7 @@ function App() {
           code: value,
           email: email,
         });
-        router.navigate({ to: "/dashboard" });
+        router.navigate({ to: "/clusters" });
       } catch (error: any) {
         const message = error?.response?.data?.error?.message;
         console.error("OTP verification failed:", error);
@@ -77,7 +77,7 @@ function App() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.navigate({ to: "/dashboard" });
+      router.navigate({ to: "/clusters" });
     }
   }, [isAuthenticated, router]);
 
@@ -108,11 +108,7 @@ function App() {
                         <FaMicrosoft />
                       </Button>
 
-                      <Button
-                        onClick={() => handleGitHubSignIn}
-                        className="w-fit"
-                        disabled={isSubmitting}
-                      >
+                      <Button onClick={() => handleGitHubSignIn} className="w-fit" disabled={isSubmitting}>
                         <FaGithub />
                       </Button>
                     </div>

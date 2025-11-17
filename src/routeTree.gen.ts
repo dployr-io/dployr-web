@@ -9,259 +9,249 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResourcesRouteImport } from './routes/resources'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as LogsRouteImport } from './routes/logs'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as ConsoleRouteImport } from './routes/console'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as ServicesIndexRouteImport } from './routes/services/index'
-import { Route as DeploymentsIndexRouteImport } from './routes/deployments/index'
-import { Route as SettingsUsersRouteImport } from './routes/settings/users'
-import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
-import { Route as SettingsIntegrationsRouteImport } from './routes/settings/integrations'
-import { Route as SettingsConfigRouteImport } from './routes/settings/config'
-import { Route as ServicesIdRouteImport } from './routes/services/$id'
-import { Route as DeploymentsIdRouteImport } from './routes/deployments/$id'
+import { Route as ClustersIndexRouteImport } from './routes/clusters/index'
+import { Route as ClustersClusterIdRouteRouteImport } from './routes/clusters/$clusterId/route'
+import { Route as ClustersClusterIdResourcesRouteImport } from './routes/clusters/$clusterId/resources'
+import { Route as ClustersClusterIdNotificationsRouteImport } from './routes/clusters/$clusterId/notifications'
+import { Route as ClustersClusterIdLogsRouteImport } from './routes/clusters/$clusterId/logs'
+import { Route as ClustersClusterIdDashboardRouteImport } from './routes/clusters/$clusterId/dashboard'
+import { Route as ClustersClusterIdConsoleRouteImport } from './routes/clusters/$clusterId/console'
+import { Route as ClustersClusterIdSettingsRouteRouteImport } from './routes/clusters/$clusterId/settings/route'
+import { Route as ClustersClusterIdServicesIndexRouteImport } from './routes/clusters/$clusterId/services/index'
+import { Route as ClustersClusterIdDeploymentsIndexRouteImport } from './routes/clusters/$clusterId/deployments/index'
+import { Route as ClustersClusterIdSettingsUsersRouteImport } from './routes/clusters/$clusterId/settings/users'
+import { Route as ClustersClusterIdSettingsProfileRouteImport } from './routes/clusters/$clusterId/settings/profile'
+import { Route as ClustersClusterIdSettingsIntegrationsRouteImport } from './routes/clusters/$clusterId/settings/integrations'
+import { Route as ClustersClusterIdSettingsConfigRouteImport } from './routes/clusters/$clusterId/settings/config'
+import { Route as ClustersClusterIdServicesIdRouteImport } from './routes/clusters/$clusterId/services/$id'
+import { Route as ClustersClusterIdDeploymentsIdRouteImport } from './routes/clusters/$clusterId/deployments/$id'
 
-const ResourcesRoute = ResourcesRouteImport.update({
-  id: '/resources',
-  path: '/resources',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogsRoute = LogsRouteImport.update({
-  id: '/logs',
-  path: '/logs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConsoleRoute = ConsoleRouteImport.update({
-  id: '/console',
-  path: '/console',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsIndexRoute = SettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
+const ClustersIndexRoute = ClustersIndexRouteImport.update({
+  id: '/clusters/',
+  path: '/clusters/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ServicesIndexRoute = ServicesIndexRouteImport.update({
-  id: '/services/',
-  path: '/services/',
+const ClustersClusterIdRouteRoute = ClustersClusterIdRouteRouteImport.update({
+  id: '/clusters/$clusterId',
+  path: '/clusters/$clusterId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DeploymentsIndexRoute = DeploymentsIndexRouteImport.update({
-  id: '/deployments/',
-  path: '/deployments/',
-  getParentRoute: () => rootRouteImport,
+const ClustersClusterIdResourcesRoute =
+  ClustersClusterIdResourcesRouteImport.update({
+    id: '/resources',
+    path: '/resources',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
+const ClustersClusterIdNotificationsRoute =
+  ClustersClusterIdNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
+const ClustersClusterIdLogsRoute = ClustersClusterIdLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => ClustersClusterIdRouteRoute,
 } as any)
-const SettingsUsersRoute = SettingsUsersRouteImport.update({
-  id: '/settings/users',
-  path: '/settings/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsProfileRoute = SettingsProfileRouteImport.update({
-  id: '/settings/profile',
-  path: '/settings/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsIntegrationsRoute = SettingsIntegrationsRouteImport.update({
-  id: '/settings/integrations',
-  path: '/settings/integrations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsConfigRoute = SettingsConfigRouteImport.update({
-  id: '/settings/config',
-  path: '/settings/config',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ServicesIdRoute = ServicesIdRouteImport.update({
-  id: '/services/$id',
-  path: '/services/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeploymentsIdRoute = DeploymentsIdRouteImport.update({
-  id: '/deployments/$id',
-  path: '/deployments/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const ClustersClusterIdDashboardRoute =
+  ClustersClusterIdDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
+const ClustersClusterIdConsoleRoute =
+  ClustersClusterIdConsoleRouteImport.update({
+    id: '/console',
+    path: '/console',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
+const ClustersClusterIdSettingsRouteRoute =
+  ClustersClusterIdSettingsRouteRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
+const ClustersClusterIdServicesIndexRoute =
+  ClustersClusterIdServicesIndexRouteImport.update({
+    id: '/services/',
+    path: '/services/',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
+const ClustersClusterIdDeploymentsIndexRoute =
+  ClustersClusterIdDeploymentsIndexRouteImport.update({
+    id: '/deployments/',
+    path: '/deployments/',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
+const ClustersClusterIdSettingsUsersRoute =
+  ClustersClusterIdSettingsUsersRouteImport.update({
+    id: '/users',
+    path: '/users',
+    getParentRoute: () => ClustersClusterIdSettingsRouteRoute,
+  } as any)
+const ClustersClusterIdSettingsProfileRoute =
+  ClustersClusterIdSettingsProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => ClustersClusterIdSettingsRouteRoute,
+  } as any)
+const ClustersClusterIdSettingsIntegrationsRoute =
+  ClustersClusterIdSettingsIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => ClustersClusterIdSettingsRouteRoute,
+  } as any)
+const ClustersClusterIdSettingsConfigRoute =
+  ClustersClusterIdSettingsConfigRouteImport.update({
+    id: '/config',
+    path: '/config',
+    getParentRoute: () => ClustersClusterIdSettingsRouteRoute,
+  } as any)
+const ClustersClusterIdServicesIdRoute =
+  ClustersClusterIdServicesIdRouteImport.update({
+    id: '/services/$id',
+    path: '/services/$id',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
+const ClustersClusterIdDeploymentsIdRoute =
+  ClustersClusterIdDeploymentsIdRouteImport.update({
+    id: '/deployments/$id',
+    path: '/deployments/$id',
+    getParentRoute: () => ClustersClusterIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/console': typeof ConsoleRoute
-  '/dashboard': typeof DashboardRoute
-  '/logs': typeof LogsRoute
-  '/notifications': typeof NotificationsRoute
-  '/resources': typeof ResourcesRoute
-  '/deployments/$id': typeof DeploymentsIdRoute
-  '/services/$id': typeof ServicesIdRoute
-  '/settings/config': typeof SettingsConfigRoute
-  '/settings/integrations': typeof SettingsIntegrationsRoute
-  '/settings/profile': typeof SettingsProfileRoute
-  '/settings/users': typeof SettingsUsersRoute
-  '/deployments': typeof DeploymentsIndexRoute
-  '/services': typeof ServicesIndexRoute
-  '/settings': typeof SettingsIndexRoute
+  '/clusters/$clusterId': typeof ClustersClusterIdRouteRouteWithChildren
+  '/clusters': typeof ClustersIndexRoute
+  '/clusters/$clusterId/settings': typeof ClustersClusterIdSettingsRouteRouteWithChildren
+  '/clusters/$clusterId/console': typeof ClustersClusterIdConsoleRoute
+  '/clusters/$clusterId/dashboard': typeof ClustersClusterIdDashboardRoute
+  '/clusters/$clusterId/logs': typeof ClustersClusterIdLogsRoute
+  '/clusters/$clusterId/notifications': typeof ClustersClusterIdNotificationsRoute
+  '/clusters/$clusterId/resources': typeof ClustersClusterIdResourcesRoute
+  '/clusters/$clusterId/deployments/$id': typeof ClustersClusterIdDeploymentsIdRoute
+  '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
+  '/clusters/$clusterId/settings/config': typeof ClustersClusterIdSettingsConfigRoute
+  '/clusters/$clusterId/settings/integrations': typeof ClustersClusterIdSettingsIntegrationsRoute
+  '/clusters/$clusterId/settings/profile': typeof ClustersClusterIdSettingsProfileRoute
+  '/clusters/$clusterId/settings/users': typeof ClustersClusterIdSettingsUsersRoute
+  '/clusters/$clusterId/deployments': typeof ClustersClusterIdDeploymentsIndexRoute
+  '/clusters/$clusterId/services': typeof ClustersClusterIdServicesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/console': typeof ConsoleRoute
-  '/dashboard': typeof DashboardRoute
-  '/logs': typeof LogsRoute
-  '/notifications': typeof NotificationsRoute
-  '/resources': typeof ResourcesRoute
-  '/deployments/$id': typeof DeploymentsIdRoute
-  '/services/$id': typeof ServicesIdRoute
-  '/settings/config': typeof SettingsConfigRoute
-  '/settings/integrations': typeof SettingsIntegrationsRoute
-  '/settings/profile': typeof SettingsProfileRoute
-  '/settings/users': typeof SettingsUsersRoute
-  '/deployments': typeof DeploymentsIndexRoute
-  '/services': typeof ServicesIndexRoute
-  '/settings': typeof SettingsIndexRoute
+  '/clusters/$clusterId': typeof ClustersClusterIdRouteRouteWithChildren
+  '/clusters': typeof ClustersIndexRoute
+  '/clusters/$clusterId/settings': typeof ClustersClusterIdSettingsRouteRouteWithChildren
+  '/clusters/$clusterId/console': typeof ClustersClusterIdConsoleRoute
+  '/clusters/$clusterId/dashboard': typeof ClustersClusterIdDashboardRoute
+  '/clusters/$clusterId/logs': typeof ClustersClusterIdLogsRoute
+  '/clusters/$clusterId/notifications': typeof ClustersClusterIdNotificationsRoute
+  '/clusters/$clusterId/resources': typeof ClustersClusterIdResourcesRoute
+  '/clusters/$clusterId/deployments/$id': typeof ClustersClusterIdDeploymentsIdRoute
+  '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
+  '/clusters/$clusterId/settings/config': typeof ClustersClusterIdSettingsConfigRoute
+  '/clusters/$clusterId/settings/integrations': typeof ClustersClusterIdSettingsIntegrationsRoute
+  '/clusters/$clusterId/settings/profile': typeof ClustersClusterIdSettingsProfileRoute
+  '/clusters/$clusterId/settings/users': typeof ClustersClusterIdSettingsUsersRoute
+  '/clusters/$clusterId/deployments': typeof ClustersClusterIdDeploymentsIndexRoute
+  '/clusters/$clusterId/services': typeof ClustersClusterIdServicesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/console': typeof ConsoleRoute
-  '/dashboard': typeof DashboardRoute
-  '/logs': typeof LogsRoute
-  '/notifications': typeof NotificationsRoute
-  '/resources': typeof ResourcesRoute
-  '/deployments/$id': typeof DeploymentsIdRoute
-  '/services/$id': typeof ServicesIdRoute
-  '/settings/config': typeof SettingsConfigRoute
-  '/settings/integrations': typeof SettingsIntegrationsRoute
-  '/settings/profile': typeof SettingsProfileRoute
-  '/settings/users': typeof SettingsUsersRoute
-  '/deployments/': typeof DeploymentsIndexRoute
-  '/services/': typeof ServicesIndexRoute
-  '/settings/': typeof SettingsIndexRoute
+  '/clusters/$clusterId': typeof ClustersClusterIdRouteRouteWithChildren
+  '/clusters/': typeof ClustersIndexRoute
+  '/clusters/$clusterId/settings': typeof ClustersClusterIdSettingsRouteRouteWithChildren
+  '/clusters/$clusterId/console': typeof ClustersClusterIdConsoleRoute
+  '/clusters/$clusterId/dashboard': typeof ClustersClusterIdDashboardRoute
+  '/clusters/$clusterId/logs': typeof ClustersClusterIdLogsRoute
+  '/clusters/$clusterId/notifications': typeof ClustersClusterIdNotificationsRoute
+  '/clusters/$clusterId/resources': typeof ClustersClusterIdResourcesRoute
+  '/clusters/$clusterId/deployments/$id': typeof ClustersClusterIdDeploymentsIdRoute
+  '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
+  '/clusters/$clusterId/settings/config': typeof ClustersClusterIdSettingsConfigRoute
+  '/clusters/$clusterId/settings/integrations': typeof ClustersClusterIdSettingsIntegrationsRoute
+  '/clusters/$clusterId/settings/profile': typeof ClustersClusterIdSettingsProfileRoute
+  '/clusters/$clusterId/settings/users': typeof ClustersClusterIdSettingsUsersRoute
+  '/clusters/$clusterId/deployments/': typeof ClustersClusterIdDeploymentsIndexRoute
+  '/clusters/$clusterId/services/': typeof ClustersClusterIdServicesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/console'
-    | '/dashboard'
-    | '/logs'
-    | '/notifications'
-    | '/resources'
-    | '/deployments/$id'
-    | '/services/$id'
-    | '/settings/config'
-    | '/settings/integrations'
-    | '/settings/profile'
-    | '/settings/users'
-    | '/deployments'
-    | '/services'
-    | '/settings'
+    | '/clusters/$clusterId'
+    | '/clusters'
+    | '/clusters/$clusterId/settings'
+    | '/clusters/$clusterId/console'
+    | '/clusters/$clusterId/dashboard'
+    | '/clusters/$clusterId/logs'
+    | '/clusters/$clusterId/notifications'
+    | '/clusters/$clusterId/resources'
+    | '/clusters/$clusterId/deployments/$id'
+    | '/clusters/$clusterId/services/$id'
+    | '/clusters/$clusterId/settings/config'
+    | '/clusters/$clusterId/settings/integrations'
+    | '/clusters/$clusterId/settings/profile'
+    | '/clusters/$clusterId/settings/users'
+    | '/clusters/$clusterId/deployments'
+    | '/clusters/$clusterId/services'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/console'
-    | '/dashboard'
-    | '/logs'
-    | '/notifications'
-    | '/resources'
-    | '/deployments/$id'
-    | '/services/$id'
-    | '/settings/config'
-    | '/settings/integrations'
-    | '/settings/profile'
-    | '/settings/users'
-    | '/deployments'
-    | '/services'
-    | '/settings'
+    | '/clusters/$clusterId'
+    | '/clusters'
+    | '/clusters/$clusterId/settings'
+    | '/clusters/$clusterId/console'
+    | '/clusters/$clusterId/dashboard'
+    | '/clusters/$clusterId/logs'
+    | '/clusters/$clusterId/notifications'
+    | '/clusters/$clusterId/resources'
+    | '/clusters/$clusterId/deployments/$id'
+    | '/clusters/$clusterId/services/$id'
+    | '/clusters/$clusterId/settings/config'
+    | '/clusters/$clusterId/settings/integrations'
+    | '/clusters/$clusterId/settings/profile'
+    | '/clusters/$clusterId/settings/users'
+    | '/clusters/$clusterId/deployments'
+    | '/clusters/$clusterId/services'
   id:
     | '__root__'
     | '/'
-    | '/console'
-    | '/dashboard'
-    | '/logs'
-    | '/notifications'
-    | '/resources'
-    | '/deployments/$id'
-    | '/services/$id'
-    | '/settings/config'
-    | '/settings/integrations'
-    | '/settings/profile'
-    | '/settings/users'
-    | '/deployments/'
-    | '/services/'
-    | '/settings/'
+    | '/clusters/$clusterId'
+    | '/clusters/'
+    | '/clusters/$clusterId/settings'
+    | '/clusters/$clusterId/console'
+    | '/clusters/$clusterId/dashboard'
+    | '/clusters/$clusterId/logs'
+    | '/clusters/$clusterId/notifications'
+    | '/clusters/$clusterId/resources'
+    | '/clusters/$clusterId/deployments/$id'
+    | '/clusters/$clusterId/services/$id'
+    | '/clusters/$clusterId/settings/config'
+    | '/clusters/$clusterId/settings/integrations'
+    | '/clusters/$clusterId/settings/profile'
+    | '/clusters/$clusterId/settings/users'
+    | '/clusters/$clusterId/deployments/'
+    | '/clusters/$clusterId/services/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ConsoleRoute: typeof ConsoleRoute
-  DashboardRoute: typeof DashboardRoute
-  LogsRoute: typeof LogsRoute
-  NotificationsRoute: typeof NotificationsRoute
-  ResourcesRoute: typeof ResourcesRoute
-  DeploymentsIdRoute: typeof DeploymentsIdRoute
-  ServicesIdRoute: typeof ServicesIdRoute
-  SettingsConfigRoute: typeof SettingsConfigRoute
-  SettingsIntegrationsRoute: typeof SettingsIntegrationsRoute
-  SettingsProfileRoute: typeof SettingsProfileRoute
-  SettingsUsersRoute: typeof SettingsUsersRoute
-  DeploymentsIndexRoute: typeof DeploymentsIndexRoute
-  ServicesIndexRoute: typeof ServicesIndexRoute
-  SettingsIndexRoute: typeof SettingsIndexRoute
+  ClustersClusterIdRouteRoute: typeof ClustersClusterIdRouteRouteWithChildren
+  ClustersIndexRoute: typeof ClustersIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/resources': {
-      id: '/resources'
-      path: '/resources'
-      fullPath: '/resources'
-      preLoaderRoute: typeof ResourcesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logs': {
-      id: '/logs'
-      path: '/logs'
-      fullPath: '/logs'
-      preLoaderRoute: typeof LogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/console': {
-      id: '/console'
-      path: '/console'
-      fullPath: '/console'
-      preLoaderRoute: typeof ConsoleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -269,88 +259,181 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/': {
-      id: '/settings/'
+    '/clusters/': {
+      id: '/clusters/'
+      path: '/clusters'
+      fullPath: '/clusters'
+      preLoaderRoute: typeof ClustersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clusters/$clusterId': {
+      id: '/clusters/$clusterId'
+      path: '/clusters/$clusterId'
+      fullPath: '/clusters/$clusterId'
+      preLoaderRoute: typeof ClustersClusterIdRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clusters/$clusterId/resources': {
+      id: '/clusters/$clusterId/resources'
+      path: '/resources'
+      fullPath: '/clusters/$clusterId/resources'
+      preLoaderRoute: typeof ClustersClusterIdResourcesRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
+    }
+    '/clusters/$clusterId/notifications': {
+      id: '/clusters/$clusterId/notifications'
+      path: '/notifications'
+      fullPath: '/clusters/$clusterId/notifications'
+      preLoaderRoute: typeof ClustersClusterIdNotificationsRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
+    }
+    '/clusters/$clusterId/logs': {
+      id: '/clusters/$clusterId/logs'
+      path: '/logs'
+      fullPath: '/clusters/$clusterId/logs'
+      preLoaderRoute: typeof ClustersClusterIdLogsRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
+    }
+    '/clusters/$clusterId/dashboard': {
+      id: '/clusters/$clusterId/dashboard'
+      path: '/dashboard'
+      fullPath: '/clusters/$clusterId/dashboard'
+      preLoaderRoute: typeof ClustersClusterIdDashboardRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
+    }
+    '/clusters/$clusterId/console': {
+      id: '/clusters/$clusterId/console'
+      path: '/console'
+      fullPath: '/clusters/$clusterId/console'
+      preLoaderRoute: typeof ClustersClusterIdConsoleRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
+    }
+    '/clusters/$clusterId/settings': {
+      id: '/clusters/$clusterId/settings'
       path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/clusters/$clusterId/settings'
+      preLoaderRoute: typeof ClustersClusterIdSettingsRouteRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
     }
-    '/services/': {
-      id: '/services/'
+    '/clusters/$clusterId/services/': {
+      id: '/clusters/$clusterId/services/'
       path: '/services'
-      fullPath: '/services'
-      preLoaderRoute: typeof ServicesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/clusters/$clusterId/services'
+      preLoaderRoute: typeof ClustersClusterIdServicesIndexRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
     }
-    '/deployments/': {
-      id: '/deployments/'
+    '/clusters/$clusterId/deployments/': {
+      id: '/clusters/$clusterId/deployments/'
       path: '/deployments'
-      fullPath: '/deployments'
-      preLoaderRoute: typeof DeploymentsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/clusters/$clusterId/deployments'
+      preLoaderRoute: typeof ClustersClusterIdDeploymentsIndexRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
     }
-    '/settings/users': {
-      id: '/settings/users'
-      path: '/settings/users'
-      fullPath: '/settings/users'
-      preLoaderRoute: typeof SettingsUsersRouteImport
-      parentRoute: typeof rootRouteImport
+    '/clusters/$clusterId/settings/users': {
+      id: '/clusters/$clusterId/settings/users'
+      path: '/users'
+      fullPath: '/clusters/$clusterId/settings/users'
+      preLoaderRoute: typeof ClustersClusterIdSettingsUsersRouteImport
+      parentRoute: typeof ClustersClusterIdSettingsRouteRoute
     }
-    '/settings/profile': {
-      id: '/settings/profile'
-      path: '/settings/profile'
-      fullPath: '/settings/profile'
-      preLoaderRoute: typeof SettingsProfileRouteImport
-      parentRoute: typeof rootRouteImport
+    '/clusters/$clusterId/settings/profile': {
+      id: '/clusters/$clusterId/settings/profile'
+      path: '/profile'
+      fullPath: '/clusters/$clusterId/settings/profile'
+      preLoaderRoute: typeof ClustersClusterIdSettingsProfileRouteImport
+      parentRoute: typeof ClustersClusterIdSettingsRouteRoute
     }
-    '/settings/integrations': {
-      id: '/settings/integrations'
-      path: '/settings/integrations'
-      fullPath: '/settings/integrations'
-      preLoaderRoute: typeof SettingsIntegrationsRouteImport
-      parentRoute: typeof rootRouteImport
+    '/clusters/$clusterId/settings/integrations': {
+      id: '/clusters/$clusterId/settings/integrations'
+      path: '/integrations'
+      fullPath: '/clusters/$clusterId/settings/integrations'
+      preLoaderRoute: typeof ClustersClusterIdSettingsIntegrationsRouteImport
+      parentRoute: typeof ClustersClusterIdSettingsRouteRoute
     }
-    '/settings/config': {
-      id: '/settings/config'
-      path: '/settings/config'
-      fullPath: '/settings/config'
-      preLoaderRoute: typeof SettingsConfigRouteImport
-      parentRoute: typeof rootRouteImport
+    '/clusters/$clusterId/settings/config': {
+      id: '/clusters/$clusterId/settings/config'
+      path: '/config'
+      fullPath: '/clusters/$clusterId/settings/config'
+      preLoaderRoute: typeof ClustersClusterIdSettingsConfigRouteImport
+      parentRoute: typeof ClustersClusterIdSettingsRouteRoute
     }
-    '/services/$id': {
-      id: '/services/$id'
+    '/clusters/$clusterId/services/$id': {
+      id: '/clusters/$clusterId/services/$id'
       path: '/services/$id'
-      fullPath: '/services/$id'
-      preLoaderRoute: typeof ServicesIdRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/clusters/$clusterId/services/$id'
+      preLoaderRoute: typeof ClustersClusterIdServicesIdRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
     }
-    '/deployments/$id': {
-      id: '/deployments/$id'
+    '/clusters/$clusterId/deployments/$id': {
+      id: '/clusters/$clusterId/deployments/$id'
       path: '/deployments/$id'
-      fullPath: '/deployments/$id'
-      preLoaderRoute: typeof DeploymentsIdRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/clusters/$clusterId/deployments/$id'
+      preLoaderRoute: typeof ClustersClusterIdDeploymentsIdRouteImport
+      parentRoute: typeof ClustersClusterIdRouteRoute
     }
   }
 }
 
+interface ClustersClusterIdSettingsRouteRouteChildren {
+  ClustersClusterIdSettingsConfigRoute: typeof ClustersClusterIdSettingsConfigRoute
+  ClustersClusterIdSettingsIntegrationsRoute: typeof ClustersClusterIdSettingsIntegrationsRoute
+  ClustersClusterIdSettingsProfileRoute: typeof ClustersClusterIdSettingsProfileRoute
+  ClustersClusterIdSettingsUsersRoute: typeof ClustersClusterIdSettingsUsersRoute
+}
+
+const ClustersClusterIdSettingsRouteRouteChildren: ClustersClusterIdSettingsRouteRouteChildren =
+  {
+    ClustersClusterIdSettingsConfigRoute: ClustersClusterIdSettingsConfigRoute,
+    ClustersClusterIdSettingsIntegrationsRoute:
+      ClustersClusterIdSettingsIntegrationsRoute,
+    ClustersClusterIdSettingsProfileRoute:
+      ClustersClusterIdSettingsProfileRoute,
+    ClustersClusterIdSettingsUsersRoute: ClustersClusterIdSettingsUsersRoute,
+  }
+
+const ClustersClusterIdSettingsRouteRouteWithChildren =
+  ClustersClusterIdSettingsRouteRoute._addFileChildren(
+    ClustersClusterIdSettingsRouteRouteChildren,
+  )
+
+interface ClustersClusterIdRouteRouteChildren {
+  ClustersClusterIdSettingsRouteRoute: typeof ClustersClusterIdSettingsRouteRouteWithChildren
+  ClustersClusterIdConsoleRoute: typeof ClustersClusterIdConsoleRoute
+  ClustersClusterIdDashboardRoute: typeof ClustersClusterIdDashboardRoute
+  ClustersClusterIdLogsRoute: typeof ClustersClusterIdLogsRoute
+  ClustersClusterIdNotificationsRoute: typeof ClustersClusterIdNotificationsRoute
+  ClustersClusterIdResourcesRoute: typeof ClustersClusterIdResourcesRoute
+  ClustersClusterIdDeploymentsIdRoute: typeof ClustersClusterIdDeploymentsIdRoute
+  ClustersClusterIdServicesIdRoute: typeof ClustersClusterIdServicesIdRoute
+  ClustersClusterIdDeploymentsIndexRoute: typeof ClustersClusterIdDeploymentsIndexRoute
+  ClustersClusterIdServicesIndexRoute: typeof ClustersClusterIdServicesIndexRoute
+}
+
+const ClustersClusterIdRouteRouteChildren: ClustersClusterIdRouteRouteChildren =
+  {
+    ClustersClusterIdSettingsRouteRoute:
+      ClustersClusterIdSettingsRouteRouteWithChildren,
+    ClustersClusterIdConsoleRoute: ClustersClusterIdConsoleRoute,
+    ClustersClusterIdDashboardRoute: ClustersClusterIdDashboardRoute,
+    ClustersClusterIdLogsRoute: ClustersClusterIdLogsRoute,
+    ClustersClusterIdNotificationsRoute: ClustersClusterIdNotificationsRoute,
+    ClustersClusterIdResourcesRoute: ClustersClusterIdResourcesRoute,
+    ClustersClusterIdDeploymentsIdRoute: ClustersClusterIdDeploymentsIdRoute,
+    ClustersClusterIdServicesIdRoute: ClustersClusterIdServicesIdRoute,
+    ClustersClusterIdDeploymentsIndexRoute:
+      ClustersClusterIdDeploymentsIndexRoute,
+    ClustersClusterIdServicesIndexRoute: ClustersClusterIdServicesIndexRoute,
+  }
+
+const ClustersClusterIdRouteRouteWithChildren =
+  ClustersClusterIdRouteRoute._addFileChildren(
+    ClustersClusterIdRouteRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ConsoleRoute: ConsoleRoute,
-  DashboardRoute: DashboardRoute,
-  LogsRoute: LogsRoute,
-  NotificationsRoute: NotificationsRoute,
-  ResourcesRoute: ResourcesRoute,
-  DeploymentsIdRoute: DeploymentsIdRoute,
-  ServicesIdRoute: ServicesIdRoute,
-  SettingsConfigRoute: SettingsConfigRoute,
-  SettingsIntegrationsRoute: SettingsIntegrationsRoute,
-  SettingsProfileRoute: SettingsProfileRoute,
-  SettingsUsersRoute: SettingsUsersRoute,
-  DeploymentsIndexRoute: DeploymentsIndexRoute,
-  ServicesIndexRoute: ServicesIndexRoute,
-  SettingsIndexRoute: SettingsIndexRoute,
+  ClustersClusterIdRouteRoute: ClustersClusterIdRouteRouteWithChildren,
+  ClustersIndexRoute: ClustersIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

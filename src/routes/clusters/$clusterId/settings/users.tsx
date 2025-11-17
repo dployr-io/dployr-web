@@ -22,7 +22,7 @@ import { useClustersForm } from "@/hooks/use-clusters-form";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useConfirmation } from "@/hooks/use-confirmation";
 
-export const Route = createFileRoute("/settings/users")({
+export const Route = createFileRoute("/clusters/$clusterId/settings/users")({
   component: Profile,
 });
 
@@ -128,106 +128,106 @@ function Profile() {
                   <TableBody>
                     {isLoadingUsers
                       ? Array.from({ length: 3 }).map((_, idx) => (
-                        <TableRow key={`skeleton-${idx}`} className="h-16">
-                          <TableCell className="h-16 max-w-20 overflow-hidden align-middle font-medium">
-                            <Skeleton className="h-8 w-8 rounded-full" />
-                          </TableCell>
-                          <TableCell className="h-16 max-w-[200px] overflow-hidden align-middle font-medium">
-                            <Skeleton className="h-4 w-32" />
-                          </TableCell>
-                          <TableCell className="h-16 align-middle">
-                            <Skeleton className="h-4 w-40" />
-                          </TableCell>
-                          <TableCell className="h-16 max-w-[100px] align-middle">
-                            <Skeleton className="h-6 w-16 rounded-full" />
-                          </TableCell>
-                          <TableCell className="h-16 w-[200px] overflow-hidden text-right align-middle">
-                            <div className="flex justify-end gap-2">
-                              <Skeleton className="h-8 w-8 rounded" />
-                              <Skeleton className="h-8 w-8 rounded" />
-                              <Skeleton className="h-8 w-8 rounded" />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                      : paginatedUsers.map(user => {
-                        const displayName = user.name || "-";
-
-                        return (
-                          <TableRow key={user.id}>
-                            <TableCell>
-                              <div className="flex h-8 w-8 items-center justify-around rounded-full bg-muted-foreground">
-                                <Avatar className="h-6 w-6 overflow-hidden rounded-full">
-                                  <AvatarImage src={user.picture} alt={displayName} />
-                                  <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">{getInitials(displayName)}</AvatarFallback>
-                                </Avatar>
-                              </div>
+                          <TableRow key={`skeleton-${idx}`} className="h-16">
+                            <TableCell className="h-16 max-w-20 overflow-hidden align-middle font-medium">
+                              <Skeleton className="h-8 w-8 rounded-full" />
                             </TableCell>
-                            <TableCell className="font-medium">{displayName}</TableCell>
-                            <TableCell>
-                              <span className="text-sm">{user.email}</span>
+                            <TableCell className="h-16 max-w-[200px] overflow-hidden align-middle font-medium">
+                              <Skeleton className="h-4 w-32" />
                             </TableCell>
-                            <TableCell>
-                              <span
-                                className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold backdrop-blur-md border shadow-sm ${(() => {
-                                  switch (user.role) {
-                                    case "owner":
-                                      return "bg-blue-950/30 text-blue-950 border-blue-800/50 dark:bg-blue-900/35 dark:text-blue-100 dark:border-blue-700/60 shadow-blue-950/20";
-                                    case "admin":
-                                      return "bg-blue-700/25 text-blue-800 border-blue-600/40 dark:bg-blue-700/30 dark:text-blue-200 dark:border-blue-500/50 shadow-blue-700/15";
-                                    case "developer":
-                                      return "bg-blue-500/25 text-blue-600 border-blue-400/40 dark:bg-blue-500/30 dark:text-blue-200 dark:border-blue-400/50 shadow-blue-500/15";
-                                    case "viewer":
-                                      return "bg-blue-300/25 text-blue-500 border-blue-300/40 dark:bg-blue-400/30 dark:text-blue-200 dark:border-blue-300/50 shadow-blue-300/15";
-                                    default:
-                                      return "bg-blue-300/25 text-blue-500 border-blue-300/40 dark:bg-blue-400/30 dark:text-blue-200 dark:border-blue-300/50 shadow-blue-300/15";
-                                  }
-                                })()}`}
-                              >
-                                {user.role[0].toUpperCase() + user.role.slice(1)}
-                              </span>
+                            <TableCell className="h-16 align-middle">
+                              <Skeleton className="h-4 w-40" />
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="h-16 max-w-[100px] align-middle">
+                              <Skeleton className="h-6 w-16 rounded-full" />
+                            </TableCell>
+                            <TableCell className="h-16 w-[200px] overflow-hidden text-right align-middle">
                               <div className="flex justify-end gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button size="icon" variant="outline" onClick={() => handleViewActivityClick(user)} className="h-8 w-8 cursor-pointer" aria-label="View Activity">
-                                      <Activity className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>View Activity</TooltipContent>
-                                </Tooltip>
-                                {user.role !== "owner" && (
-                                  <>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button size="icon" variant="outline" onClick={() => handlePromoteClick(user)} className="h-8 w-8 cursor-pointer" aria-label="Promote User">
-                                          <Crown className="h-4 w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Promote User</TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          size="icon"
-                                          variant="destructive"
-                                          onClick={() => handleRemoveConfirm(user)}
-                                          className="h-8 w-8 hover:bg-red-500 cursor-pointer"
-                                          aria-label="Remove User"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Remove User</TooltipContent>
-                                    </Tooltip>
-                                  </>
-                                )}
+                                <Skeleton className="h-8 w-8 rounded" />
+                                <Skeleton className="h-8 w-8 rounded" />
+                                <Skeleton className="h-8 w-8 rounded" />
                               </div>
                             </TableCell>
                           </TableRow>
-                        );
-                      })}
+                        ))
+                      : paginatedUsers.map(user => {
+                          const displayName = user.name || "-";
+
+                          return (
+                            <TableRow key={user.id}>
+                              <TableCell>
+                                <div className="flex h-8 w-8 items-center justify-around rounded-full bg-muted-foreground">
+                                  <Avatar className="h-6 w-6 overflow-hidden rounded-full">
+                                    <AvatarImage src={user.picture} alt={displayName} />
+                                    <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">{getInitials(displayName)}</AvatarFallback>
+                                  </Avatar>
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-medium">{displayName}</TableCell>
+                              <TableCell>
+                                <span className="text-sm">{user.email}</span>
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold backdrop-blur-md border shadow-sm ${(() => {
+                                    switch (user.role) {
+                                      case "owner":
+                                        return "bg-blue-950/30 text-blue-950 border-blue-800/50 dark:bg-blue-900/35 dark:text-blue-100 dark:border-blue-700/60 shadow-blue-950/20";
+                                      case "admin":
+                                        return "bg-blue-700/25 text-blue-800 border-blue-600/40 dark:bg-blue-700/30 dark:text-blue-200 dark:border-blue-500/50 shadow-blue-700/15";
+                                      case "developer":
+                                        return "bg-blue-500/25 text-blue-600 border-blue-400/40 dark:bg-blue-500/30 dark:text-blue-200 dark:border-blue-400/50 shadow-blue-500/15";
+                                      case "viewer":
+                                        return "bg-blue-300/25 text-blue-500 border-blue-300/40 dark:bg-blue-400/30 dark:text-blue-200 dark:border-blue-300/50 shadow-blue-300/15";
+                                      default:
+                                        return "bg-blue-300/25 text-blue-500 border-blue-300/40 dark:bg-blue-400/30 dark:text-blue-200 dark:border-blue-300/50 shadow-blue-300/15";
+                                    }
+                                  })()}`}
+                                >
+                                  {user.role[0].toUpperCase() + user.role.slice(1)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button size="icon" variant="outline" onClick={() => handleViewActivityClick(user)} className="h-8 w-8 cursor-pointer" aria-label="View Activity">
+                                        <Activity className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>View Activity</TooltipContent>
+                                  </Tooltip>
+                                  {user.role !== "owner" && (
+                                    <>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button size="icon" variant="outline" onClick={() => handlePromoteClick(user)} className="h-8 w-8 cursor-pointer" aria-label="Promote User">
+                                            <Crown className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Promote User</TooltipContent>
+                                      </Tooltip>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            size="icon"
+                                            variant="destructive"
+                                            onClick={() => handleRemoveConfirm(user)}
+                                            className="h-8 w-8 hover:bg-red-500 cursor-pointer"
+                                            aria-label="Remove User"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Remove User</TooltipContent>
+                                      </Tooltip>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                   </TableBody>
                 </Table>
 
@@ -288,7 +288,7 @@ function Profile() {
                         </TableRow>
                       ))
                     ) : invitesReceived && invitesReceived.length > 0 ? (
-                      invitesReceived.map((invitations) => (
+                      invitesReceived.map(invitations => (
                         <TableRow key={invitations.clusterId}>
                           <TableCell className="font-medium">{invitations.clusterName}</TableCell>
                           <TableCell>
@@ -301,7 +301,13 @@ function Profile() {
                                 Accept
                               </Button>
 
-                              <Button size="sm" variant="destructive" onClick={() => handleDeclineInvite(invitations.clusterId)} className="h-8 px-3 hover:bg-red-500 cursor-pointer" aria-label="Decline invite">
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeclineInvite(invitations.clusterId)}
+                                className="h-8 px-3 hover:bg-red-500 cursor-pointer"
+                                aria-label="Decline invite"
+                              >
                                 <X className="h-4 w-4" />
                                 Decline
                               </Button>
@@ -414,8 +420,6 @@ function Profile() {
 
           {/* Activity Modal */}
           <ActivityModal open={usersUrlState.activityModal.open} onOpenChange={handleActivityModalClose} user={userToViewActivity} />
-
-          {/* Remove User Confirmation Dialog */}
 
           {/* Promote User Dialog */}
           <AlertDialog open={userToPromote !== null} onOpenChange={open => !open && setUserToPromote(null)}>

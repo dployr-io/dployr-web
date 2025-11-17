@@ -2,7 +2,7 @@ import { ExternalLink } from "lucide-react";
 
 interface ErrorMessageWithLinkProps {
     message: string;
-    helpLink: string;
+    helpLink?: string | undefined;
     className?: string;
     breakLine?: boolean;
 }

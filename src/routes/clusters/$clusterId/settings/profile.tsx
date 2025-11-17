@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { use2FA } from "@/hooks/use-2fa";
 import { useConfirmation } from "@/hooks/use-confirmation";
 
-export const Route = createFileRoute("/settings/profile")({
+export const Route = createFileRoute("/clusters/$clusterId/settings/profile")({
   component: System,
 });
 

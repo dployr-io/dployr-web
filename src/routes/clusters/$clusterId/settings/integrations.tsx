@@ -14,7 +14,7 @@ import { RemoteConnectDialog } from "@/components/remote-connect-dialog";
 import { DomainConnectDialog } from "@/components/domain-connect-dialog";
 import { EmailConnectDialog } from "@/components/email-connect-dialog";
 
-export const Route = createFileRoute("/settings/integrations")({
+export const Route = createFileRoute("/clusters/$clusterId/settings/integrations")({
   component: Integrations,
 });
 
@@ -32,11 +32,10 @@ function Integrations() {
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  
   const integrations = useMemo<IntegrationUI[]>(() => {
     return integrationIds.map(id => {
       const category = INTEGRATIONS_METADATA[id].category;
-      
+
       // Check if integration is connected by looking at the appropriate category
       let isConnected = false;
       if (apiIntegrations && apiIntegrations[category]) {
@@ -45,7 +44,7 @@ function Integrations() {
           isConnected = true;
         }
       }
-      
+
       return {
         id,
         ...INTEGRATIONS_METADATA[id],
@@ -62,9 +61,7 @@ function Integrations() {
     setDialogOpen(true);
   };
 
-  const selectedIntegration = selectedIntegrationId
-    ? integrations.find(i => i.id === selectedIntegrationId) || null
-    : null;
+  const selectedIntegration = selectedIntegrationId ? integrations.find(i => i.id === selectedIntegrationId) || null : null;
 
   const handleSettings = (id: string) => {
     // TODO: Implement settings modal/page
@@ -108,22 +105,9 @@ function Integrations() {
               />
             ))}
           </div>
-          <RemoteConnectDialog
-            integration={selectedIntegration}
-            integrations={apiIntegrations}
-            open={dialogOpen && selectedIntegration?.category === "remote"}
-            onOpenChange={setDialogOpen}
-          />
-          <DomainConnectDialog
-            integration={selectedIntegration}
-            open={dialogOpen && selectedIntegration?.category === "domain"}
-            onOpenChange={setDialogOpen}
-          />
-          <EmailConnectDialog
-            integration={selectedIntegration}
-            open={dialogOpen && selectedIntegration?.category === "email"}
-            onOpenChange={setDialogOpen}
-          />
+          <RemoteConnectDialog integration={selectedIntegration} integrations={apiIntegrations} open={dialogOpen && selectedIntegration?.category === "remote"} onOpenChange={setDialogOpen} />
+          <DomainConnectDialog integration={selectedIntegration} open={dialogOpen && selectedIntegration?.category === "domain"} onOpenChange={setDialogOpen} />
+          <EmailConnectDialog integration={selectedIntegration} open={dialogOpen && selectedIntegration?.category === "email"} onOpenChange={setDialogOpen} />
         </SettingsLayout>
       </AppLayout>
     </ProtectedRoute>

@@ -1,13 +1,13 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
-import type { ApiSuccessResponse, Cluster, User } from "@/types";
+import type { ApiSuccessResponse, User } from "@/types";
 import axios from "axios";
 import { useUrlState } from "@/hooks/use-url-state";
 
 interface AuthContextType {
   user: User | null;
-  cluster: Cluster | null;
+  clusters: { id: string; name: string; owner: string }[];
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (data: { email: string }) => Promise<void>;
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // session data
   const user = (sessionData as any)?.user ?? null;
-  const cluster = (sessionData as any)?.cluster ?? null;
+  const clusters: { id: string; name: string; owner: string }[] = (sessionData as any)?.clusters ?? null;
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string }) => {
@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthContextType = {
     user,
-    cluster,
+    clusters: clusters,
     isLoading: isLoading || loginMutation.isPending || otpMutation.isPending,
     isAuthenticated: !!user,
     login: loginMutation.mutateAsync,

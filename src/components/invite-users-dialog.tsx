@@ -14,7 +14,7 @@ import { ErrorMessageWithLink } from "@/components/error-message-with-link";
 
 interface ErrorMessage {
     message: string;
-    helpLink: string;
+    helpLink?: string | undefined;
 }
 
 interface Props {
@@ -145,7 +145,7 @@ export default function InviteUsersDialog({
 
                         {error.message && (
                             <div className="text-sm text-destructive">
-                                <ErrorMessageWithLink message={error.message} helpLink={error.helpLink} breakLine={true} />
+                                <ErrorMessageWithLink message={error.message} helpLink={error?.helpLink} breakLine={true} />
                             </div>
                         )}
 

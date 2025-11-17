@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, Deployment } from "@/types";
+import type { BreadcrumbItem, Service } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
 import { toJson, toYaml } from "@/lib/utils";
@@ -9,46 +9,50 @@ import { useServiceForm } from "@/hooks/use-service-form";
 import { useLogs } from "@/hooks/use-logs";
 import { LogsWindow } from "@/components/logs-window";
 import { BlueprintSection } from "@/components/blueprint";
-import { useDeployments } from "@/hooks/use-deployments";
 import { ArrowUpRightIcon, ChevronLeft, FileX2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-export const Route = createFileRoute("/deployments/$id")({
-  component: ViewDeployment,
+import { useServices } from "@/hooks/use-services";
+import { ConfigTable } from "@/components/config-table";
+import { useEnv } from "@/hooks/use-env";
+export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
+  component: ViewService,
 });
 
-const ViewProjectBreadcrumbs = (deployment?: Deployment) => {
+const ViewProjectBreadcrumbs = (service?: Service) => {
   const breadcrumbs: BreadcrumbItem[] = [
     {
-      title: "Deployments",
-      href: "/deployments",
+      title: "Services",
+      href: "/services",
     },
     {
-      title: deployment?.config?.name || "",
-      href: `/deployments/${deployment?.id || ""}`,
+      title: service?.name || "",
+      href: `/services/${service?.id || ""}`,
     },
   ];
 
   return breadcrumbs;
 };
 
-function ViewDeployment() {
-  const { selectedDeployment: deployment, isLoading } = useDeployments();
-  const config = deployment?.config;
-  const breadcrumbs = ViewProjectBreadcrumbs(deployment!);
-  const { logs, filteredLogs, selectedLevel, searchQuery, logsEndRef, setSelectedLevel, setSearchQuery } = useLogs(deployment?.id, deployment);
+function ViewService() {
+  const { selectedService: service, isLoading } = useServices();
+  const blueprint = service?.blueprint;
+  const breadcrumbs = ViewProjectBreadcrumbs(service!);
+  const { logs, filteredLogs, selectedLevel, searchQuery, logsEndRef, setSelectedLevel, setSearchQuery } = useLogs(service?.name, service);
   const { blueprintFormat, setBlueprintFormat } = useServiceForm();
 
-  const yamlConfig = config ? toYaml(config) : "";
-  const jsonConfig = config ? toJson(config) : "";
+  const yamlConfig = blueprint ? toYaml(blueprint) : "";
+  const jsonConfig = blueprint ? toJson(blueprint) : "";
   const handleBlueprintCopy = async () => {
     try {
-      if (!deployment || !config) return;
+      if (!service || !blueprint) return;
       await navigator.clipboard.writeText(blueprintFormat === "yaml" ? yamlConfig : jsonConfig);
     } catch {
       return;
     }
   };
+
+  const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useEnv();
 
   if (isLoading) {
     return (
@@ -59,7 +63,7 @@ function ViewDeployment() {
               <EmptyMedia variant="icon">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </EmptyMedia>
-              <EmptyTitle>Retrieving Deployment...</EmptyTitle>
+              <EmptyTitle>Retrieving Service...</EmptyTitle>
               <EmptyDescription>This shouldn&apos;t take too long! Try refreshing your browser if you see this.</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
@@ -80,7 +84,7 @@ function ViewDeployment() {
     );
   }
 
-  if (!deployment) {
+  if (!service) {
     return (
       <ProtectedRoute>
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -89,8 +93,8 @@ function ViewDeployment() {
               <EmptyMedia variant="icon">
                 <FileX2 />
               </EmptyMedia>
-              <EmptyTitle>No Deployment Found!</EmptyTitle>
-              <EmptyDescription>The requested deployment was not found. Please verify the ID and try again.</EmptyDescription>
+              <EmptyTitle>No Service Found!</EmptyTitle>
+              <EmptyDescription>The requested service was not found. Please verify the ID and try again.</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
               <div className="flex justify-center gap-2">
@@ -121,6 +125,9 @@ function ViewDeployment() {
                   <TabsList className="self-start">
                     <TabsTrigger value="logs">Logs</TabsTrigger>
                     <TabsTrigger value="blueprint">Blueprint</TabsTrigger>
+                    <TabsTrigger value="env">Environment</TabsTrigger>
+                    <TabsTrigger value="metrics">Metrics</TabsTrigger>
+                    <TabsTrigger value="settings">Settings</TabsTrigger>
                   </TabsList>
                   <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
                     <ChevronLeft /> Back
@@ -138,9 +145,9 @@ function ViewDeployment() {
                   />
                 </TabsContent>
                 <TabsContent value="blueprint">
-                  {config?.name ? (
+                  {blueprint?.name ? (
                     <BlueprintSection
-                      name={config.name}
+                      name={blueprint.name}
                       blueprintFormat={blueprintFormat}
                       yamlConfig={yamlConfig}
                       jsonConfig={jsonConfig}
@@ -153,6 +160,24 @@ function ViewDeployment() {
                       <p className="text-muted-foreground">Loading blueprint...</p>
                     </div>
                   )}
+                </TabsContent>
+                <TabsContent value="env">
+                  <ConfigTable
+                    config={config}
+                    editingKey={editingKey}
+                    editValue={editValue}
+                    setEditValue={setEditValue}
+                    handleEdit={handleEdit}
+                    handleSave={handleSave}
+                    handleKeyboardPress={handleKeyboardPress}
+                    handleCancel={handleCancel}
+                  />
+                </TabsContent>
+                <TabsContent value="metrics">
+                  <h1>Metrics</h1>
+                </TabsContent>
+                <TabsContent value="settings">
+                  <h1>Settings</h1>
                 </TabsContent>
               </Tabs>
             </div>
