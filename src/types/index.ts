@@ -146,6 +146,26 @@ export interface ClusterEvent {
   timezoneOffset: string;
 }
 
+export type InstanceStatus = "running" | "stopped";
+
+export interface Instance {
+  id: string;
+  address: string;
+  publicKey: string;
+  tag: string;
+  resources?: {
+    cpu: number; // usage percentage 0-100
+    memory: number; // usage percentage 0-100
+    disk: number; // usage percentage 0-100
+  };
+  cpuCount?: number;
+  memorySizeMb?: number;
+  status: InstanceStatus;
+  metadata?: Record<string, string>;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface EventsResponse {
   items: ClusterEvent[];
   pagination: PaginationMeta;

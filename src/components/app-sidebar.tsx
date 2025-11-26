@@ -3,7 +3,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { type NavItem } from "@/types";
-import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, CircleGauge, Factory, LayoutGrid, Logs, MessageCircleQuestion, Settings2, SquareChevronRight } from "lucide-react";
+import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, CircleGauge, Factory, LayoutGrid, Logs, MessageCircleQuestion, Server, Settings2, SquareChevronRight } from "lucide-react";
 import AppLogo from "./app-logo";
 import { useClusterContext } from "@/hooks/use-cluster-context";
 import { useAuth } from "@/hooks/use-auth";
@@ -61,9 +61,14 @@ export function AppSidebar() {
   ];
 
   const secondaryNavItems: NavItem[] = [
+     {
+      title: "Instances",
+      href: clusterId ? "/clusters/$clusterId/instances" : "/instances",
+      icon: Server,
+    },
     {
-      title: "Resources",
-      href: clusterId ? "/clusters/$clusterId/resources" : "/resources",
+      title: "Graph",
+      href: clusterId ? "/clusters/$clusterId/graph" : "/graph",
       icon: CircleGauge,
     },
     {

@@ -14,7 +14,7 @@ export function useClusterUsers(setPendingAction: ReturnType<typeof useConfirmat
   const [{ open: activityOpen, userId: activityUserId, search, category, sortBy, sortOrder }, setActivityModal] = useUsersActivityModal();
 
   const { useAppError, useInviteUserDialog } = useUrlState();
-  const [{ appError }, setError] = useAppError();
+  const [, setError] = useAppError();
 
   // Local state for non-URL state
   const [userToRemove, setUserToRemove] = useState<User | null>(null);

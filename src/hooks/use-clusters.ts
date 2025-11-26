@@ -9,7 +9,7 @@ export function useClusters() {
   const { clusters } = useAuth();
   const queryClient = useQueryClient();
   const { useAppError } = useUrlState();
-  const [{ appError }, setError] = useAppError();
+  const [, setError] = useAppError();
   const [usersToAdd, setUsersToAdd] = useState<string[]>([]);
 
   // Get cluster ID from URL path
@@ -157,8 +157,6 @@ export function useClusters() {
       const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
 
       const helpLink = error?.response?.data?.error.helpLink;
-
-      console.log(helpLink);
 
       setError({
         appError: {

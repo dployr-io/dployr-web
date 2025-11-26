@@ -133,6 +133,12 @@ export function useUrlState() {
         });
     }
 
+    function useInstancesDialog() {
+        return useQueryStates({
+            new: parseAsBoolean.withDefault(false),
+        });
+    }
+
     /**
      * URL state management for auth errors
      * Error captured during oAuth redirects
@@ -222,6 +228,7 @@ export function useUrlState() {
         useUsersUrlState,
         useUsersActivityModal,
         useInviteUserDialog,
+        useInstancesDialog,
         useAuthError,
         useAppError,
         useAppNotification,
