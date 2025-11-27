@@ -16,7 +16,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUrlState } from "@/hooks/use-url-state";
-export const Route = createFileRoute("/clusters/$clusterId/instances")({
+import { useClusterId } from "@/hooks/use-cluster-id";
+
+export const Route = createFileRoute("/clusters/$clusterId/instances/")({
   component: Instances,
 });
 
@@ -27,34 +29,14 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-function getStatusChipClasses(status: InstanceStatus) {
-  switch (status) {
-    case "running":
-      return "bg-green-500/25 text-green-600 border-green-400/40 dark:bg-green-500/30 dark:text-green-200 dark:border-green-400/50 shadow-green-500/15";
-    default:
-      return "bg-red-500/25 text-red-600 border-red-400/40 dark:bg-red-500/30 dark:text-red-200 dark:border-red-400/50 shadow-red-500/15";
-  }
-}
-
-function UsageBar({ value }: { value: number | null | undefined }) {
-  const numericValue = typeof value === "number" && !Number.isNaN(value) ? value : 0;
-  const clamped = Math.max(0, Math.min(100, numericValue));
-  return (
-    <div className="h-1.5 w-full rounded-full bg-neutral-200/70 dark:bg-neutral-800/80 overflow-hidden">
-      <div
-        className="h-full rounded-full bg-gradient-to-r from-blue-500/80 via-blue-400/90 to-blue-300/90 shadow-blue-900/30"
-        style={{ width: `${clamped}%` }}
-      />
-    </div>
-  );
-}
-
 function Instances() {
   const { paginatedInstances, instances, isLoading, currentPage, totalPages, startIndex, endIndex, goToPage, goToPreviousPage, goToNextPage, addInstance } = useInstances();
+  const clusterId = useClusterId();
+  const navigate = Route.useNavigate();
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { useInstancesDialog } = useUrlState();
   const [{ new: isNewInstanceOpen }, setInstancesDialog] = useInstancesDialog();
-  const { address, tag, publicKey, validationError, setAddress, setTag, setPublicKey, getFormData } = useInstancesForm();
+  const { address, tag, validationError, setAddress, setTag, getFormData } = useInstancesForm();
 
   async function handleCreateInstance() {
     const data = getFormData();
@@ -115,21 +97,6 @@ function Instances() {
                       onChange={e => setTag(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-4">
-                    <Label htmlFor="instance-public-key">Public key</Label>
-                    <textarea
-                      id="instance-public-key"
-                      placeholder="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"
-                      value={publicKey}
-                      onChange={e => setPublicKey(e.target.value)}
-                      maxLength={255}
-                      rows={3}
-                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    />
-                  </div>
-                  {validationError && (
-                    <p className="text-sm text-red-500 pt-2">{validationError}</p>
-                  )}
                 </div>
                 <DialogFooter>
                   <Button type="button" onClick={handleCreateInstance}>
@@ -143,10 +110,8 @@ function Instances() {
           <div className="flex w-full flex-1 flex-col gap-4 px-9 pb-6">
             <Table className="overflow-hidden rounded-t-lg">
               <TableHeader className="gap-2 rounded-t-xl bg-neutral-50 p-2 dark:bg-neutral-900">
-                <TableRow className="h-14">
+                <TableRow className="h-12">
                   <TableHead className="w-[240px]">Instance</TableHead>
-                  <TableHead className="w-[130px]">Status</TableHead>
-                  <TableHead className="w-[320px]">Resources</TableHead>
                   <TableHead className="w-[220px]">Address</TableHead>
                   <TableHead className="w-[140px]">Created</TableHead>
                   <TableHead className="w-[80px] text-right"></TableHead>
@@ -158,12 +123,6 @@ function Instances() {
                       <TableRow key={`skeleton-${idx}`} className="h-16">
                         <TableCell className="h-16 max-w-[240px] align-middle font-medium">
                           <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell className="h-16 max-w-[130px] align-middle">
-                          <Skeleton className="h-6 w-20 rounded-full" />
-                        </TableCell>
-                        <TableCell className="h-16 max-w-[320px] align-middle">
-                          <Skeleton className="h-4 w-48" />
                         </TableCell>
                         <TableCell className="h-16 max-w-[220px] align-middle">
                           <Skeleton className="h-4 w-40" />
@@ -177,62 +136,22 @@ function Instances() {
                       </TableRow>
                     ))
                   : paginatedInstances.map((instance: Instance) => {
-                      const statusLabel = instance.status
-                        ? instance.status.charAt(0).toUpperCase() + instance.status.slice(1)
-                        : "Unknown";
-
-                      const cpuCount = instance.cpuCount ?? 0;
-                      const memorySizeMb = instance.memorySizeMb ?? 0;
-
-                      const cpuUsage = instance.resources?.cpu;
-                      const memoryUsage = instance.resources?.memory;
-                      const diskUsage = instance.resources?.disk;
-
                       return (
-                      <TableRow key={instance.id} className="h-16">
+                      <TableRow
+                        key={instance.id}
+                        className="h-16 cursor-pointer"
+                        onClick={() => {
+                          if (!clusterId) return;
+                          navigate({
+                            to: "/clusters/$clusterId/instances/$id",
+                            params: { clusterId, id: instance.id },
+                          });
+                        }}
+                      >
                         <TableCell className="h-16 max-w-[140px] align-middle font-medium">
                           <div className="flex flex-col gap-0.5">
                             <span className="truncate text-sm font-semibold">{instance.tag}</span>
                             <span className="truncate text-[11px] text-muted-foreground">{timeZone}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="h-16 max-w-[130px] align-middle">
-                          <span
-                            className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold backdrop-blur-md border shadow-sm ${getStatusChipClasses(
-                              instance.status ?? "stopped",
-                            )}`}
-                          >
-                            {statusLabel}
-                          </span>
-                        </TableCell>
-                        <TableCell className="h-16 max-w-[260px] align-middle">
-                          <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                            <span className="text-[11px] text-foreground">
-                              {cpuCount} CPU{cpuCount !== 1 ? "s" : ""} · {memorySizeMb} MB
-                            </span>
-                            <div className="flex items-center gap-3">
-                              <div className="w-20">
-                                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                  <span>CPU</span>
-                                  <span>{cpuUsage ?? 0}%</span>
-                                </div>
-                                <UsageBar value={cpuUsage} />
-                              </div>
-                              <div className="w-20">
-                                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                  <span>Mem</span>
-                                  <span>{memoryUsage ?? 0}%</span>
-                                </div>
-                                <UsageBar value={memoryUsage} />
-                              </div>
-                              <div className="w-20">
-                                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                                  <span>Disk</span>
-                                  <span>{diskUsage ?? 0}%</span>
-                                </div>
-                                <UsageBar value={diskUsage} />
-                              </div>
-                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="h-16 max-w-[80px] align-middle">
@@ -255,7 +174,15 @@ function Instances() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => {}} className="cursor-pointer">
+                              <DropdownMenuItem onClick={e => {
+                                  e.stopPropagation();
+                                  if (!clusterId) return;
+                                  navigate({
+                                    to: "/clusters/$clusterId/instances/$id",
+                                    params: { clusterId, id: instance.id },
+                                    search: { tab: "settings" },
+                                  });
+                                }} className="cursor-pointer">
                                 Settings
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {}} className="cursor-pointer">

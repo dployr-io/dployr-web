@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Instance, InstanceStatus, Log, LogLevel } from "@/types";
+import type { ApiSuccessResponse, Instance, InstanceStatus, Log, LogLevel, PaginatedData, PaginationMeta } from "@/types";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUrlState } from "@/hooks/use-url-state";
@@ -14,57 +14,86 @@ export function useInstances() {
   const itemsPerPage = 8;
   const clusterId = useClusterId();
 
-  const { data, isLoading: isLoadingInstances } = useQuery<Instance[]>({
-    queryKey: ["instances", clusterId],
-    queryFn: async (): Promise<Instance[]> => {
-      if (!clusterId) return [];
+  const { data, isLoading: isLoadingInstances } = useQuery<PaginatedData<Instance>>({
+    queryKey: ["instances", clusterId, currentPage, itemsPerPage],
+    queryFn: async (): Promise<PaginatedData<Instance>> => {
+      if (!clusterId) {
+        return {
+          items: [],
+          pagination: {
+            page: currentPage,
+            pageSize: itemsPerPage,
+            totalItems: 0,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          } satisfies PaginationMeta,
+        };
+      }
 
       try {
-        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/instances`, {
-          params: { clusterId },
+        const response = await axios.get<ApiSuccessResponse<PaginatedData<any>>>(`${import.meta.env.VITE_BASE_URL}/v1/instances`, {
+          params: { clusterId, page: currentPage, pageSize: itemsPerPage },
           withCredentials: true,
         });
 
-        const data = response?.data?.data;
-        return Array.isArray(data)
-          ? (data as any[]).map(item => ({
-              id: item.bootstrapId,
-              clusterId: item.clusterId,
-              instanceId: item.instanceId ?? null,
+        const payload = response?.data?.data;
+        const items = Array.isArray(payload?.items)
+          ? payload!.items.map(item => ({
+              id: item.id ?? item.bootstrapId,
               address: item.address,
+              publicKey: item.metadata?.clientCert?.pem ?? "",
               tag: item.tag,
-              publicKey: item.publicKey ?? "",
-              status: (item.status ?? "stopped") as InstanceStatus,
+              resources: item.resources ?? {
+                cpu: 0,
+                memory: 0,
+                disk: 0,
+              },
               cpuCount: item.cpuCount ?? 0,
               memorySizeMb: item.memorySizeMb ?? 0,
-              resources: {
-                cpu: item.resources?.cpu ?? 0,
-                memory: item.resources?.memory ?? 0,
-                disk: item.resources?.disk ?? 0,
-              },
+              status: (item.status ?? "stopped") as InstanceStatus,
+              metadata: item.metadata ?? {},
               createdAt: item.createdAt,
               updatedAt: item.updatedAt,
-            }))
+            })) as Instance[]
           : [];
+
+        const pagination: PaginationMeta = payload?.pagination ?? {
+          page: currentPage,
+          pageSize: itemsPerPage,
+          totalItems: items.length,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        };
+
+        return { items, pagination };
       } catch (error) {
         console.error((error as Error).message || "An unknown error occurred while retrieving instances");
-        return [];
+        return {
+          items: [],
+          pagination: {
+            page: currentPage,
+            pageSize: itemsPerPage,
+            totalItems: 0,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          } satisfies PaginationMeta,
+        };
       }
     },
     enabled: !!clusterId,
     staleTime: 5 * 60 * 1000,
   });
 
-
-  const instances: Instance[] = data ?? [];
-
-
-  const totalPages = Math.ceil(instances.length / itemsPerPage) || 1;
-  const safePage = Math.min(Math.max(currentPage, 1), totalPages);
+  const instances: Instance[] = data?.items ?? [];
+  const totalPages = data?.pagination?.totalPages || 1;
+  const safePage = data?.pagination?.page || currentPage;
   const startIndex = (safePage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  const paginatedInstances = instances.slice(startIndex, endIndex);
+  const paginatedInstances = instances;
 
   const goToPage = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
@@ -94,6 +123,65 @@ export function useInstances() {
     onError: (error: any) => {
       const errorData = error?.response?.data?.error;
       const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while adding instance.";
+
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
+    },
+  });
+
+  const rotateInstanceToken = useMutation({
+    mutationFn: async ({ id, token }: { id: string; token: string }): Promise<void> => {
+      await axios.post(
+        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}/tokens/rotate`,
+        { token },
+        {
+          withCredentials: true,
+        },
+      );
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage =
+        typeof errorData === "string"
+          ? errorData
+          : errorData?.message || error?.message || "An error occurred while rotating bootstrap token.";
+
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
+    },
+  });
+
+  const updateInstance = useMutation({
+    mutationFn: async ({ id, address, tag, publicKey }: { id: string; address: string; tag: string; publicKey: string }): Promise<void> => {
+      await axios.patch(
+        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}`,
+        { clusterId, address, tag, publicKey },
+        {
+          withCredentials: true,
+        },
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["instances", clusterId] });
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage =
+        typeof errorData === "string"
+          ? errorData
+          : errorData?.message || error?.message || "An error occurred while updating instance.";
 
       const helpLink = error?.response?.data?.error.helpLink;
 
@@ -146,6 +234,8 @@ export function useInstances() {
     endIndex,
     isLoading: isLoadingInstances,
     addInstance,
+    updateInstance,
+    rotateInstanceToken,
     goToPage,
     goToNextPage,
     goToPreviousPage,

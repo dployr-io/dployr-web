@@ -1,17 +1,38 @@
 import { useQuery } from "@tanstack/react-query";
 import { useUrlState } from "@/hooks/use-url-state";
 import axios from "axios";
-import type { ApiSuccessResponse, ClusterEvent, EventsResponse } from "@/types";
+import type { ApiSuccessResponse, EventsResponse, PaginationMeta } from "@/types";
 
-export function useEvents(clusterId?: string, page = 1, pageSize = 20) {
+export function useEvents(clusterId?: string, page = 1, pageSize?: number) {
   const { useAppError } = useUrlState();
   const [{}, setError] = useAppError();
 
-  const { data: events, isLoading } = useQuery<ClusterEvent[]>({
-    queryKey: ["runtime-events", clusterId, page, pageSize],
+  const estimatedRowHeight = 64; // px, matches h-16 rows
+  const viewportHeight =
+    typeof globalThis !== "undefined" && typeof globalThis.innerHeight === "number"
+      ? globalThis.innerHeight
+      : 800;
+  const reservedHeight = 320; // header + filters + paddings
+  const availableHeight = Math.max(0, viewportHeight - reservedHeight);
+  const effectivePageSize = pageSize ?? Math.max(6, Math.floor(availableHeight / estimatedRowHeight));
+
+  const { data, isLoading } = useQuery<EventsResponse>({
+    queryKey: ["runtime-events", clusterId, page, effectivePageSize],
     queryFn: async () => {
       try {
-        if (!clusterId) return [];
+        if (!clusterId) {
+          return {
+            items: [],
+            pagination: {
+              page,
+              pageSize: effectivePageSize,
+              totalItems: 0,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            } satisfies PaginationMeta,
+          };
+        }
 
         const response = await axios.get<ApiSuccessResponse<EventsResponse>>(
           `${import.meta.env.VITE_BASE_URL}/v1/runtime/events`,
@@ -20,13 +41,27 @@ export function useEvents(clusterId?: string, page = 1, pageSize = 20) {
             params: {
               clusterId,
               page,
-              pageSize,
+              pageSize: effectivePageSize,
             },
           }
         );
 
-        const data = response?.data?.data?.items;
-        return Array.isArray(data) ? data : [];
+        const payload = response?.data?.data;
+        if (!payload) {
+          return {
+            items: [],
+            pagination: {
+              page,
+              pageSize: effectivePageSize,
+              totalItems: 0,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            } satisfies PaginationMeta,
+          };
+        }
+
+        return payload;
       } catch (error: any) {
         const errorData = error?.response?.data?.error;
         const errorMessage =
@@ -42,7 +77,17 @@ export function useEvents(clusterId?: string, page = 1, pageSize = 20) {
           },
         });
 
-        return [];
+        return {
+          items: [],
+          pagination: {
+            page,
+            pageSize: effectivePageSize,
+            totalItems: 0,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          } satisfies PaginationMeta,
+        };
       }
     },
     staleTime: 5 * 60 * 1000,
@@ -80,7 +125,8 @@ export function useEvents(clusterId?: string, page = 1, pageSize = 20) {
   }
 
   return {
-    events,
+    events: data?.items ?? [],
+    pagination: data?.pagination,
     isLoading,
     formatTimestamp,
   };

@@ -19,15 +19,17 @@ export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
 });
 
-const ViewProjectBreadcrumbs = (service?: Service) => {
+const ViewProjectBreadcrumbs = (service: Service | undefined, clusterId?: string) => {
+  const base = clusterId ? `/clusters/${clusterId}/services` : "/services";
+
   const breadcrumbs: BreadcrumbItem[] = [
     {
       title: "Services",
-      href: "/services",
+      href: base,
     },
     {
       title: service?.name || "",
-      href: `/services/${service?.id || ""}`,
+      href: service?.id ? `${base}/${service.id}` : base,
     },
   ];
 
@@ -37,7 +39,8 @@ const ViewProjectBreadcrumbs = (service?: Service) => {
 function ViewService() {
   const { selectedService: service, isLoading } = useServices();
   const blueprint = service?.blueprint;
-  const breadcrumbs = ViewProjectBreadcrumbs(service!);
+  const { clusterId } = Route.useParams();
+  const breadcrumbs = ViewProjectBreadcrumbs(service!, clusterId);
   const { logs, filteredLogs, selectedLevel, searchQuery, logsEndRef, setSelectedLevel, setSearchQuery } = useLogs(service?.name, service);
   const { blueprintFormat, setBlueprintFormat } = useServiceForm();
 

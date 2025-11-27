@@ -3,8 +3,7 @@ import { z } from "zod";
 
 const instanceFormSchema = z.object({
   address: z.string().min(10, "Address with a minimum of 10 characters is required").max(16, "Address must be a maximum of 16 characters"),
-  tag: z.string().min(3, "Tag with a minimum of 3 characters is required").max(15, "Tag must be a maximum of 15 characters"),
-  publicKey: z.string().min(1, "Public key is required").max(255, "Public key must be a maximum of 255 characters"),
+  tag: z.string().min(3, "Tag with a minimum of 3 characters is required").max(15, "Tag must be a maximum of 15 characters")
 });
 
 export function useInstancesForm() {
@@ -21,7 +20,6 @@ export function useInstancesForm() {
       setError(
         fieldErrors.address?.[0] ||
           fieldErrors.tag?.[0] ||
-          fieldErrors.publicKey?.[0] ||
           "Validation failed",
       );
       return false;

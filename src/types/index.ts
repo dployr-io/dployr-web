@@ -99,6 +99,57 @@ export type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 export type UserRole = "owner" | "admin" | "developer" | "viewer";
 
+export type InstanceStatus = "ready" | "starting" | "stopped" | "error" | string;
+
+export interface InstanceStreamStatus {
+  uptime: number;
+  load_avg: [number, number, number];
+  cpu: {
+    user: number;
+    system: number;
+  };
+  mem: {
+    total: number;
+    used: number;
+    free: number;
+  };
+  disk: {
+    total: number;
+    used: number;
+    free: number;
+  };
+  debug: {
+    auth: {
+      bootstrap_token: string;
+    };
+  };
+}
+
+export interface InstanceStreamUpdate {
+  schema: string;
+  seq: number;
+  epoch: string;
+  full: boolean;
+  instance_id: string;
+  build_info: {
+    version: string;
+    commit: string;
+    date: string;
+  };
+  platform: {
+    os: string;
+    arch: string;
+    go: string;
+  };
+  status: InstanceStreamStatus;
+}
+
+export interface InstanceStream {
+  kind: string;
+  timestamp: number;
+  update: InstanceStreamUpdate;
+}
+
 export interface OtpVerifyRequest {
   email: string;
   otp: string;
@@ -146,8 +197,6 @@ export interface ClusterEvent {
   timezoneOffset: string;
 }
 
-export type InstanceStatus = "running" | "stopped";
-
 export interface Instance {
   id: string;
   address: string;
@@ -158,6 +207,7 @@ export interface Instance {
     memory: number; // usage percentage 0-100
     disk: number; // usage percentage 0-100
   };
+  bootstrapToken: string;
   cpuCount?: number;
   memorySizeMb?: number;
   status: InstanceStatus;

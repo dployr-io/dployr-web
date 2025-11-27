@@ -139,6 +139,17 @@ export function useUrlState() {
         });
     }
 
+    function useInstanceTabsState() {
+        return useQueryStates({
+            tab: parseAsStringLiteral([
+                "overview",
+                "system",
+                "settings",
+                "advanced",
+            ]).withDefault("overview"),
+        });
+    }
+
     /**
      * URL state management for auth errors
      * Error captured during oAuth redirects
@@ -229,6 +240,7 @@ export function useUrlState() {
         useUsersActivityModal,
         useInviteUserDialog,
         useInstancesDialog,
+        useInstanceTabsState,
         useAuthError,
         useAppError,
         useAppNotification,

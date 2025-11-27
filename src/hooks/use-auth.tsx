@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { name: string; picture: string }) => {
       const res = await axios.patch(
-        `${import.meta.env.VITE_BASE_URL}/v1/auth/me`,
+        `${import.meta.env.VITE_BASE_URL}/v1/users/me`,
         {
           name: data.name,
           picture: data.picture,
