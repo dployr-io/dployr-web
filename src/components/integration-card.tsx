@@ -16,14 +16,14 @@ interface Props {
 }
 
 export function IntegrationCard({ integration, isConnected, onConnect, twoFactor }: Props) {
-
+	const Icon = integration.icon;
   return (
     <Card className={cn("transition-all hover:shadow-md", isConnected && "border-primary/50 border-2")}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className={cn("rounded-lg p-2", isConnected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-              <img src={integration.icon} alt={integration.name} className="h-5 w-5" />
+              <Icon className="h-5 w-5" />
             </div>
             <div>
               <CardTitle className="text-base">{integration.name}</CardTitle>

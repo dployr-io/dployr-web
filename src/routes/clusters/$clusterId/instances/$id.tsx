@@ -3,12 +3,11 @@ import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronLeft, Copy, Edit2, FileX2, Loader2 } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, Copy, FileX2, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/metric-card";
 import { StatusBadge } from "@/components/status-badge";
-import { Input } from "@/components/ui/input";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +17,6 @@ import { getRolePriority } from "@/lib/utils";
 import { useInstances } from "@/hooks/use-instances";
 import { FormattedFile } from "@/components/formatted-file";
 import { useInstancesForm } from "@/hooks/use-instances-form";
-import { useSettings } from "@/hooks/use-settings";
 import { useUrlState } from "@/hooks/use-url-state";
 import { use2FA } from "@/hooks/use-2fa";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
@@ -48,7 +46,7 @@ function ViewInstance() {
   const { id: instanceId, clusterId } = Route.useParams();
   const { useInstanceTabsState } = useUrlState();
   const [{ tab }, setTab] = useInstanceTabsState();
-  const { instances, updateInstance, rotateInstanceToken } = useInstances();
+  const { instances, rotateInstanceToken } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
   const { status, isConnected, error, debugEvents } = useInstanceStatus(instanceId);
   const breadcrumbs = viewInstanceBreadcrumbs(clusterId, instanceId, instance?.tag);
@@ -56,8 +54,7 @@ function ViewInstance() {
   const { users: clusterUsers } = useClusters();
   const myRole = clusterUsers?.find(u => u.id === user?.id)?.role;
   const canViewAdvanced = myRole ? getRolePriority(myRole) >= 2 : false;
-  const { editMode, setEditMode } = useSettings();
-  const { address, tag, publicKey, validationError, setAddress, setTag, setPublicKey, getFormData } = useInstancesForm();
+  const { address, tag, publicKey, setAddress, setTag, setPublicKey } = useInstancesForm();
   const twoFactor = use2FA({ enabled: true });
   const [bootstrapToken, setBootstrapToken] = useState<string | null>(null);
   const [rotateOpen, setRotateOpen] = useState(false);
@@ -75,10 +72,8 @@ function ViewInstance() {
     }
   };
 
-  // Keep URL tab state in a safe literal type
   const currentTab = (tab || "overview") as "overview" | "system" | "settings" | "advanced";
 
-  // Sync bootstrap token from live status stream into local state (for display only)
   useEffect(() => {
     const token = (status?.update?.status as any)?.debug?.auth?.bootstrap_token as string | undefined;
     if (token && !bootstrapToken) {
@@ -86,7 +81,6 @@ function ViewInstance() {
     }
   }, [status, bootstrapToken]);
 
-  // Initialize form fields from instance once, without setting state during render
   useEffect(() => {
     if (!instance) return;
     if (!address) {
@@ -172,26 +166,6 @@ function ViewInstance() {
   })();
   const system = metrics?.debug?.system as any;
 
-  async function handleUpdateInstance(e: React.FormEvent) {
-    e.preventDefault();
-    if (!instanceId) return;
-
-    const data = getFormData();
-    if (!data) return;
-
-    try {
-      await updateInstance.mutateAsync({
-        id: instanceId,
-        address: data.address,
-        tag: data.tag,
-        publicKey: data.publicKey,
-      });
-      setEditMode(false);
-    } catch {
-      // error handled by mutation onError
-    }
-  }
-
   const handleRotateTokenClick = () => {
     twoFactor.requireAuth(() => {
       setRotateValue("");
@@ -235,7 +209,7 @@ function ViewInstance() {
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="system">System</TabsTrigger>
-                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                  <TabsTrigger value="config">Configuration</TabsTrigger>
                   {canViewAdvanced && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
                 </TabsList>
                
@@ -316,88 +290,46 @@ function ViewInstance() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="settings" className="mt-4 space-y-4">
-                <div className="relative rounded-xl border bg-background/40 p-4">
-                  {editMode ? (
-                    <form onSubmit={handleUpdateInstance} className="space-y-6">
-                      <FieldGroup>
-                        <Field>
-                          <FieldLabel htmlFor="instance-tag">Tag</FieldLabel>
-                          <Input
-                            id="instance-tag"
-                            value={tag}
-                            maxLength={15}
-                            onChange={e => setTag(e.target.value)}
-                            placeholder="my-instance-1"
-                            autoComplete="off"
-                          />
-                        </Field>
-                        <Field>
-                          <FieldLabel htmlFor="bootstrap-token">Bootstrap token</FieldLabel>
-                          <Input
-                            id="bootstrap-token"
-                            value={bootstrapToken ?? ""}
-                            disabled={true}
-                            placeholder="eyJhbGciOi..."
-                          />
-                        </Field>
-                      </FieldGroup>
-                      <div className="flex gap-3 pt-6">
-                        <Button type="submit" size="sm" disabled={updateInstance.isPending}>
-                          Save
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={handleRotateTokenClick}
-                          disabled={!bootstrapToken}
-                        >
-                          Rotate token
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditMode(false)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="space-y-4 text-sm">
+              <TabsContent value="config" className="mt-4 space-y-4">
+                <div className="relative rounded-xl border bg-background/40 p-4">        
+                  <div className="space-y-4 text-sm">
+                    <div>
+                      <span className="text-xs text-muted-foreground">Address</span>
+                      <div className="font-mono">{instance?.address || "-"}</div>
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Tag</span>
+                      <div>{instance?.tag || "-"}</div>
+                    </div>
+                    <div className="flex items-start justify-between gap-4">
                       <div>
-                        <span className="text-xs text-muted-foreground">Address</span>
-                        <div className="font-mono">{instance?.address || "-"}</div>
-                      </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Tag</span>
-                        <div>{instance?.tag || "-"}</div>
-                      </div>
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">Bootstrap token</span>
-                          <div className="mt-1 font-mono text-xs">
-                            {`${bootstrapToken}...` }
-                          </div>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">Bootstrap token</span>
+                        <div className="mt-1 font-mono text-xs">
+                          {`${bootstrapToken}...` }
                         </div>
                       </div>
-                      <div>
-                        <span className="text-xs text-muted-foreground">Public key</span>
-                        {(instance?.publicKey || "-")
-                          .split("\n")
-                          .map((line, idx) => (
-                            <div className="font-mono text-xs" key={idx}>
-                              {line}
-                            </div>
-                          ))}
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => setEditMode(true)}
-                        className="absolute right-4 top-4"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                        Edit
-                      </Button>
                     </div>
-                  )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleRotateTokenClick}
+                        disabled={!bootstrapToken}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        Rotate token
+                      </Button>
+                    <div>
+                      <span className="text-xs text-muted-foreground">Public key</span>
+                      {(instance?.publicKey || "-")
+                        .split("\n")
+                        .map((line, idx) => (
+                          <div className="font-mono text-xs" key={idx}>
+                            {line}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -522,18 +454,20 @@ function ViewInstance() {
                 <DialogHeader>
                   <DialogTitle>Rotate bootstrap token</DialogTitle>
                   <DialogDescription>
-                    Paste the new bootstrap token for this instance. Ensure you store it securely; it will not be shown again.
+                    Enter your new bootstrap token.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <Field>
                     <FieldLabel htmlFor="rotate-bootstrap-token">Bootstrap token</FieldLabel>
-                    <Input
+                    <textarea
                       id="rotate-bootstrap-token"
                       value={rotateValue}
                       onChange={e => setRotateValue(e.target.value)}
                       autoComplete="off"
-                      placeholder="eyJhbGciOi..."
+                      placeholder={`${bootstrapToken}...`}
+                      className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      rows={3}
                     />
                     {rotateError && <FieldError errors={[{ message: rotateError }]} />}
                   </Field>

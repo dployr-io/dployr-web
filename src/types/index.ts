@@ -1,4 +1,7 @@
 import type { LucideIcon } from "lucide-react";
+import type { IconType } from "react-icons";
+import { FaBitbucket, FaDiscord, FaGithub, FaGitlab, FaLink, FaSlack } from "react-icons/fa";
+import { SiAmazonroute53, SiCloudflare, SiGodaddy, SiNamecheap } from "react-icons/si";
 import { dnsProviders, runtimes, logLevels } from "./runtimes";
 
 export type Runtime = (typeof runtimes)[number];
@@ -151,7 +154,7 @@ export interface InstanceStream {
 }
 
 export interface OtpVerifyRequest {
-  email: string;
+  notifications: string;
   otp: string;
 }
 
@@ -167,8 +170,8 @@ export interface User {
 export interface Cluster {
   id: string;
   name: string;
-  users: string[]; // Array of user emails
-  roles: Record<string, string[]>; // role -> array of user emails
+  users: string[]; // Array of user notificationss
+  roles: Record<string, string[]>; // role -> array of user notificationss
   createdAt: number;
   updatedAt: number;
 }
@@ -321,11 +324,11 @@ export interface IntegrationField {
   required?: boolean;
 }
 
-export const integrationIds = ["resendMail", "mailChimp", "mailerSend", "discord", "slack", "gitHub", "gitLab", "bitBucket", "godaddy", "cloudflare", "route53"] as const;
+export const integrationIds = ["discord", "slack", "customWebHook", "gitHub", "gitLab", "bitbucket", "namecheap", "godaddy", "cloudflare", "route53"] as const;
 
 export type IntegrationType = (typeof integrationIds)[number];
 
-export type IntegrationCategory = "email" | "remote" | "domain";
+export type IntegrationCategory = "notifications" | "remote" | "domain";
 
 export interface IntegrationEmailCategory { }
 
@@ -346,36 +349,31 @@ export interface GitLabIntegration {
   remotesCount: number;
 }
 
-export interface BitBucketIntegration {
+export interface BitbucketIntegration {
   id: string,
   loginId: string;
   installationId: number;
   remotesCount: number;
 }
 
-export interface ResendMailIntegration { }
+export interface CustomWebHookIntegration { }
 
-export interface ZohoMailIntegration { }
+export interface DiscordIntegration {
+  installUrl: string;
+ }
 
-export interface MailerSendIntegration { }
-
-export interface MailChimpIntegration { }
-
-export interface DiscordIntegration { }
-
-export interface SlackIntegration { }
+export interface SlackIntegration {
+  installUrl: string;
+ }
 
 export interface Integrations {
-  email: {
-    resendMail: ResendMailIntegration,
-    zohoMail: ZohoMailIntegration,
-    mailerSend: MailerSendIntegration,
-    mailChimp: MailChimpIntegration,
+  notifications: {
+    customWebHook: CustomWebHookIntegration,
   },
   remote: {
     gitHub: GitHubIntegration,
     gitLab: GitLabIntegration,
-    bitBucket: BitBucketIntegration,
+    bitBucket: BitbucketIntegration,
   },
   domain: {
     discord: DiscordIntegration,
@@ -384,10 +382,10 @@ export interface Integrations {
 }
 
 export interface IntegrationMetadata {
-  icon: string;
+  icon: IconType;
   name: string;
   description: string;
-  category: "email" | "remote" | "domain";
+  category: "notifications" | "remote" | "domain";
   connectType: "oauth" | "form";
   fields?: IntegrationField[];
 }
@@ -397,74 +395,69 @@ export interface IntegrationUI extends IntegrationMetadata {
   connected: boolean;
   gitHub?: GitHubIntegration;
   gitLab?: GitLabIntegration;
-  bitBucket?: BitBucketIntegration;
+  bitbucket?: BitbucketIntegration;
+  discord?: DiscordIntegration;
 }
 
 export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
   gitHub: {
-    icon: "/icons/github.svg",
+    icon: FaGithub,
     name: "GitHub",
-    description: "Connect your GitHub repositories",
+    description: "Connect your GitHub account",
     category: "remote",
     connectType: "oauth",
   },
   gitLab: {
-    icon: "/icons/gitlab.svg",
+    icon: FaGitlab,
     name: "GitLab",
-    description: "Connect your GitLab repositories",
+    description: "Connect your GitLab account",
     category: "remote",
     connectType: "oauth",
   },
   bitBucket: {
-    icon: "/icons/bitbucket.svg",
+    icon: FaBitbucket,
     name: "Bitbucket",
-    description: "Connect your Bitbucket repositories",
+    description: "Connect your Bitbucket account",
     category: "remote",
     connectType: "oauth",
   },
-  resendMail: {
-    icon: "/icons/resend.svg",
-    name: "Resend",
-    description: "Send transactional emails with Resend",
-    category: "email",
+  customWebHook: {
+    icon: FaLink,
+    name: "Custom Webhook",
+    description: "Trigger custom webhooks",
+    category: "notifications",
     connectType: "form",
     fields: [
-      { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
-    ],
-  },
-  mailChimp: {
-    icon: "/icons/mailchimp.svg",
-    name: "Mailchimp",
-    description: "Email marketing and automation platform",
-    category: "email",
-    connectType: "oauth",
-  },
-  mailerSend: {
-    icon: "/icons/mailersend.svg",
-    name: "Mailersend",
-    description: "Transactional email delivery service",
-    category: "email",
-    connectType: "form",
-    fields: [
-      { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
+      { id: "url", label: "URL", type: "text", placeholder: "Enter URL", required: true },
     ],
   },
   discord: {
-    icon: "/icons/discord.svg",
+    icon: FaDiscord,
     name: "Discord",
-    description: "Send notifications to Discord channels",
-    category: "email",
+    description: "Send to Discord channels",
+    category: "notifications",
     connectType: "oauth",
   },
   slack: {
-    icon: "/icons/slack.svg",
+    icon: FaSlack,
     name: "Slack",
-    description: "Send notifications to Slack workspaces",
-    category: "email",
+    description: "Send to Slack workspaces",
+    category: "notifications",
     connectType: "oauth",
   },
+  namecheap: {
+    icon: SiNamecheap,
+    name: "Namecheap",
+    description: "Manage domains with Namecheap",
+    category: "domain",
+    connectType: "form",
+    fields: [
+      { id: "apiKey", label: "API Key", type: "password", placeholder: "Enter API key", required: true },
+      { id: "apiSecret", label: "API Secret", type: "password", placeholder: "Enter API secret", required: true },
+    ],
+  },
   godaddy: {
-    icon: "/icons/godaddy.svg",
+    icon: SiGodaddy,
     name: "GoDaddy",
     description: "Manage domains with GoDaddy",
     category: "domain",
@@ -475,9 +468,9 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     ],
   },
   cloudflare: {
-    icon: "/icons/cloudflare.svg",
+    icon: SiCloudflare,
     name: "Cloudflare",
-    description: "Manage domains and DNS with Cloudflare",
+    description: "Manage domains with Cloudflare",
     category: "domain",
     connectType: "form",
     fields: [
@@ -485,9 +478,9 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     ],
   },
   route53: {
-    icon: "/icons/route53.svg",
+    icon: SiAmazonroute53,
     name: "Route 53",
-    description: "Amazon Route 53 DNS management",
+    description: "Amazon Route 53 management",
     category: "domain",
     connectType: "form",
     fields: [

@@ -3,7 +3,14 @@ import { useUrlState } from "@/hooks/use-url-state";
 import axios from "axios";
 import type { ApiSuccessResponse, EventsResponse, PaginationMeta } from "@/types";
 
-export function useEvents(clusterId?: string, page = 1, pageSize?: number) {
+type EventsFilters = {
+  type?: string;
+  search?: string;
+  sort?: "newest" | "oldest";
+  window?: "all" | "24h" | "7d" | "30d";
+};
+
+export function useEvents(clusterId?: string, page = 1, pageSize?: number, filters?: EventsFilters) {
   const { useAppError } = useUrlState();
   const [{}, setError] = useAppError();
 
@@ -16,8 +23,19 @@ export function useEvents(clusterId?: string, page = 1, pageSize?: number) {
   const availableHeight = Math.max(0, viewportHeight - reservedHeight);
   const effectivePageSize = pageSize ?? Math.max(6, Math.floor(availableHeight / estimatedRowHeight));
 
+  const { type, search, sort, window } = filters ?? {};
+
   const { data, isLoading } = useQuery<EventsResponse>({
-    queryKey: ["runtime-events", clusterId, page, effectivePageSize],
+    queryKey: [
+      "runtime-events",
+      clusterId,
+      page,
+      effectivePageSize,
+      type ?? null,
+      search ?? null,
+      sort ?? null,
+      window ?? null,
+    ],
     queryFn: async () => {
       try {
         if (!clusterId) {
@@ -42,6 +60,10 @@ export function useEvents(clusterId?: string, page = 1, pageSize?: number) {
               clusterId,
               page,
               pageSize: effectivePageSize,
+              type,
+              search,
+              sort,
+              window,
             },
           }
         );

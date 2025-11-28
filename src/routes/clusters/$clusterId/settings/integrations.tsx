@@ -12,7 +12,7 @@ import { use2FA } from "@/hooks/use-2fa";
 import { useConfirmation } from "@/hooks/use-confirmation";
 import { RemoteConnectDialog } from "@/components/remote-connect-dialog";
 import { DomainConnectDialog } from "@/components/domain-connect-dialog";
-import { EmailConnectDialog } from "@/components/email-connect-dialog";
+import { NotificationsConnectDialog } from "@/components/notifications-connect-dialog";
 
 export const Route = createFileRoute("/clusters/$clusterId/settings/integrations")({
   component: Integrations,
@@ -33,29 +33,37 @@ function Integrations() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const integrations = useMemo<IntegrationUI[]>(() => {
-    return integrationIds.map(id => {
-      const category = INTEGRATIONS_METADATA[id].category;
+    return integrationIds
+      .map(id => {
+        const metadata = INTEGRATIONS_METADATA[id];
 
-      // Check if integration is connected by looking at the appropriate category
-      let isConnected = false;
-      if (apiIntegrations && apiIntegrations[category]) {
-        const categoryIntegrations = apiIntegrations[category];
-        if (categoryIntegrations && categoryIntegrations[id as keyof typeof categoryIntegrations]) {
-          isConnected = true;
+        if (!metadata) {
+          return null;
         }
-      }
 
-      return {
-        id,
-        ...INTEGRATIONS_METADATA[id],
-        connected: isConnected,
-      };
-    });
+        const category = metadata.category;
+
+        let isConnected = false;
+        if (apiIntegrations && apiIntegrations[category]) {
+          const categoryIntegrations = apiIntegrations[category];
+          if (categoryIntegrations && categoryIntegrations[id as keyof typeof categoryIntegrations]) {
+            isConnected = true;
+          }
+        }
+
+        return {
+          id,
+          ...metadata,
+          connected: isConnected,
+        } as IntegrationUI;
+      })
+      .filter((integration): integration is IntegrationUI => integration !== null);
   }, [apiIntegrations]);
 
   const connectedIntegrations = useMemo(() => {
     return new Set(integrations.filter(i => i.connected).map(i => i.id));
   }, [integrations]);
+
   const handleToggle = (id: string) => {
     setSelectedIntegrationId(id);
     setDialogOpen(true);
@@ -72,7 +80,7 @@ function Integrations() {
     {
       title: "Email & Notifications",
       description: "Configure email and notification services",
-      integrations: integrations.filter(i => i.category === "email"),
+      integrations: integrations.filter(i => i.category === "notifications"),
     },
     {
       title: "Remotes",
@@ -107,7 +115,7 @@ function Integrations() {
           </div>
           <RemoteConnectDialog integration={selectedIntegration} integrations={apiIntegrations} open={dialogOpen && selectedIntegration?.category === "remote"} onOpenChange={setDialogOpen} />
           <DomainConnectDialog integration={selectedIntegration} open={dialogOpen && selectedIntegration?.category === "domain"} onOpenChange={setDialogOpen} />
-          <EmailConnectDialog integration={selectedIntegration} open={dialogOpen && selectedIntegration?.category === "email"} onOpenChange={setDialogOpen} />
+          <NotificationsConnectDialog integration={selectedIntegration} open={dialogOpen && selectedIntegration?.category === "notifications"} onOpenChange={setDialogOpen} />
         </SettingsLayout>
       </AppLayout>
     </ProtectedRoute>

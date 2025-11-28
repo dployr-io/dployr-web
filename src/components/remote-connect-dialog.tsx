@@ -21,12 +21,14 @@ export function RemoteConnectDialog({ integration, integrations, open, onOpenCha
 
   if (!integration) return null;
 
+  const Icon = integration.icon;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <img src={integration.icon} alt={integration.name} className="h-5 w-5" />
+            <Icon className="h-5 w-5" />
             {integration.name}
           </DialogTitle>
           <DialogDescription>{integration.description}</DialogDescription>

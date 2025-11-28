@@ -38,7 +38,12 @@ function Notifications() {
   const timeWindow = (window as "all" | "24h" | "7d" | "30d") ?? "all";
   const currentPage = page ?? 1;
 
-  const { events, pagination, isLoading, formatTimestamp } = useEvents(clusterId, currentPage);
+  const { events, pagination, isLoading, formatTimestamp } = useEvents(clusterId, currentPage, undefined, {
+    type: selectedType === "ALL" ? undefined : selectedType,
+    search: searchQuery || undefined,
+    sort: sortOrder,
+    window: timeWindow,
+  });
 
   const eventsArray = Array.isArray(events) ? events : [];
   const usersArray = Array.isArray(users) ? users : [];
@@ -56,60 +61,8 @@ function Notifications() {
     return types;
   }, [eventsArray]);
 
-  const filteredEvents = useMemo(() => {
-    let result = eventsArray;
-
-    // Time window filter (client-side)
-    if (timeWindow !== "all") {
-      const now = Date.now();
-      const windowMs =
-        timeWindow === "24h"
-          ? 24 * 60 * 60 * 1000
-          : timeWindow === "7d"
-            ? 7 * 24 * 60 * 60 * 1000
-            : 30 * 24 * 60 * 60 * 1000;
-
-      result = result.filter((event) => {
-        return now - event.timestamp <= windowMs;
-      });
-    }
-
-    if (selectedType !== "ALL") {
-      result = result.filter((event) => event.type === selectedType);
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter((event) => {
-        const actorUser = event.actor.type === "user" ? userById.get(event.actor.id) : undefined;
-
-        const actorLabel = `${event.actor.type}:${event.actor.id}`.toLowerCase();
-        const actorName = actorUser?.name?.toLowerCase() ?? "";
-        const actorEmail = actorUser?.email?.toLowerCase() ?? "";
-        const targetsLabel = (event.targets || []).map((t: EventTarget) => t.id).join(", ").toLowerCase();
-
-        return (
-          actorName.includes(query) ||
-          actorEmail.includes(query) ||
-          actorLabel.includes(query) ||
-          targetsLabel.includes(query)
-        );
-      });
-    }
-
-    // Sort by timestamp
-    result = [...result].sort((a, b) => {
-      if (sortOrder === "newest") {
-        return b.timestamp - a.timestamp;
-      }
-      return a.timestamp - b.timestamp;
-    });
-
-    return result;
-  }, [eventsArray, searchQuery, selectedType, sortOrder, timeWindow, userById]);
-
-  const totalPages = pagination?.totalPages ?? 1;
   const pageSize = pagination?.pageSize ?? 20;
+  const totalPages = pagination?.totalPages ?? 1;
 
   const paginationRange = useMemo(() => {
     const totalPageNumbersToShow = 7;
@@ -173,13 +126,17 @@ function Notifications() {
   };
 
   const hasEvents = eventsArray.length > 0;
+  const hasActiveFilters =
+    selectedType !== "ALL" ||
+    (searchQuery != null && searchQuery.trim() !== "") ||
+    timeWindow !== "all";
 
   return (
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
         <div className="flex flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
           <div className="flex w-full flex-col gap-4 px-9 pb-6">
-            {!isLoading && !hasEvents ? (
+            {!isLoading && !hasEvents && !hasActiveFilters ? (
               <div className="flex min-h-[400px] flex-1 items-center justify-center">
                 <Empty>
                   <EmptyHeader>
@@ -302,8 +259,8 @@ function Notifications() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredEvents.length > 0 ? (
-                      filteredEvents.map((event) => {
+                    {eventsArray.length > 0 ? (
+                      eventsArray.map((event) => {
                         const actorUser = event.actor.type === "user" ? userById.get(event.actor.id) : undefined;
 
                         return (
@@ -357,16 +314,14 @@ function Notifications() {
                 <div className="flex items-center justify-between px-2 py-4">
                   <div className="text-sm text-muted-foreground">
                     {(() => {
-                      const totalItems = pagination?.totalItems ?? filteredEvents.length;
+                      const totalItems = pagination?.totalItems ?? 0;
                       if (totalItems === 0) return "No events found";
                       if (totalItems === 1) return "Showing 1 of 1 event";
 
-                      const current = pagination?.page ?? currentPage;
-                      const size = pagination?.pageSize ?? pageSize;
-                      const start = (current - 1) * size + 1;
-                      const end = start + filteredEvents.length - 1;
+                      const start = (currentPage - 1) * pageSize + 1;
+                      const end = Math.min(start + eventsArray.length - 1, totalItems);
 
-                      return `Showing ${start} to ${Math.min(end, totalItems)} of ${totalItems} events`;
+                      return `Showing ${start} to ${end} of ${totalItems} events`;
                     })()}
                   </div>
                   <div className="flex items-center space-x-2">

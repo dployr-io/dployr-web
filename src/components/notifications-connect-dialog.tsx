@@ -12,7 +12,7 @@ interface Props {
     onOpenChange: (open: boolean) => void;
 }
 
-export function EmailConnectDialog({ integration, open, onOpenChange }: Props) {
+export function NotificationsConnectDialog({ integration, open, onOpenChange }: Props) {
     const [formData, setFormData] = useState<Record<string, string>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,8 +27,8 @@ export function EmailConnectDialog({ integration, open, onOpenChange }: Props) {
     };
 
     const handleOAuthConnect = () => {
-        if (integration?.url) {
-            window.open(integration.url, "_blank");
+        if (integration?.discord) {
+            window.open(integration.discord.installUrl, "_blank");
         }
     };
 
@@ -43,12 +43,14 @@ export function EmailConnectDialog({ integration, open, onOpenChange }: Props) {
 
     if (!integration) return null;
 
+    const Icon = integration.icon;
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <img src={integration.icon} alt={integration.name} className="h-5 w-5" />
+                        <Icon className="h-5 w-5" />
                         {integration.name}
                     </DialogTitle>
                     <DialogDescription>{integration.description}</DialogDescription>
