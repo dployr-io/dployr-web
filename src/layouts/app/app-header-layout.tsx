@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { AppContent } from '@/components/app-content';
 import { AppHeader } from '@/components/app-header';
 import { AppShell } from '@/components/app-shell';

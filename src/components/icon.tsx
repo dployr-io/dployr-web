@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { cn } from '@/lib/utils';
 import { type LucideProps } from 'lucide-react';
 import { type ComponentType } from 'react';

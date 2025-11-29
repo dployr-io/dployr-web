@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { NavFooter } from "@/components/nav-footer";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";

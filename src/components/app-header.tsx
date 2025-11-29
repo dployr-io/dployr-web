@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

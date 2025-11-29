@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { SidebarInset } from '@/components/ui/sidebar';
 import * as React from 'react';
 

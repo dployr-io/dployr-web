@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import type { DeploymentStatus, ServiceStatus } from "@/types";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 

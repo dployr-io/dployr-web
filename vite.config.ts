@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { defineConfig } from 'vite'
 import viteReact from '@vitejs/plugin-react'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'

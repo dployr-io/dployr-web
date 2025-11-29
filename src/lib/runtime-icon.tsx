@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import type { Runtime } from '@/types';
 import { BiCustomize } from 'react-icons/bi';
 import { FaDocker, FaJava, FaNodeJs, FaPython } from 'react-icons/fa';

@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import ProjectCard from '@/components/project-card';
 import { Project } from '@/types';
 import { render, screen } from '@testing-library/react';

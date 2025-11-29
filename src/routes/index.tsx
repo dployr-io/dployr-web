@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import { Input } from "@/components/ui/input";

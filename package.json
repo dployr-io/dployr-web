@@ -5,11 +5,11 @@
         "email": "hello@dployr.dev",
         "url": "https://dployr.dev"
     },
-    "description": "your app, your server, your rules!",
+    "description": "Your app, your server, your rules!",
     "homepage": "https://dployr.dev",
     "licenses": [
         {
-            "type": "MIT",
+            "type": "Apache License, Version 2.0",
             "url": "https://github.com/dployr-io/dployr-web/blob/main/LICENSE"
         }
     ],

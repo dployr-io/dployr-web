@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import type { ReactNode } from 'react';
 import { Navigate } from '@tanstack/react-router';
 import { useAuth } from '@/hooks/use-auth';

@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { Monitor, Sun, Moon } from 'lucide-react';
 import { useAppearance, type Appearance } from '@/hooks/use-appearance';
 

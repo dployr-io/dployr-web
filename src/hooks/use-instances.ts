@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { useState } from "react";
 import type { ApiSuccessResponse, Instance, InstanceStatus, Log, LogLevel, PaginatedData, PaginationMeta } from "@/types";
 import axios from "axios";

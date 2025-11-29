@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import type { LucideIcon } from "lucide-react";
 import type { IconType } from "react-icons";
 import { FaBitbucket, FaDiscord, FaGithub, FaGitlab, FaLink, FaSlack } from "react-icons/fa";

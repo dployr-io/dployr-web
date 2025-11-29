@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { parseLog } from "@/lib/utils";
 import type { Deployment, LogLevel, Service } from "@/types";
 import type { Log } from "@/types";

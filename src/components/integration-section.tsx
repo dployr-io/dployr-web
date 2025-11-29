@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { IntegrationCard } from "@/components/integration-card";
 import type { IntegrationUI } from "@/types";
 import HeadingSmall from "@/components/heading-small";

@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 

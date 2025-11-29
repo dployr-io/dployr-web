@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { useUsersUrlState, useUsersActivityModal } from "@/lib/url-state";
 import type { User, UserRole, UsersUrlState } from "@/types";
 import { useState } from "react";

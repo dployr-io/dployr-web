@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { AppSidebar } from '@/components/app-sidebar';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';

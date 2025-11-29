@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { LogsWindow } from '@/components/logs-window';
 import { Log } from '@/types';
 import { fireEvent, render, screen } from '@testing-library/react';

@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 

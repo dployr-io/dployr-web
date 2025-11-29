@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { toast as sonnerToast } from 'sonner';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';

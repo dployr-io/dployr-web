@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import RemoteAddDialog from '@/components/remote-add-dialog';
 import { useRemotes } from '@/hooks/use-remotes';
 import { fireEvent, render, screen } from '@testing-library/react';

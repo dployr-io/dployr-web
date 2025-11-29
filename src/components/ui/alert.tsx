@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import * as React from "react";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";

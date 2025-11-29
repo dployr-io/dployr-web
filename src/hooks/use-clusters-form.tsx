@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { useForm } from "@tanstack/react-form";
 import z from "zod";
 import { useClusters } from "@/hooks/use-clusters";

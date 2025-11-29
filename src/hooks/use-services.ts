@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 
 import type { Service } from "@/types";
 import { useQuery } from "@tanstack/react-query";

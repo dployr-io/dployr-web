@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import type { InstanceStream } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import { useClusterId } from "@/hooks/use-cluster-id";

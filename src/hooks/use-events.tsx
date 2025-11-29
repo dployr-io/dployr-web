@@ -1,3 +1,6 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
 import { useQuery } from "@tanstack/react-query";
 import { useUrlState } from "@/hooks/use-url-state";
 import axios from "axios";
