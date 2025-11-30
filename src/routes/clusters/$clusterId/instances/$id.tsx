@@ -4,7 +4,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem } from "@/types";
+import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { ArrowUpRightIcon, ChevronLeft, Copy, FileX2, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
+import { useInstanceLogs } from "@/hooks/use-instance-logs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useClusters } from "@/hooks/use-clusters";
@@ -24,7 +25,8 @@ import { useUrlState } from "@/hooks/use-url-state";
 import { use2FA } from "@/hooks/use-2fa";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { LogsWindow } from "@/components/logs-window";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/$id")({
   component: ViewInstance,
@@ -51,12 +53,14 @@ function ViewInstance() {
   const [{ tab }, setTab] = useInstanceTabsState();
   const { instances, rotateInstanceToken } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
-  const { status, isConnected, error, debugEvents } = useInstanceStatus(instanceId);
+  const { status, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instanceId);
   const breadcrumbs = viewInstanceBreadcrumbs(clusterId, instanceId, instance?.tag);
   const { user } = useAuth();
   const { users: clusterUsers } = useClusters();
   const myRole = clusterUsers?.find(u => u.id === user?.id)?.role;
   const canViewAdvanced = myRole ? getRolePriority(myRole) >= 2 : false;
+  const canViewConfig = myRole ? getRolePriority(myRole) >= 2 : false;
+  const canViewLogs = myRole ? getRolePriority(myRole) >= 2 : false;
   const { address, tag, publicKey, setAddress, setTag, setPublicKey } = useInstancesForm();
   const twoFactor = use2FA({ enabled: true });
   const [bootstrapToken, setBootstrapToken] = useState<string | null>(null);
@@ -66,16 +70,34 @@ function ViewInstance() {
   const [isRotating, setIsRotating] = useState(false);
   const [rotatedToken, setRotatedToken] = useState<string | null>(null);
   const [showBootstrapInfo, setShowBootstrapInfo] = useState(false);
-  const handleCopyStatus = async () => {
-    try {
-      if (!status) return;
-      await navigator.clipboard.writeText(JSON.stringify(status, null, 2));
-    } catch {
-      return;
-    }
-  };
+  const [logType, setLogType] = useState<LogType>("app");
+  const [logMode, setLogMode] = useState<LogStreamMode>("historical");
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const { 
+    logs, 
+    filteredLogs, 
+    selectedLevel, 
+    searchQuery, 
+    logsEndRef,
+    isConnected,
+    lastOffset,
+    setSelectedLevel, 
+    setSearchQuery, 
+    changeMode,
+    fillGap
+  } = useInstanceLogs(
+    instanceId,
+    logType,
+    logMode,
+  );
 
-  const currentTab = (tab || "overview") as "overview" | "system" | "settings" | "advanced";
+  const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
+
+  // All hooks must be called before any early returns
+
+  const handleScrollPositionChange = useCallback((atBottom: boolean) => {
+    setIsAtBottom(atBottom);
+  }, []);
 
   useEffect(() => {
     const token = (status?.update?.status as any)?.debug?.auth?.bootstrap_token as string | undefined;
@@ -96,6 +118,31 @@ function ViewInstance() {
       setPublicKey(instance.publicKey || "");
     }
   }, [instance, address, tag, publicKey, setAddress, setTag, setPublicKey]);
+
+  // Fill gap on reconnect
+  useEffect(() => {
+    if (isConnected && lastOffset > 0) {
+      fillGap();
+    }
+  }, [isConnected, lastOffset, fillGap]);
+
+  // Update mode based on scroll position
+  useEffect(() => {
+    const newMode: LogStreamMode = isAtBottom ? "tail" : "historical";
+    if (newMode !== logMode) {
+      setLogMode(newMode);
+      changeMode(newMode);
+    }
+  }, [isAtBottom, logMode, changeMode]);
+
+  const handleCopyStatus = async () => {
+    try {
+      if (!status) return;
+      await navigator.clipboard.writeText(JSON.stringify(status, null, 2));
+    } catch {
+      return;
+    }
+  };
 
   if (error) {
     return (
@@ -129,7 +176,7 @@ function ViewInstance() {
     );
   }
 
-  if (!status && !isConnected) {
+  if (!status && !statusConnected) {
     return (
       <ProtectedRoute>
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -202,17 +249,19 @@ function ViewInstance() {
     }
   };
 
+
   return (
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
         <div className="flex h-full min-h-0 flex-col gap-4 rounded-xl p-4">
           <div className="flex min-h-0 flex-1 auto-rows-min flex-col gap-6 px-9 py-2">
-            <Tabs value={currentTab} onValueChange={value => setTab({ tab: value as any })} className="w-full">
+            <Tabs value={currentTab} onValueChange={value => setTab({ tab: value as any })} className="flex min-h-0 flex-1 flex-col w-full">
               <div className="flex items-center justify-between">
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="system">System</TabsTrigger>
-                  <TabsTrigger value="config">Configuration</TabsTrigger>
+                  {canViewConfig && <TabsTrigger value="config">Configuration</TabsTrigger>}
+                  {canViewLogs && <TabsTrigger value="logs">Logs</TabsTrigger>}
                   {canViewAdvanced && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
                 </TabsList>
                
@@ -407,6 +456,33 @@ function ViewInstance() {
                   </div>
                 </div>
               </TabsContent>
+
+              {canViewLogs && (
+                <TabsContent value="logs" className="mt-4 flex min-h-0 flex-1 flex-col">
+                  <LogsWindow 
+                    logs={logs} 
+                    filteredLogs={filteredLogs} 
+                    selectedLevel={selectedLevel} 
+                    setSelectedLevel={setSelectedLevel}
+                    searchQuery={searchQuery} 
+                    setSearchQuery={setSearchQuery}
+                    logsEndRef={logsEndRef}
+                    onScrollPositionChange={handleScrollPositionChange}
+                    extraFilters={[
+                      {
+                        id: "log-type",
+                        label: "Type",
+                        value: logType,
+                        options: [
+                          { label: "Application", value: "app" },
+                          { label: "Installation", value: "install" },
+                        ],
+                        onChange: (value) => setLogType(value as LogType),
+                      },
+                    ]}
+                  />
+                </TabsContent>
+              )}
 
               {canViewAdvanced && (
                 <TabsContent value="advanced" className="mt-4 space-y-4">

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState } from "react";
-import type { ApiSuccessResponse, Instance, InstanceStatus, Log, LogLevel, PaginatedData, PaginationMeta } from "@/types";
+import type { ApiSuccessResponse, Instance, InstanceStatus, Log, LogLevel, LogStreamRequest, LogStreamResponse, PaginatedData, PaginationMeta } from "@/types";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUrlState } from "@/hooks/use-url-state";
@@ -197,37 +197,6 @@ export function useInstances() {
     },
   });
 
-  function getLogs(instanceId: string) {
-    const { data: logs = [], isLoading: isLoadingLogs } = useQuery<Log[]>({
-      queryKey: ["instance", instanceId],
-      queryFn: async () => {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BASE_URL}/v1/instances/${instanceId}/logs`,
-          { withCredentials: true }
-        );
-
-        return response.data.data.map((item: any) => ({
-          id: item.id,
-          timestamp: new Date(item.ts),
-          level: item.level as LogLevel,
-          message: item.message,
-          instanceId: item.instanceId,
-          address: item.address,
-        }));
-      },
-      enabled: !!instanceId,
-    });
-
-    return {
-      logs,
-      isLoadingLogs,
-    };
-  }
-
-  const getInstanceLogs = (instanceId: string) => {
-    queryClient.prefetchQuery({ queryKey: ["instance", instanceId] });
-  };
-
   return {
     instances,
     paginatedInstances,
@@ -242,7 +211,5 @@ export function useInstances() {
     goToPage,
     goToNextPage,
     goToPreviousPage,
-    getLogs,
-    getInstanceLogs,
   };
 }

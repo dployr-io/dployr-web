@@ -319,6 +319,33 @@ export interface Log {
   timestamp: Date;
 }
 
+export type LogType = "app" | "install";
+export type LogStreamMode = "tail" | "historical";
+
+export interface LogStreamRequest {
+  logType: LogType;
+  mode: LogStreamMode;
+  startFrom?: number;
+  limit?: number;
+}
+
+export interface LogStreamResponse {
+  streamId: string;
+  logType: LogType;
+  mode: LogStreamMode;
+  startFrom?: number;
+  limit?: number;
+}
+
+export interface LogChunkMessage {
+  kind: "log_chunk";
+  streamId: string;
+  timestamp: number;
+  level: LogLevel;
+  message: string;
+  lineNumber?: number;
+}
+
 export interface IntegrationField {
   id: string;
   label: string;

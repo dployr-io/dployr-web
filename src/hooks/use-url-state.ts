@@ -147,7 +147,8 @@ export function useUrlState() {
             tab: parseAsStringLiteral([
                 "overview",
                 "system",
-                "settings",
+                "config",
+                "logs",
                 "advanced",
             ]).withDefault("overview"),
         });

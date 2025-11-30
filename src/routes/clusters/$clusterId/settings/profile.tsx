@@ -6,13 +6,13 @@ import "@/css/app.css";
 import { Input } from "@/components/ui/input";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 import AppLayout from "@/layouts/app-layout";
 import SettingsLayout from "@/layouts/settings/layout";
 import type { BreadcrumbItem } from "@/types";
 import HeadingSmall from "@/components/heading-small";
 import { ProtectedRoute } from "@/components/protected-route";
-import { useSettings } from "@/hooks/use-settings";
 import { useSettingsForm } from "@/hooks/use-settings-form";
 import { Edit2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -34,7 +34,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 function System() {
   const { user } = useAuth();
-  const { editMode, setEditMode } = useSettings();
+  const [editMode, setEditMode] = useState(false);
   const { form, error } = useSettingsForm();
   const twoFactor = use2FA({ enabled: true });
   const confirmation = useConfirmation();
