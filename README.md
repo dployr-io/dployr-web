@@ -15,12 +15,10 @@ Continue below only if you are in a restricted network or have very special requ
 
 ## Quick start (self‑hosting)
 
-> Use the same version tag (`vX.Y.Z`) for `dployr-web` and `dployr-base`.
-
 ### Option 1: Docker (simple, recommended)
 
 ```bash
-docker run --rm -p 8080:80 ghcr.io/dployr-io/dployr-web:vX.Y.Z
+docker run --rm -p 8080:80 ghcr.io/dployr-io/dployr-web:latest
 ```
 
 The UI will be available on `http://localhost:8080`.
