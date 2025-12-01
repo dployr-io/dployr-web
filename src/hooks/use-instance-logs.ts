@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Log, LogLevel, LogStreamMode, LogType } from "@/types";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useClusterId } from "@/hooks/use-cluster-id";
 import axios from "axios";
 
@@ -13,7 +13,6 @@ export function useInstanceLogs(
 ) {
   const clusterId = useClusterId();
   const [logs, setLogs] = useState<Log[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<Log[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<"ALL" | LogLevel>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isConnected, setIsConnected] = useState(false);
@@ -27,6 +26,8 @@ export function useInstanceLogs(
   const retriesRef = useRef(0);
   const maxRetries = 5;
   const logCounterRef = useRef(0);
+  const logBufferRef = useRef<Log[]>([]);
+  const flushTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const requestLogs = useCallback(async (
     mode: LogStreamMode,
@@ -55,6 +56,14 @@ export function useInstanceLogs(
       setIsStreaming(false);
     }
   }, [instanceId, logType, clusterId]);
+
+  // Flush buffered logs to state
+  const flushLogs = useCallback(() => {
+    if (logBufferRef.current.length > 0) {
+      setLogs(prev => [...prev, ...logBufferRef.current]);
+      logBufferRef.current = [];
+    }
+  }, []);
 
   const connect = useCallback(() => {
     if (!instanceId || !clusterId || !logType) return;
@@ -98,8 +107,18 @@ export function useInstanceLogs(
               level: entry.level?.toUpperCase() || "INFO",
               timestamp: new Date(entry.time),
             }));
-            setLogs(prev => [...prev, ...newLogs]);
+            
+            // Buffer logs instead of immediate state update
+            logBufferRef.current.push(...newLogs);
             setLastOffset(data.offset + data.entries.length);
+            
+            // Schedule flush if not already scheduled
+            if (!flushTimerRef.current) {
+              flushTimerRef.current = setTimeout(() => {
+                flushLogs();
+                flushTimerRef.current = null;
+              }, 100); // 100ms batching window
+            }
           }
 
           if (data.kind === "error") {
@@ -148,6 +167,10 @@ export function useInstanceLogs(
     void run();
 
     return () => {
+      if (flushTimerRef.current) {
+        clearTimeout(flushTimerRef.current);
+        flushLogs(); // Flush any remaining logs on cleanup
+      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -156,7 +179,7 @@ export function useInstanceLogs(
         socketRef.current = null;
       }
     };
-  }, [instanceId, logType, initialMode, lastOffset, connect, requestLogs]);
+  }, [instanceId, logType, initialMode, lastOffset, connect, requestLogs, flushLogs]);
 
   // Change mode (e.g., tail → historical)
   const changeMode = useCallback((
@@ -184,9 +207,12 @@ export function useInstanceLogs(
     }
   }, [lastOffset, requestLogs]);
 
+  // Defer filtering to avoid blocking on heavy updates
+  const deferredLogs = useDeferredValue(logs);
+  
   // Filter logs based on level and search query
-  useEffect(() => {
-    let filtered = logs;
+  const filteredLogs = useMemo(() => {
+    let filtered = deferredLogs;
 
     if (selectedLevel !== "ALL") {
       filtered = filtered.filter(log => log.level === selectedLevel);
@@ -198,17 +224,27 @@ export function useInstanceLogs(
       );
     }
 
-    setFilteredLogs(filtered);
-  }, [logs, selectedLevel, searchQuery]);
+    return filtered;
+  }, [deferredLogs, selectedLevel, searchQuery]);
 
-  // Auto-scroll to bottom when new logs arrive (tail/live mode only)
+  // Auto-scroll to bottom when new logs arrive (only if already at bottom)
   useEffect(() => {
     if (initialMode !== "tail") return;
-    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    
+    // Only auto-scroll if we're already near the bottom (within 100px)
+    const container = logsEndRef.current?.parentElement;
+    if (!container) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    
+    if (isNearBottom) {
+      logsEndRef.current?.scrollIntoView({ behavior: "auto" });
+    }
   }, [filteredLogs, initialMode]);
 
   return {
-    logs,
+    logs: deferredLogs,
     filteredLogs,
     selectedLevel,
     searchQuery,

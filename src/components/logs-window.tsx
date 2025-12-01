@@ -6,8 +6,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import type { Log, LogLevel } from "@/types";
-import { ChevronDown } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ArrowDown, ChevronDown, Pause } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface LogFilterOption<TValue extends string = string> {
   label: string;
@@ -34,7 +36,7 @@ interface Props<TFilterValue extends string = string> {
   onScrollPositionChange?: (isAtBottom: boolean) => void;
 }
 
-const LogEntry = ({ log }: { log: Log }) => {
+const LogEntry = memo(({ log }: { log: Log }) => {
   return (
     <div className="flex items-start gap-3 border-b p-3">
       <div className="flex gap-2">
@@ -58,7 +60,7 @@ const LogEntry = ({ log }: { log: Log }) => {
               }
             })()}`}
           >
-            {log.timestamp.toLocaleTimeString()}
+            {log.timestamp.toLocaleString()}
           </span>
         )}
         <span
@@ -85,7 +87,9 @@ const LogEntry = ({ log }: { log: Log }) => {
       </div>
     </div>
   );
-};
+});
+
+LogEntry.displayName = "LogEntry";
 
 export function LogsWindow<TFilterValue extends string = string>({
   logs,
@@ -99,6 +103,14 @@ export function LogsWindow<TFilterValue extends string = string>({
   onScrollPositionChange,
 }: Props<TFilterValue>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [followMode, setFollowMode] = useState(true);
+
+  const virtualizer = useVirtualizer({
+    count: filteredLogs.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 56, // Estimated height of each log entry
+    overscan: 10, // Render 10 extra items above/below viewport
+  });
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -108,11 +120,23 @@ export function LogsWindow<TFilterValue extends string = string>({
       const { scrollTop, scrollHeight, clientHeight } = container;
       const atBottom = scrollHeight - scrollTop - clientHeight < 50;
       onScrollPositionChange(atBottom);
+      
+      // Auto-disable follow mode if user scrolls up
+      if (!atBottom && followMode) {
+        setFollowMode(false);
+      }
     };
 
     container.addEventListener("scroll", handleScroll);
     return () => container.removeEventListener("scroll", handleScroll);
-  }, [onScrollPositionChange]);
+  }, [onScrollPositionChange, followMode]);
+
+  // Auto-scroll when follow mode is enabled and new logs arrive
+  useEffect(() => {
+    if (followMode && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "auto" });
+    }
+  }, [filteredLogs, followMode]);
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border">
       <div className="flex shrink-0 gap-2 bg-neutral-50 p-2 dark:bg-neutral-900">
@@ -176,6 +200,32 @@ export function LogsWindow<TFilterValue extends string = string>({
           placeholder="Search for a log entry..."
           className="dark:bg-neutral-950"
         />
+
+        {/* Follow Mode Toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant={followMode ? "default" : "outline"}
+              onClick={() => {
+                setFollowMode(!followMode);
+                if (!followMode) {
+                  logsEndRef.current?.scrollIntoView({ behavior: "auto" });
+                }
+              }}
+              className="shrink-0"
+            >
+              {followMode ? (
+                <Pause className="animate-pulse" />
+              ) : (
+                <ArrowDown />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {followMode ? "Following new logs" : "Click to follow"}
+          </TooltipContent>
+        </Tooltip>
       </div>
       <Separator />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -185,7 +235,30 @@ export function LogsWindow<TFilterValue extends string = string>({
               <p className="text-sm text-muted-foreground">No logs entries</p>
             </div>
           ) : (
-            filteredLogs.map(log => <LogEntry key={log.id} log={log} />)
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
+            >
+              {virtualizer.getVirtualItems().map(virtualRow => (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <LogEntry log={filteredLogs[virtualRow.index]} />
+                </div>
+              ))}
+            </div>
           )}
           <div ref={logsEndRef} />
         </div>
