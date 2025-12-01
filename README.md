@@ -18,10 +18,12 @@ Continue below only if you are in a restricted network or have very special requ
 ### Option 1: Docker (simple, recommended)
 
 ```bash
-docker run --rm -p 7877:80 ghcr.io/dployr-io/dployr-web:latest
+docker run --rm -p 7877:80 \
+  -e DPLOYR_BASE_URL="http://localhost:7878" \
+  ghcr.io/dployr-io/dployr-web:latest
 ```
 
-The UI will be available on `http://localhost:7877`.
+The UI will be available on `http://localhost:7877`. The container will exit if `DPLOYR_BASE_URL` is not set.
 
 ### Option 2: Static files (any web server)
 
