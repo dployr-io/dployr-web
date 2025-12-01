@@ -19,7 +19,13 @@ RUN pnpm run build
 FROM caddy:2-alpine
 
 # Caddy configuration
-COPY Caddyfile /etc/caddy/Caddyfile
+RUN cat <<'EOF' > /etc/caddy/Caddyfile
+:80 {
+    root * /usr/share/caddy
+    file_server
+    try_files {path} /index.html
+}
+EOF
 
 # Copy built assets
 COPY --from=builder /app/dist /usr/share/caddy

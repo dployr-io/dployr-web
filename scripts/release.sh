@@ -85,7 +85,7 @@ if [[ "$CURRENT_VERSION" == "0.0.0" ]]; then
     success "GitHub Actions will now build and release the binaries."
     
     echo ""
-    info "Release build at: https://github.com/dployr-io/dployr/actions"
+    info "Release build at: https://github.com/dployr-io/dployr-web/actions"
     exit 0
 fi
 
