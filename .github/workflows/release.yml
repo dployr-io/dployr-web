@@ -67,3 +67,43 @@ jobs:
           tags: |
             ghcr.io/dployr-io/dployr-web:${{ github.ref_name }}
             ghcr.io/dployr-io/dployr-web:latest
+
+      - name: Create discord payload
+        run: |
+          touch release-update.json
+          cat <<EOF > release-update.json
+          {
+            "content": "**dployr-web v${{ github.ref_name }} deployed!** 🎉",
+            "embeds": [
+              {
+                "title": "Release ${{ github.ref_name }} is Live!",
+                "description": "Check out what’s new in this release.\n\n[View Release Notes](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }})",
+                "url": "https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}",
+                "color": 5814783,
+                "fields": [
+                  {
+                    "name": "Repository",
+                    "value": "[${{ github.repository }}](https://github.com/${{ github.repository }})",
+                    "inline": true
+                  },
+                  {
+                    "name": "Tag",
+                    "value": "${{ github.ref_name }}",
+                    "inline": true
+                  }
+                ],
+                "footer": {
+                  "text": "Triggered by ${{ github.actor }}"
+                },
+                "timestamp": "${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}"
+              }
+            ]
+          }
+          EOF
+
+      - name: Send discord message via webhook
+        uses: tsickert/discord-webhook@v7.0.0
+        with:
+          webhook-url: ${{ secrets.WEBHOOK_URL }}
+          raw-data: release-update.json
+
