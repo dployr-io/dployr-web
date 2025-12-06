@@ -4,22 +4,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, InstanceStatus, Instance } from "@/types";
+import type { BreadcrumbItem, Instance } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, CirclePlus, MoreHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, CirclePlus, MoreHorizontal, Settings2, RotateCcw, Trash2, Copy, Check } from "lucide-react";
 import TimeAgo from "react-timeago";
 import { formatWithoutSuffix } from "@/lib/utils";
 import { useInstances } from "@/hooks/use-instances";
 import { useInstancesForm } from "@/hooks/use-instances-form";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useClusterId } from "@/hooks/use-cluster-id";
+import { use2FA } from "@/hooks/use-2fa";
+import { TwoFactorDialog } from "@/components/two-factor-dialog";
+import { useState } from "react";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/")({
   component: Instances,
@@ -33,28 +37,53 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Instances() {
-  const { paginatedInstances, instances, isLoading, currentPage, totalPages, startIndex, endIndex, goToPage, goToPreviousPage, goToNextPage, addInstance } = useInstances();
+  const { paginatedInstances, instances, isLoading, currentPage, totalPages, startIndex, endIndex, goToPage, goToPreviousPage, goToNextPage, addInstance, deleteInstance } = useInstances();
   const clusterId = useClusterId();
   const navigate = Route.useNavigate();
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { useInstancesDialog } = useUrlState();
   const [{ new: isNewInstanceOpen }, setInstancesDialog] = useInstancesDialog();
-  const { address, tag, validationError, setAddress, setTag, getFormData } = useInstancesForm();
+  const { address, tag, setAddress, setTag, getFormData } = useInstancesForm();
+  const twoFactor = use2FA({ enabled: true });
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [createdInstanceData, setCreatedInstanceData] = useState<{ tag: string; token: string } | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<"linux" | "windows">("linux");
+  const [copied, setCopied] = useState(false);
 
   async function handleCreateInstance() {
     const data = getFormData();
     if (!data) return;
 
     try {
-      await addInstance.mutateAsync({
+      const result = await addInstance.mutateAsync({
         address: data.address,
         tag: data.tag,
         publicKey: data.publicKey,
       });
 
+      const token = (result as any)?.data?.token as string | undefined;
+      if (token) {
+        setCreatedInstanceData({ tag: data.tag, token });
+        setShowSuccessDialog(true);
+      }
+
       setInstancesDialog({ new: false });
     } catch (error) {
       // Error is handled by the mutation's onError
+    }
+  };
+
+  const handleCopyInstallCommand = async () => {
+    if (!createdInstanceData) return;
+    const command = selectedPlatform === "linux"
+      ? `curl -sSL https://raw.githubusercontent.com/dployr-io/dployr/master/install.sh | bash -s -- --token "${createdInstanceData.token}"`
+      : `iwr "https://raw.githubusercontent.com/dployr-io/dployr/master/install.ps1" -OutFile install.ps1\n.\\install.ps1 -Token "${createdInstanceData.token}"`;
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore clipboard errors
     }
   };
 
@@ -177,7 +206,8 @@ function Instances() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={e => {
+                              <DropdownMenuItem
+                                onClick={e => {
                                   e.stopPropagation();
                                   if (!clusterId) return;
                                   navigate({
@@ -185,11 +215,31 @@ function Instances() {
                                     params: { clusterId, id: instance.id },
                                     search: { tab: "settings" },
                                   });
-                                }} className="cursor-pointer">
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <Settings2 className="h-4 w-4 text-foreground" />
                                 Settings
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {}} className="cursor-pointer">
+                                <RotateCcw className="h-4 w-4 text-foreground" />
                                 Restart
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  twoFactor.requireAuth(async () => {
+                                    try {
+                                      await deleteInstance.mutateAsync({ id: instance.id });
+                                    } catch {
+                                      // Error handling is managed by the mutation's onError
+                                    }
+                                  });
+                                }}
+                                className="cursor-pointer text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                                Remove
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -255,6 +305,84 @@ function Instances() {
               </div>
             </div>
           </div>
+
+          <TwoFactorDialog
+            open={twoFactor.isOpen}
+            onOpenChange={twoFactor.setIsOpen}
+            onVerify={twoFactor.verify}
+            isSubmitting={twoFactor.isVerifying}
+          />
+
+          <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+            <DialogContent className="sm:max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Instance Created Successfully</DialogTitle>
+                <DialogDescription>
+                  Run the command below on your instance to complete the installation.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6 py-4">
+                {/* Platform Selector */}
+                <div className="flex items-center gap-4">
+                  <Label className="text-sm font-medium min-w-[80px]">Platform</Label>
+                  <Select value={selectedPlatform} onValueChange={(value: "linux" | "windows") => setSelectedPlatform(value)}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="linux">Linux / macOS</SelectItem>
+                      <SelectItem value="windows">Windows</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Install Command */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Install Command</Label>
+                    <Button
+                      type="button"
+                      variant={copied ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleCopyInstallCommand}
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <div className="w-full overflow-x-auto rounded-md border bg-muted p-4">
+                    <pre className="font-mono text-sm whitespace-pre-wrap break-all">
+                      {selectedPlatform === "linux" ? (
+                        <code>curl -sSL https://raw.githubusercontent.com/dployr-io/dployr/master/install.sh | bash -s -- --token "{createdInstanceData?.token}"</code>
+                      ) : (
+                        <code>
+                          iwr "https://raw.githubusercontent.com/dployr-io/dployr/master/install.ps1" -OutFile install.ps1{"\n"}
+                          .\install.ps1 -Token "{createdInstanceData?.token}"
+                        </code>
+                      )}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" onClick={() => setShowSuccessDialog(false)}>
+                  Done
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </AppLayout>
     </ProtectedRoute>

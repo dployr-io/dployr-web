@@ -114,7 +114,7 @@ const generateActivityData = (user: UserWithRole | null): ActivityItem[] => {
             action: "Account Created",
             description: `User account was created and initial setup completed`,
             category: "auth",
-            metadata: { invitedBy: "admin@dployr.dev" },
+            metadata: { invitedBy: "admin@dployr.io" },
         },
     ];
 

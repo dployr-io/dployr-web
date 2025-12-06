@@ -85,7 +85,7 @@ function Services() {
                         <a href={"/deployments"}>Deploy Service</a>
                       </Button>
                       <Button variant="link" asChild className="text-muted-foreground" size="sm">
-                        <a href="https://dployr.dev/docs">
+                        <a href="https://dployr.io/docs">
                           Learn More <ArrowUpRightIcon />
                         </a>
                       </Button>

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState } from "react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,7 +34,7 @@ export function AlertBanner({ message, helpLink, variant = "destructive", classN
   return (
     <div
       className={cn(
-        "relative mb-6 flex items-center align-middle gap-3 px-4 py-2 rounded-lg border shadow-sm",
+        "relative flex items-center align-middle gap-3 px-4 py-2 rounded-lg border shadow-sm",
         "bg-background text-foreground",
         isDestructive && "border-destructive/50 bg-destructive/5",
         isSuccess && "border-green-500/50 bg-green-50 dark:border-green-400/50 dark:bg-green-950/20",

@@ -121,27 +121,27 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
       <footer className="lg:sticky lg:bottom-0 border-t min-h-12 bg-background/80 backdrop-blur-sm -mx-4 px-4">
         <div className="flex w-full justify-center py-3">
           <div className="flex space-x-6 text-xs text-muted-foreground">
-            <a href="https://status.dployr.dev" className="hover:underline">
+            <a href="https://status.dployr.io" className="hover:underline">
               Status
             </a>
             <span className="text-border">•</span>
-            <a href="https://dployr.dev/changelog" className="hover:underline">
+            <a href="https://dployr.io/changelog" className="hover:underline">
               Changelog
             </a>
             <span className="text-border">•</span>
-            <a href="https://dployr.dev/terms" className="hover:underline">
+            <a href="https://dployr.io/terms" className="hover:underline">
               Terms of Use
             </a>
             <span className="text-border">•</span>
-            <a href="https://dployr.dev/privacy" className="hover:underline">
+            <a href="https://dployr.io/privacy" className="hover:underline">
               Privacy Policy
             </a>
             <span className="text-border">•</span>
-            <a href="https://docs.dployr.dev" className="hover:underline">
+            <a href="https://docs.dployr.io" className="hover:underline">
               Docs
             </a>
             <span className="text-border">•</span>
-            <a href="https://dployr.dev/support" className="hover:underline">
+            <a href="https://dployr.io/support" className="hover:underline">
               Support
             </a>
           </div>

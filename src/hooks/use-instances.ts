@@ -111,14 +111,16 @@ export function useInstances() {
   };
 
   const addInstance = useMutation({
-    mutationFn: async ({ address, tag, publicKey }: { address: string; tag: string; publicKey: string; }): Promise<void> => {
-      await axios.post(
+    mutationFn: async ({ address, tag, publicKey }: { address: string; tag: string; publicKey: string; }): Promise<ApiSuccessResponse<any>> => {
+      const response = await axios.post<ApiSuccessResponse<any>>(
         `${import.meta.env.VITE_BASE_URL}/v1/instances`,
         { clusterId, address, tag, publicKey },
         {
           withCredentials: true,
         }
       );
+
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["instances", clusterId] });
@@ -126,6 +128,37 @@ export function useInstances() {
     onError: (error: any) => {
       const errorData = error?.response?.data?.error;
       const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while adding instance.";
+
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
+    },
+  });
+
+  const deleteInstance = useMutation({
+    mutationFn: async ({ id }: { id: string }): Promise<void> => {
+      await axios.delete(
+        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}`,
+        {
+          params: { clusterId },
+          withCredentials: true,
+        },
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["instances", clusterId] });
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage =
+        typeof errorData === "string"
+          ? errorData
+          : errorData?.message || error?.message || "An error occurred while deleting instance.";
 
       const helpLink = error?.response?.data?.error.helpLink;
 
@@ -208,6 +241,7 @@ export function useInstances() {
     addInstance,
     updateInstance,
     rotateInstanceToken,
+    deleteInstance,
     goToPage,
     goToNextPage,
     goToPreviousPage,

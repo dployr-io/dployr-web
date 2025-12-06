@@ -2,11 +2,11 @@
     "name": "dployr",
     "author": {
         "name": "Emmanuel Madehin",
-        "email": "hello@dployr.dev",
-        "url": "https://dployr.dev"
+        "email": "hello@dployr.io",
+        "url": "https://dployr.io"
     },
     "description": "Your app, your server, your rules!",
-    "homepage": "https://dployr.dev",
+    "homepage": "https://dployr.io",
     "licenses": [
         {
             "type": "Apache License, Version 2.0",

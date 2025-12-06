@@ -28,6 +28,7 @@ export function useInstanceLogs(
   const logCounterRef = useRef(0);
   const logBufferRef = useRef<Log[]>([]);
   const flushTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastOffsetRef = useRef(0);
 
   const requestLogs = useCallback(async (
     mode: LogStreamMode,
@@ -41,7 +42,7 @@ export function useInstanceLogs(
       await axios.post(
         `${import.meta.env.VITE_BASE_URL}/v1/instances/${instanceId}/logs/stream`,
         {
-          logType,
+          path: logType,
           mode,
           startFrom: startFrom || 100,
           limit: limit || (mode === "historical" ? 1000 : undefined),
@@ -85,8 +86,8 @@ export function useInstanceLogs(
         socket.send(
           JSON.stringify({
             kind: "log_subscribe",
-            logType,
-            startOffset: lastOffset,
+            path: logType,
+            startOffset: lastOffsetRef.current,
           }),
         );
       };
@@ -95,13 +96,16 @@ export function useInstanceLogs(
         try {
           const data = JSON.parse(event.data as string);
 
+          console.log(data);
+
           if (data.kind === "log_subscribed") {
             setCurrentStreamId(data.streamId);
-            console.log(`Subscribed to ${data.logType}, streamId: ${data.streamId}`);
+            console.log(`Subscribed to ${data.path}, streamId: ${data.streamId}`);
           }
 
-          if (data.kind === "log_chunk" && Array.isArray(data.entries)) {
-            const newLogs: Log[] = data.entries.map((entry: any) => ({
+          if (data.kind === "log_chunk" && data.payload && Array.isArray(data.payload.entries)) {
+            const entries = data.payload.entries as any[];
+            const newLogs: Log[] = entries.map((entry: any) => ({
               id: `log-${logCounterRef.current++}`,
               message: entry.msg,
               level: entry.level?.toUpperCase() || "INFO",
@@ -110,7 +114,9 @@ export function useInstanceLogs(
             
             // Buffer logs instead of immediate state update
             logBufferRef.current.push(...newLogs);
-            setLastOffset(data.offset + data.entries.length);
+            if (typeof data.payload.offset === "number") {
+              setLastOffset(data.payload.offset + entries.length);
+            }
             
             // Schedule flush if not already scheduled
             if (!flushTimerRef.current) {
@@ -139,7 +145,10 @@ export function useInstanceLogs(
         
         // Auto-reconnect with exponential backoff
         if (retriesRef.current < maxRetries) {
-          const delay = Math.min(1000 * Math.pow(2, retriesRef.current), 10000);
+          const attempt = retriesRef.current + 1;
+          const delay = attempt <= 3
+            ? 1000
+            : Math.min(1000 * Math.pow(2, attempt - 3), 10000);
           retriesRef.current++;
           console.log(`Reconnecting in ${delay}ms (attempt ${retriesRef.current}/${maxRetries})`);
           
@@ -154,7 +163,11 @@ export function useInstanceLogs(
       setError((connectError as Error).message || "Failed to connect to log stream");
       setIsConnected(false);
     }
-  }, [instanceId, clusterId, logType, lastOffset]);
+  }, [instanceId, clusterId, logType]);
+
+  useEffect(() => {
+    lastOffsetRef.current = lastOffset;
+  }, [lastOffset]);
 
   useEffect(() => {
     if (!instanceId || !logType || !initialMode) return;
@@ -179,7 +192,7 @@ export function useInstanceLogs(
         socketRef.current = null;
       }
     };
-  }, [instanceId, logType, initialMode, lastOffset, connect, requestLogs, flushLogs]);
+  }, [instanceId, logType, initialMode, connect, requestLogs, flushLogs]);
 
   // Change mode (e.g., tail → historical)
   const changeMode = useCallback((

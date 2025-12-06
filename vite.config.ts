@@ -23,7 +23,7 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['app.dployr.dev'],
+    allowedHosts: ['app.dployr.io'],
     cors: {
       origin: '*',
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

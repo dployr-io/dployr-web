@@ -4,10 +4,10 @@ This is the web dashboard for [dployr](https://github.com/dployr-io/dployr).
 
 Most users do not need to self-host. The free hosted dashboard is globally available and delivered at low latency via Cloudflare’s edge network:
 
-- Dashboard: https://app.dployr.dev
-- Base: https://base.dployr.dev
-- Documentation: https://docs.dployr.dev
-- API Reference: https://api-docs.dployr.dev
+- Dashboard: https://app.dployr.io
+- Base: https://base.dployr.io
+- Documentation: https://docs.dployr.io
+- API Reference: https://api-docs.dployr.io
 
 Continue below only if you are in a restricted network or have very special requirements that require deploying and managing your own control plane & web dashboard.
 
@@ -66,6 +66,6 @@ Build output goes to `dist/`.
 
 ## Links
 
-- Self‑hosting guide: https://docs.dployr.dev/installation/self-hosting
+- Self‑hosting guide: https://docs.dployr.io/installation/self-hosting
 
 License: Apache 2.0

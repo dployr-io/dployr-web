@@ -584,7 +584,7 @@ function ViewInstance() {
                   <DialogDescription>
                     This token will not be shown again. Store it securely. <br />
                     <a
-                      href="https://docs.dployr.dev"
+                      href="https://docs.dployr.io"
                       target="_blank"
                       rel="noreferrer"
                       className="underline"

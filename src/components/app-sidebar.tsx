@@ -89,12 +89,12 @@ export function AppSidebar() {
   const footerNavItems: NavItem[] = [
     {
       title: "Docs",
-      href: "https://docs.dployr.dev",
+      href: "https://docs.dployr.io",
       icon: BookOpen,
     },
     {
       title: "Support",
-      href: "https://dployr.dev/support",
+      href: "https://dployr.io/support",
       icon: MessageCircleQuestion,
     },
   ];
