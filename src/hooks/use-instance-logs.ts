@@ -103,8 +103,8 @@ export function useInstanceLogs(
             console.log(`Subscribed to ${data.path}, streamId: ${data.streamId}`);
           }
 
-          if (data.kind === "log_chunk" && data.payload && Array.isArray(data.payload.entries)) {
-            const entries = data.payload.entries as any[];
+          if (data.kind === "log_chunk" && Array.isArray(data.entries)) {
+            const entries = data.entries as any[];
             const newLogs: Log[] = entries.map((entry: any) => ({
               id: `log-${logCounterRef.current++}`,
               message: entry.msg,
@@ -114,8 +114,9 @@ export function useInstanceLogs(
             
             // Buffer logs instead of immediate state update
             logBufferRef.current.push(...newLogs);
-            if (typeof data.payload.offset === "number") {
-              setLastOffset(data.payload.offset + entries.length);
+
+            if (typeof data.offset === "number") {
+              setLastOffset(data.offset + entries.length);
             }
             
             // Schedule flush if not already scheduled

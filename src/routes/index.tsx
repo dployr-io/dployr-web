@@ -52,7 +52,9 @@ function App() {
       } catch (error: any) {
         const message = error?.response?.data?.error?.message;
         console.error("Login failed:", error);
-        setError({ authError: message });
+        if (message) {
+          setError({ authError: message });
+        }
       }
     },
   });
@@ -73,7 +75,9 @@ function App() {
       } catch (error: any) {
         const message = error?.response?.data?.error?.message;
         console.error("OTP verification failed:", error);
-        setError({ authError: message });
+        if (message) {
+          setError({ authError: message });
+        }
       }
     }
   };

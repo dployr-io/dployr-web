@@ -60,7 +60,13 @@ function Notifications() {
   }, [usersArray]);
 
   const availableTypes = useMemo(() => {
-    const types = Array.from(new Set(eventsArray.map((e) => e.type))).sort();
+    const types = Array.from(
+      new Set(
+        eventsArray
+          .map((e) => e?.type)
+          .filter((type): type is string => typeof type === "string" && type.length > 0)
+      )
+    ).sort();
     return types;
   }, [eventsArray]);
 
@@ -263,11 +269,16 @@ function Notifications() {
                   </TableHeader>
                   <TableBody>
                     {eventsArray.length > 0 ? (
-                      eventsArray.map((event) => {
-                        const actorUser = event.actor.type === "user" ? userById.get(event.actor.id) : undefined;
+                      eventsArray.map((event, index) => {
+                        if (!event || !event.actor) {
+                          return null;
+                        }
+
+                        const actorUser =
+                          event.actor.type === "user" ? userById.get(event.actor.id) : undefined;
 
                         return (
-                          <TableRow key={event.id} className="h-16">
+                          <TableRow key={`${event.id}-${event.timestamp}-${index}`} className="h-16">
                             <TableCell className="h-16 align-middle">
                               {actorUser ? (
                                 <div className="flex items-center gap-2">
