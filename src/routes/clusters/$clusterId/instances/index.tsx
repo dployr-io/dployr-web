@@ -191,11 +191,14 @@ function Instances() {
                         </TableCell>
                         <TableCell className="h-16 max-w-[80px] align-middle">
                           <span className="text-sm text-muted-foreground">
-                            {instance.createdAt ? (
-                              <TimeAgo date={instance.createdAt} formatter={formatWithoutSuffix} />
-                            ) : (
-                              "N/A"
-                            )}
+                            {(() => {
+                              if (!instance.createdAt) return "N/A";
+
+                              const createdDate = new Date(Number(instance.createdAt));
+                              if (Number.isNaN(createdDate.getTime())) return "N/A";
+
+                              return <TimeAgo date={createdDate} formatter={formatWithoutSuffix} />;
+                            })()}
                           </span>
                         </TableCell>
                         <TableCell className="h-16 max-w-[80px] align-middle text-right">
