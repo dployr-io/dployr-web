@@ -4,7 +4,6 @@
 import type { Log, LogLevel, LogStreamMode, LogType } from "@/types";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useClusterId } from "@/hooks/use-cluster-id";
-import axios from "axios";
 
 export function useInstanceLogs(
   instanceId?: string,
@@ -16,7 +15,6 @@ export function useInstanceLogs(
   const [selectedLevel, setSelectedLevel] = useState<"ALL" | LogLevel>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [isConnected, setIsConnected] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
   const [lastOffset, setLastOffset] = useState(0);
@@ -29,34 +27,6 @@ export function useInstanceLogs(
   const logBufferRef = useRef<Log[]>([]);
   const flushTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastOffsetRef = useRef(0);
-
-  const requestLogs = useCallback(async (
-    mode: LogStreamMode,
-    startFrom: number,
-    limit?: number
-  ) => {
-    if (!instanceId || !logType || !clusterId) return;
-
-    try {
-      setIsStreaming(true);
-      await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/v1/instances/${instanceId}/logs/stream`,
-        {
-          path: logType,
-          mode,
-          startFrom: startFrom || 100,
-          limit: limit || (mode === "historical" ? 1000 : undefined),
-        },
-        { params: { clusterId }, withCredentials: true }
-      );
-      
-      console.log(`Requested ${mode} logs from offset ${startFrom || 100}`);
-    } catch (err: any) {
-      setError(err?.response?.data?.error?.message || "Failed to request logs");
-    } finally {
-      setIsStreaming(false);
-    }
-  }, [instanceId, logType, clusterId]);
 
   // Flush buffered logs to state
   const flushLogs = useCallback(() => {
@@ -96,8 +66,6 @@ export function useInstanceLogs(
         try {
           const data = JSON.parse(event.data as string);
 
-          console.log(data);
-
           if (data.kind === "log_subscribed") {
             setCurrentStreamId(data.streamId);
             console.log(`Subscribed to ${data.path}, streamId: ${data.streamId}`);
@@ -105,13 +73,24 @@ export function useInstanceLogs(
 
           if (data.kind === "log_chunk" && Array.isArray(data.entries)) {
             const entries = data.entries as any[];
-            const newLogs: Log[] = entries.map((entry: any) => ({
-              id: `log-${logCounterRef.current++}`,
-              message: entry.msg,
-              level: entry.level?.toUpperCase() || "INFO",
-              timestamp: new Date(entry.time),
-            }));
-            
+            const newLogs: Log[] = entries.map((entry: any) => {
+              const { msg, level, time, ...rest } = entry || {};
+              const metadata: Record<string, unknown> = {};
+              for (const [key, value] of Object.entries(rest || {})) {
+                if (value !== undefined && value !== null) {
+                  metadata[key] = value;
+                }
+              }
+
+              return {
+                id: `log-${logCounterRef.current++}`,
+                message: msg ?? "",
+                level: level?.toUpperCase() || "INFO",
+                timestamp: new Date(time),
+                ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
+              };
+            });
+
             // Buffer logs instead of immediate state update
             logBufferRef.current.push(...newLogs);
 
@@ -175,11 +154,6 @@ export function useInstanceLogs(
 
     connect();
 
-    // Backfill ~100 historical entries
-    const run = async () => await requestLogs(initialMode, 100, 100);
-
-    void run();
-
     return () => {
       if (flushTimerRef.current) {
         clearTimeout(flushTimerRef.current);
@@ -193,33 +167,7 @@ export function useInstanceLogs(
         socketRef.current = null;
       }
     };
-  }, [instanceId, logType, initialMode, connect, requestLogs, flushLogs]);
-
-  // Change mode (e.g., tail → historical)
-  const changeMode = useCallback((
-    newMode: LogStreamMode,
-    startFrom?: number,
-    limit?: number
-  ) => {
-    if (newMode === "historical") {
-      // Clear logs when explicitly requesting a specific range
-      if (typeof startFrom === "number") {
-        setLogs([]);
-        setLastOffset(startFrom);
-      }
-      requestLogs("historical", startFrom || lastOffset, limit);
-      return;
-    }
-
-    requestLogs(newMode, startFrom || lastOffset, limit);
-  }, [lastOffset, requestLogs]);
-
-  // Fill gap after reconnection
-  const fillGap = useCallback(async () => {
-    if (lastOffset > 0) {
-      await requestLogs("historical", lastOffset, 1000);
-    }
-  }, [lastOffset, requestLogs]);
+  }, [instanceId, logType, initialMode, connect, flushLogs]);
 
   // Defer filtering to avoid blocking on heavy updates
   const deferredLogs = useDeferredValue(logs);
@@ -264,13 +212,9 @@ export function useInstanceLogs(
     searchQuery,
     logsEndRef,
     isConnected,
-    isStreaming,
     error,
     currentStreamId,
     lastOffset,
-    changeMode,
-    fillGap,
-    requestLogs,
     setSelectedLevel,
     setSearchQuery,
   };

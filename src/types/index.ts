@@ -317,6 +317,7 @@ export interface Log {
   message: string;
   level: LogLevel | null;
   timestamp: Date;
+  metadata?: Record<string, unknown>;
 }
 
 export type LogType = "app" | "install";

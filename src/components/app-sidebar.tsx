@@ -52,11 +52,6 @@ export function AppSidebar() {
       icon: Factory,
     },
     {
-      title: "Logs",
-      href: clusterId ? "/clusters/$clusterId/logs" : "/logs",
-      icon: Logs,
-    },
-    {
       title: "Console",
       href: clusterId ? "/clusters/$clusterId/console" : "/console",
       icon: SquareChevronRight,

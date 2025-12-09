@@ -6,8 +6,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import type { Log, LogLevel } from "@/types";
-import { ArrowDown, ChevronDown, Pause } from "lucide-react";
-import { memo, useEffect, useRef, useState } from "react";
+import { formatMetadata, getLabelColor } from "@/lib/format-metadata";
+import { ArrowDown, ChevronDown, ChevronRight, Pause } from "lucide-react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useVirtualizer } from "@tanstack/react-virtual";
 
@@ -36,55 +37,82 @@ interface Props<TFilterValue extends string = string> {
   onScrollPositionChange?: (isAtBottom: boolean) => void;
 }
 
+const getLevelColor = (level: Log["level"]) => {
+  switch (level) {
+    case "DEBUG":
+      return "dark:text-sky-400 text-sky-600";
+    case "INFO":
+      return "dark:text-muted-foreground text-muted-foreground";
+    case "WARNING":
+      return "dark:text-orange-400 text-orange-600";
+    case "ERROR":
+    case "CRITICAL":
+    case "ALERT":
+    case "EMERGENCY":
+      return "text-red-500";
+    default:
+      return "text-muted-foreground";
+  }
+};
+
 const LogEntry = memo(({ log }: { log: Log }) => {
+  const [expanded, setExpanded] = useState(false);
+  const hasMetadata = log.metadata && Object.keys(log.metadata).length > 0;
+  const levelColor = getLevelColor(log.level);
+
+  const toggleExpanded = useCallback(() => {
+    setExpanded(prev => !prev);
+  }, []);
+
   return (
-    <div className="flex items-start gap-3 border-b p-3">
-      <div className="flex gap-2">
-        {log.timestamp && (
-          <span
-            className={`min-w-16 text-xs whitespace-nowrap ${(() => {
-              switch (log.level) {
-                case "DEBUG":
-                  return "dark:text-sky-400 text-sky-600";
-                case "INFO":
-                  return "dark:text-muted-foreground text-muted-foreground";
-                case "WARNING":
-                  return "dark:text-orange-400 text-orange-600";
-                case "ERROR":
-                case "CRITICAL":
-                case "ALERT":
-                case "EMERGENCY":
-                  return "text-red-500";
-                default:
-                  return "text-muted-foreground";
-              }
-            })()}`}
+    <div className="border-b p-3">
+      <div className="flex items-start gap-2">
+        {/* Expand toggle for metadata */}
+        {hasMetadata ? (
+          <button
+            type="button"
+            onClick={toggleExpanded}
+            className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+            aria-label={expanded ? "Collapse metadata" : "Expand metadata"}
           >
+            <ChevronRight
+              className={`h-3 w-3 transition-transform ${expanded ? "rotate-90" : ""}`}
+            />
+          </button>
+        ) : (
+          <span className="w-3 shrink-0" />
+        )}
+
+        {/* Timestamp */}
+        {log.timestamp && (
+          <span className={`min-w-16 shrink-0 whitespace-nowrap text-xs ${levelColor}`}>
             {log.timestamp.toLocaleString()}
           </span>
         )}
-        <span
-          className={`text-xs ${(() => {
-            switch (log.level) {
-              case "DEBUG":
-                return "dark:text-sky-400 text-sky-600";
-              case "INFO":
-                return "dark:text-muted-foreground text-muted-foreground";
-              case "WARNING":
-                return "dark:text-orange-400 text-orange-600";
-              case "ERROR":
-              case "CRITICAL":
-              case "ALERT":
-              case "EMERGENCY":
-                return "text-red-500";
-              default:
-                return "text-muted-foreground";
-            }
-          })()}`}
-        >
-          {log.message}
-        </span>
+
+        {/* Message */}
+        <span className={`text-xs font-medium ${levelColor}`}>{log.message}</span>
       </div>
+
+      {/* Collapsible metadata */}
+      {expanded && hasMetadata && (
+        <div className="ml-5 mt-2 space-y-0.5 text-xs font-mono">
+          {formatMetadata(log.metadata!).map((entry, idx) => (
+            <div
+              key={`${entry.label}-${idx}`}
+              className="flex gap-1"
+              style={{ paddingLeft: `${entry.indent * 12}px` }}
+            >
+              <span className={`shrink-0 ${getLabelColor(entry.label)}`}>
+                {entry.label}:
+              </span>
+              {entry.value !== null && (
+                <span className="text-foreground/80 break-all">{entry.value}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 });

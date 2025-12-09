@@ -6,7 +6,7 @@ import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronLeft, Copy, FileX2, Loader2, RotateCcw } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, Cog, Copy, Cpu, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/metric-card";
 import { StatusBadge } from "@/components/status-badge";
@@ -14,6 +14,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
 import { useInstanceLogs } from "@/hooks/use-instance-logs";
+import { useInstanceViewState } from "@/hooks/use-instance-view-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useClusters } from "@/hooks/use-clusters";
@@ -21,12 +22,14 @@ import { getRolePriority } from "@/lib/utils";
 import { useInstances } from "@/hooks/use-instances";
 import { FormattedFile } from "@/components/formatted-file";
 import { useInstancesForm } from "@/hooks/use-instances-form";
+import { useVersion } from "@/hooks/use-version";
 import { useUrlState } from "@/hooks/use-url-state";
 import { use2FA } from "@/hooks/use-2fa";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { LogsWindow } from "@/components/logs-window";
+import { VersionSelector } from "@/components/version-selector";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/$id")({
   component: ViewInstance,
@@ -51,9 +54,11 @@ function ViewInstance() {
   const { id: instanceId, clusterId } = Route.useParams();
   const { useInstanceTabsState } = useUrlState();
   const [{ tab }, setTab] = useInstanceTabsState();
-  const { instances, rotateInstanceToken } = useInstances();
+  const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
   const { status, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instanceId);
+  const currentVersion = status?.update?.build_info?.version;
+  const { compatibility } = useVersion({ currentVersion });
   const breadcrumbs = viewInstanceBreadcrumbs(clusterId, instanceId, instance?.tag);
   const { user } = useAuth();
   const { users: clusterUsers } = useClusters();
@@ -63,48 +68,54 @@ function ViewInstance() {
   const canViewLogs = myRole ? getRolePriority(myRole) >= 2 : false;
   const { address, tag, publicKey, setAddress, setTag, setPublicKey } = useInstancesForm();
   const twoFactor = use2FA({ enabled: true });
-  const [bootstrapToken, setBootstrapToken] = useState<string | null>(null);
-  const [rotateOpen, setRotateOpen] = useState(false);
-  const [rotateValue, setRotateValue] = useState("");
-  const [rotateError, setRotateError] = useState("");
-  const [isRotating, setIsRotating] = useState(false);
-  const [rotatedToken, setRotatedToken] = useState<string | null>(null);
-  const [showBootstrapInfo, setShowBootstrapInfo] = useState(false);
-  const [logType, setLogType] = useState<LogType>("app");
-  const [logMode, setLogMode] = useState<LogStreamMode>("historical");
-  const [isAtBottom, setIsAtBottom] = useState(true);
-  const { 
-    logs, 
-    filteredLogs, 
-    selectedLevel, 
-    searchQuery, 
-    logsEndRef,
-    isConnected,
-    lastOffset,
-    setSelectedLevel, 
-    setSearchQuery, 
-    changeMode,
-    fillGap
-  } = useInstanceLogs(
-    instanceId,
+  const {
+    bootstrapToken,
+    rotateOpen,
+    rotateValue,
+    rotateError,
+    isRotating,
+    rotatedToken,
+    showBootstrapInfo,
+    isInstalling,
+    isRestarting,
+    restartOpen,
+    rebootOpen,
+    forceRestart,
+    forceReboot,
     logType,
     logMode,
-  );
+    isAtBottom,
+    setBootstrapToken,
+    setRotateOpen,
+    setRotateValue,
+    setRotateError,
+    setIsRotating,
+    setRotatedToken,
+    setShowBootstrapInfo,
+    setIsInstalling,
+    setIsRestarting,
+    setRestartOpen,
+    setRebootOpen,
+    setForceRestart,
+    setForceReboot,
+    setLogType,
+    setLogMode,
+    setIsAtBottom,
+  } = useInstanceViewState();
+  const { logs, filteredLogs, selectedLevel, searchQuery, logsEndRef, setSelectedLevel, setSearchQuery } = useInstanceLogs(instanceId, logType, logMode);
 
   const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
 
-  // All hooks must be called before any early returns
-
   const handleScrollPositionChange = useCallback((atBottom: boolean) => {
     setIsAtBottom(atBottom);
-  }, []);
+  }, [setIsAtBottom]);
 
   useEffect(() => {
     const token = (status?.update?.status as any)?.debug?.auth?.bootstrap_token as string | undefined;
     if (token && !bootstrapToken) {
       setBootstrapToken(token);
     }
-  }, [status, bootstrapToken]);
+  }, [status, bootstrapToken, setBootstrapToken]);
 
   useEffect(() => {
     if (!instance) return;
@@ -119,21 +130,13 @@ function ViewInstance() {
     }
   }, [instance, address, tag, publicKey, setAddress, setTag, setPublicKey]);
 
-  // Fill gap on reconnect
-  useEffect(() => {
-    if (isConnected && lastOffset > 0) {
-      fillGap();
-    }
-  }, [isConnected, lastOffset, fillGap]);
-
   // Update mode based on scroll position
   useEffect(() => {
     const newMode: LogStreamMode = isAtBottom ? "tail" : "historical";
     if (newMode !== logMode) {
       setLogMode(newMode);
-      changeMode(newMode);
     }
-  }, [isAtBottom, logMode, changeMode]);
+  }, [isAtBottom, logMode, setLogMode]);
 
   const handleCopyStatus = async () => {
     try {
@@ -181,29 +184,24 @@ function ViewInstance() {
       <ProtectedRoute>
         <AppLayout breadcrumbs={breadcrumbs}>
           <div className="flex h-full min-h-[500px] items-center justify-center">
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </EmptyMedia>
-              <EmptyTitle>Connecting to instance...</EmptyTitle>
-              <EmptyDescription>This shouldn&apos;t take too long. If it does, try refreshing your browser.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        </div>
-      </AppLayout>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </EmptyMedia>
+                <EmptyTitle>Connecting to instance...</EmptyTitle>
+                <EmptyDescription>This shouldn&apos;t take too long. If it does, try refreshing your browser.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </div>
+        </AppLayout>
       </ProtectedRoute>
     );
   }
 
   const metrics = status?.update?.status as any;
   const uptimeRaw = metrics?.uptime;
-  const uptimeSeconds =
-    typeof uptimeRaw === "number"
-      ? Math.floor(uptimeRaw)
-      : typeof uptimeRaw === "string"
-      ? Math.floor(parseFloat(uptimeRaw))
-      : 0;
+  const uptimeSeconds = typeof uptimeRaw === "number" ? Math.floor(uptimeRaw) : typeof uptimeRaw === "string" ? Math.floor(parseFloat(uptimeRaw)) : 0;
   const uptime = (() => {
     if (!uptimeSeconds) return "-";
     const minutes = Math.floor(uptimeSeconds / 60);
@@ -218,8 +216,6 @@ function ViewInstance() {
 
   const handleRotateTokenClick = () => {
     twoFactor.requireAuth(() => {
-      setRotateValue("");
-      setRotateError("");
       setRotateOpen(true);
     });
   };
@@ -241,14 +237,56 @@ function ViewInstance() {
       setRotatedToken(token);
       setShowBootstrapInfo(true);
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.error?.message || err?.message || "Failed to rotate bootstrap token";
+      const msg = err?.response?.data?.error?.message || err?.message || "Failed to rotate bootstrap token";
       setRotateError(msg);
     } finally {
       setIsRotating(false);
     }
   };
 
+  const handleInstallVersion = async (version?: string) => {
+    if (!instanceId) return;
+    setIsInstalling(true);
+    try {
+      await installVersion.mutateAsync({ id: instanceId, version });
+    } finally {
+      setIsInstalling(false);
+    }
+  };
+
+  const handleRestartClick = () => {
+    twoFactor.requireAuth(() => {
+      setRestartOpen(true);
+    });
+  };
+
+  const handleRebootClick = () => {
+    twoFactor.requireAuth(() => {
+      setRebootOpen(true);
+    });
+  };
+
+  const handleRestartSubmit = async () => {
+    if (!instanceId) return;
+    setIsRestarting(true);
+    try {
+      await restartInstance.mutateAsync({ id: instanceId, force: forceRestart });
+    } finally {
+      setIsRestarting(false);
+      setRestartOpen(false);
+    }
+  };
+
+  const handleRebootSubmit = async () => {
+    if (!instanceId) return;
+    setIsRestarting(true);
+    try {
+      await rebootInstance.mutateAsync({ id: instanceId, force: forceReboot });
+    } finally {
+      setIsRestarting(false);
+      setRebootOpen(false);
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -264,7 +302,7 @@ function ViewInstance() {
                   {canViewLogs && <TabsTrigger value="logs">Logs</TabsTrigger>}
                   {canViewAdvanced && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
                 </TabsList>
-               
+
                 <Button variant="outline" size="sm" onClick={() => window.history.back()} className="h-8 px-3 text-xs">
                   <ChevronLeft className="mr-1 h-3 w-3" /> Back
                 </Button>
@@ -273,77 +311,58 @@ function ViewInstance() {
               <TabsContent value="overview" className="mt-4 space-y-4">
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
                   <MetricCard label="Uptime" value={uptime} />
-                  <MetricCard label="Agent" value={status?.update?.build_info?.version || "-"} />
-                  <MetricCard 
-                    label="Platform" 
-                    value={`${status?.update?.platform?.os || "-"} · ${status?.update?.platform?.arch || "-"}`} 
+                  <MetricCard
+                    label="Version"
+                    value={
+                      <VersionSelector
+                        currentVersion={status?.update?.build_info?.version || "-"}
+                        latestVersion={compatibility?.latestVersion}
+                        upgradeLevel={compatibility?.upgradeLevel}
+                        onInstall={handleInstallVersion}
+                        isInstalling={isInstalling}
+                      />
+                    }
                   />
+                  <MetricCard label="Platform" value={`${status?.update?.platform?.os || "-"} · ${status?.update?.platform?.arch || "-"}`} />
                 </div>
 
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
                   <div className="flex flex-col gap-3">
-                    <MetricCard 
-                      label="Status" 
-                      value={<StatusBadge status={metrics?.status || "-"} variant="compact" />} 
-                    />
-                    <MetricCard 
-                      label="Mode" 
-                      value={<StatusBadge status={metrics?.mode || "-"} variant="compact" />} 
-                    />
+                    <MetricCard label="Status" value={<StatusBadge status={metrics?.status || "-"} variant="compact" />} />
+                    <MetricCard label="Mode" value={<StatusBadge status={metrics?.mode || "-"} variant="compact" />} />
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <MetricCard 
-                      label="Services" 
-                      value={
-                        typeof metrics?.services?.running === "number" && typeof metrics?.services?.total === "number"
-                          ? `${metrics.services.running}/${metrics.services.total} running`
-                          : "-"
-                      } 
+                    <MetricCard
+                      label="Services"
+                      value={typeof metrics?.services?.running === "number" && typeof metrics?.services?.total === "number" ? `${metrics.services.running}/${metrics.services.total} running` : "-"}
                     />
-                    <MetricCard 
-                      label="Health" 
-                      value={<StatusBadge status={metrics?.health?.overall || "-"} variant="compact" />} 
-                    />
+                    <MetricCard label="Health" value={<StatusBadge status={metrics?.health?.overall || "-"} variant="compact" />} />
                   </div>
-                  
+
                   <div className="flex flex-col gap-3">
-                     <MetricCard 
-                      label="Proxy" 
+                    <MetricCard
+                      label="Proxy"
                       value={
                         <div className="flex items-center gap-2">
                           <StatusBadge status={metrics?.proxy?.status || "-"} variant="compact" />
-                          {typeof metrics?.proxy?.routes === "number" && (
-                            <span className="text-xs text-muted-foreground">{metrics.proxy.routes} routes</span>
-                          )}
+                          {typeof metrics?.proxy?.routes === "number" && <span className="text-xs text-muted-foreground">{metrics.proxy.routes} routes</span>}
                         </div>
-                      } 
+                      }
                     />
                   </div>
                 </div>
 
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4 sm:grid-cols-2">
-                  <MetricCard 
-                    label="Overall" 
-                    value={<StatusBadge status={metrics?.health?.overall || "-"} variant="compact" />} 
-                  />
-                  <MetricCard 
-                    label="Websocket" 
-                    value={<StatusBadge status={metrics?.health?.ws || "-"} variant="compact" />} 
-                  />
-                  <MetricCard 
-                    label="Tasks" 
-                    value={<StatusBadge status={metrics?.health?.tasks || "-"} variant="compact" />} 
-                  />
-                  <MetricCard 
-                    label="Auth" 
-                    value={<StatusBadge status={metrics?.health?.auth || "-"} variant="compact" />} 
-                  />
+                  <MetricCard label="Overall" value={<StatusBadge status={metrics?.health?.overall || "-"} variant="compact" />} />
+                  <MetricCard label="Websocket" value={<StatusBadge status={metrics?.health?.ws || "-"} variant="compact" />} />
+                  <MetricCard label="Tasks" value={<StatusBadge status={metrics?.health?.tasks || "-"} variant="compact" />} />
+                  <MetricCard label="Auth" value={<StatusBadge status={metrics?.health?.auth || "-"} variant="compact" />} />
                 </div>
               </TabsContent>
 
               <TabsContent value="config" className="mt-4 space-y-4">
-                <div className="relative rounded-xl border bg-background/40 p-4">        
+                <div className="relative rounded-xl border bg-background/40 p-4">
                   <div className="space-y-4 text-sm">
                     <div>
                       <span className="text-xs text-muted-foreground">Address</span>
@@ -356,30 +375,20 @@ function ViewInstance() {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <span className="text-xs text-muted-foreground flex items-center gap-1">Bootstrap token</span>
-                        <div className="mt-1 font-mono text-xs">
-                          {`${bootstrapToken}...` }
-                        </div>
+                        <div className="mt-1 font-mono text-xs">{`${bootstrapToken}...`}</div>
                       </div>
                     </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={handleRotateTokenClick}
-                        disabled={!bootstrapToken}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                        Rotate token
-                      </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={handleRotateTokenClick} disabled={!bootstrapToken}>
+                      <RotateCcw className="h-4 w-4" />
+                      Rotate token
+                    </Button>
                     <div>
                       <span className="text-xs text-muted-foreground">Public key</span>
-                      {(instance?.publicKey || "-")
-                        .split("\n")
-                        .map((line, idx) => (
-                          <div className="font-mono text-xs" key={idx}>
-                            {line}
-                          </div>
-                        ))}
+                      {(instance?.publicKey || "-").split("\n").map((line, idx) => (
+                        <div className="font-mono text-xs" key={idx}>
+                          {line}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -387,27 +396,45 @@ function ViewInstance() {
 
               <TabsContent value="system" className="mt-4 space-y-4">
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
-                  <MetricCard 
-                    label="CPU Count" 
-                    value={typeof system?.cpu_count === "number" ? system.cpu_count.toString() : "-"} 
-                  />
-                  <MetricCard 
-                    label="Memory used / total" 
+                  <MetricCard label="CPU" icon={<Cpu className="h-3 w-3" />} value={typeof system?.cpu_count === "number" ? system.cpu_count.toString() : "-"} />
+
+                  <MetricCard label="Workers" icon={<Cog className="h-3 w-3" />} value={typeof system?.workers === "number" ? system.workers.toString() : "-"} />
+
+                  <MetricCard
+                    label="Memory"
+                    icon={<MemoryStick className="h-3 w-3" />}
                     value={
                       typeof system?.mem_used_bytes === "number" && typeof system?.mem_total_bytes === "number"
                         ? `${Math.round(system.mem_used_bytes / 1024 / 1024)}MB / ${Math.round(system.mem_total_bytes / 1024 / 1024)}MB`
                         : "-"
                     }
-                    progress={
-                      typeof system?.mem_used_bytes === "number" && typeof system?.mem_total_bytes === "number"
-                        ? (system.mem_used_bytes / system.mem_total_bytes) * 100
-                        : undefined
-                    }
+                    progress={typeof system?.mem_used_bytes === "number" && typeof system?.mem_total_bytes === "number" ? (system.mem_used_bytes / system.mem_total_bytes) * 100 : undefined}
                   />
-                  <MetricCard 
-                    label="Available memory" 
-                    value={typeof system?.mem_free_bytes === "number" ? `${Math.round(system.mem_free_bytes / 1024 / 1024)}MB` : "-"} 
-                  />
+
+                  <div className="flex gap-4">
+                    <div className="flex flex-col items-center gap-1">
+                      <p className="text-xs text-muted-foreground">Restart</p>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleRestartClick}
+                        className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center"
+                      >
+                        <RefreshCcw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <p className="text-xs text-muted-foreground">Reboot</p>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleRebootClick}
+                        className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center"
+                      >
+                        <Power className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl border bg-background/40 p-4">
@@ -438,15 +465,8 @@ function ViewInstance() {
                         };
 
                         return (
-                          <div
-                            key={`${idx}-${d?.filesystem || d?.mountpoint || "disk"}`}
-                            className="rounded-md border bg-background/60 p-3"
-                          >
-                            <MetricCard
-                              label={d?.mountpoint || "-"}
-                              value={`${formatBytes(used)} / ${formatBytes(total)}`}
-                              progress={percent}
-                            />
+                          <div key={`${idx}-${d?.filesystem || d?.mountpoint || "disk"}`} className="rounded-md border bg-background/60 p-3">
+                            <MetricCard label={d?.mountpoint || "-"} icon={<HardDrive className="h-3 w-3" />} value={`${formatBytes(used)} / ${formatBytes(total)}`} progress={percent} />
                           </div>
                         );
                       })
@@ -459,12 +479,12 @@ function ViewInstance() {
 
               {canViewLogs && (
                 <TabsContent value="logs" className="mt-4 flex min-h-0 flex-1 flex-col">
-                  <LogsWindow 
-                    logs={logs} 
-                    filteredLogs={filteredLogs} 
-                    selectedLevel={selectedLevel} 
+                  <LogsWindow
+                    logs={logs}
+                    filteredLogs={filteredLogs}
+                    selectedLevel={selectedLevel}
                     setSelectedLevel={setSelectedLevel}
-                    searchQuery={searchQuery} 
+                    searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     logsEndRef={logsEndRef}
                     onScrollPositionChange={handleScrollPositionChange}
@@ -477,7 +497,7 @@ function ViewInstance() {
                           { label: "Application", value: "app" },
                           { label: "Installation", value: "install" },
                         ],
-                        onChange: (value) => setLogType(value as LogType),
+                        onChange: value => setLogType(value as LogType),
                       },
                     ]}
                   />
@@ -512,29 +532,13 @@ function ViewInstance() {
               )}
             </Tabs>
 
-            <TwoFactorDialog
-              open={twoFactor.isOpen}
-              onOpenChange={twoFactor.setIsOpen}
-              onVerify={twoFactor.verify}
-              isSubmitting={twoFactor.isVerifying}
-            />
+            <TwoFactorDialog open={twoFactor.isOpen} onOpenChange={twoFactor.setIsOpen} onVerify={twoFactor.verify} isSubmitting={twoFactor.isVerifying} />
 
-            <Dialog
-              open={rotateOpen}
-              onOpenChange={open => {
-                setRotateOpen(open);
-                if (!open) {
-                  setRotateValue("");
-                  setRotateError("");
-                }
-              }}
-            >
+            <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Rotate bootstrap token</DialogTitle>
-                  <DialogDescription>
-                    Enter your new bootstrap token.
-                  </DialogDescription>
+                  <DialogDescription>Enter your new bootstrap token.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <Field>
@@ -565,12 +569,7 @@ function ViewInstance() {
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleRotateSubmit}
-                    disabled={isRotating || !rotateValue.trim()}
-                  >
+                  <Button type="button" size="sm" onClick={handleRotateSubmit} disabled={isRotating || !rotateValue.trim()}>
                     {isRotating ? "Rotating..." : "Rotate"}
                   </Button>
                 </DialogFooter>
@@ -583,12 +582,7 @@ function ViewInstance() {
                   <DialogTitle>Bootstrap token rotated</DialogTitle>
                   <DialogDescription>
                     This token will not be shown again. Store it securely. <br />
-                    <a
-                      href="https://docs.dployr.io"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline"
-                    >
+                    <a href="https://docs.dployr.io" target="_blank" rel="noreferrer" className="underline">
                       Learn more
                     </a>
                   </DialogDescription>
@@ -625,10 +619,83 @@ function ViewInstance() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <Dialog open={restartOpen} onOpenChange={setRestartOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Restart Instance</DialogTitle>
+                  <DialogDescription>
+                    Restart the dployr daemon on this instance. The connection will briefly drop, but deployed apps and services will keep serving traffic.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" id="force-restart" checked={forceRestart} onChange={e => setForceRestart(e.target.checked)} className="h-4 w-4 rounded border-input" />
+                    <label htmlFor="force-restart" className="text-sm text-muted-foreground">
+                      Force restart (skip pending tasks check)
+                    </label>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRestartOpen(false);
+                      setForceRestart(false);
+                    }}
+                    disabled={isRestarting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleRestartSubmit} disabled={isRestarting}>
+                    {isRestarting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Restart Daemon
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={rebootOpen} onOpenChange={setRebootOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Restart Instance</DialogTitle>
+                  <DialogDescription>
+                    Reboot the instance OS. Connections and services will be briefly unavailable, so prefer low-traffic periods.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="flex items-center space-x-2">
+                    <input type="checkbox" id="force-restart" checked={forceRestart} onChange={e => setForceReboot(e.target.checked)} className="h-4 w-4 rounded border-input" />
+                    <label htmlFor="force-restart" className="text-sm text-muted-foreground">
+                      Force restart (skip pending tasks check)
+                    </label>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRebootOpen(false);
+                      setForceReboot(false);
+                    }}
+                    disabled={isRestarting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleRebootSubmit} disabled={isRestarting}>
+                    {isRestarting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Reboot Instance
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </AppLayout>
     </ProtectedRoute>
   );
 }
-

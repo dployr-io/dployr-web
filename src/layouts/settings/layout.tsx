@@ -50,6 +50,11 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
       href: clusterId ? "/clusters/$clusterId/settings/integrations" : "/settings/integrations",
       icon: null,
     },
+    {
+      title: "About",
+      href: clusterId ? "/clusters/$clusterId/settings/about" : "/settings/about",
+      icon: null,
+    },
   ];
 
   return (

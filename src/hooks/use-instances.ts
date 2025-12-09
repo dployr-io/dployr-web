@@ -2,12 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState } from "react";
-import type { ApiSuccessResponse, Instance, InstanceStatus, Log, LogLevel, LogStreamRequest, LogStreamResponse, PaginatedData, PaginationMeta } from "@/types";
+import type { ApiSuccessResponse, Instance, InstanceStatus, PaginatedData, PaginationMeta } from "@/types";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useClusterId } from "@/hooks/use-cluster-id";
-
 
 export function useInstances() {
   const queryClient = useQueryClient();
@@ -230,6 +229,96 @@ export function useInstances() {
     },
   });
 
+  const installVersion = useMutation({
+    mutationFn: async ({ id, version }: { id: string; version?: string }): Promise<ApiSuccessResponse<any>> => {
+      const response = await axios.post<ApiSuccessResponse<any>>(
+        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}/system/install`,
+        version ? { version } : {},
+        {
+          params: { clusterId },
+          withCredentials: true,
+        },
+      );
+      return response.data;
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage =
+        typeof errorData === "string"
+          ? errorData
+          : errorData?.message || error?.message || "An error occurred while installing version.";
+
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
+    },
+  });
+
+  const restartInstance = useMutation({
+    mutationFn: async ({ id, force }: { id: string; force?: boolean }): Promise<ApiSuccessResponse<any>> => {
+      const response = await axios.post<ApiSuccessResponse<any>>(
+        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}/system/restart`,
+        force ? { force } : {},
+        {
+          params: { clusterId },
+          withCredentials: true,
+        },
+      );
+      return response.data;
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage =
+        typeof errorData === "string"
+          ? errorData
+          : errorData?.message || error?.message || "An error occurred while restarting instance.";
+
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
+    },
+  });
+
+  const rebootInstance = useMutation({
+    mutationFn: async ({ id, force }: { id: string; force?: boolean }): Promise<ApiSuccessResponse<any>> => {
+      const response = await axios.post<ApiSuccessResponse<any>>(
+        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}/system/reboot`,
+        force ? { force } : {},
+        {
+          params: { clusterId },
+          withCredentials: true,
+        },
+      );
+      return response.data;
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage =
+        typeof errorData === "string"
+          ? errorData
+          : errorData?.message || error?.message || "An error occurred while rebooting instance.";
+
+      const helpLink = error?.response?.data?.error.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
+    },
+  });
+
   return {
     instances,
     paginatedInstances,
@@ -242,6 +331,9 @@ export function useInstances() {
     updateInstance,
     rotateInstanceToken,
     deleteInstance,
+    installVersion,
+    restartInstance,
+    rebootInstance,
     goToPage,
     goToNextPage,
     goToPreviousPage,

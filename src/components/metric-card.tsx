@@ -10,9 +10,10 @@ interface MetricCardProps {
   progress?: number;
   trend?: "up" | "down" | "neutral";
   className?: string;
+  icon?: ReactNode;
 }
 
-export function MetricCard({ label, value, progress, trend, className }: MetricCardProps) {
+export function MetricCard({ label, value, progress, trend, className, icon }: MetricCardProps) {
   const valueNode =
     typeof value === "string" || typeof value === "number" ? (
       <p className="font-mono text-sm font-medium">{value}</p>
@@ -22,7 +23,10 @@ export function MetricCard({ label, value, progress, trend, className }: MetricC
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {icon && <span className="flex items-center justify-center">{icon}</span>}
+        <span>{label}</span>
+      </div>
       <div className="flex items-baseline gap-2">
         {valueNode}
         {trend && (
