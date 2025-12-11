@@ -12,12 +12,13 @@ import { useServiceForm } from "@/hooks/use-service-form";
 import { useLogs } from "@/hooks/use-logs";
 import { LogsWindow } from "@/components/logs-window";
 import { BlueprintSection } from "@/components/blueprint";
-import { ArrowUpRightIcon, ChevronLeft, FileX2, Loader2 } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, CirclePlus, FileX2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
 import { ConfigTable } from "@/components/config-table";
 import { useEnv } from "@/hooks/use-env";
+import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
 });
@@ -41,6 +42,7 @@ const ViewProjectBreadcrumbs = (service: Service | undefined, clusterId?: string
 
 function ViewService() {
   const { selectedService: service, isLoading } = useServices();
+  const { handleStartCreate } = useDeploymentCreator();
   const blueprint = service?.blueprint;
   const { clusterId } = Route.useParams();
   const breadcrumbs = ViewProjectBreadcrumbs(service!, clusterId);
@@ -74,8 +76,9 @@ function ViewService() {
             </EmptyHeader>
             <EmptyContent>
               <div className="flex justify-center gap-2">
-                <Button>
-                  <a href={"#"}>Deploy Service</a>
+                <Button onClick={handleStartCreate}>
+                  <CirclePlus className="h-4 w-4" />
+                  Deploy Service
                 </Button>
                 <Button variant="link" asChild className="text-muted-foreground" size="sm">
                   <a href="#">

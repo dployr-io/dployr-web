@@ -9,7 +9,7 @@ import { dnsProviders, runtimes, logLevels } from "./runtimes";
 
 export type Runtime = (typeof runtimes)[number];
 export type DnsProvider = (typeof dnsProviders)[number];
-export type BlueprintFormat = "yaml" | "json";
+export type BlueprintFormat = "json" | "yaml" | "toml";
 export type LogLevel = (typeof logLevels)[number];
 
 export interface Auth {

@@ -154,6 +154,16 @@ export function useUrlState() {
         });
     }
 
+    function useDeploymentsTabsState() {
+        return useQueryStates({
+            tab: parseAsStringLiteral([
+                "quick",
+                "blueprint-editor",
+                "remote-blueprint",
+            ]).withDefault("quick"),
+        });
+    }
+
     /**
      * URL state management for auth errors
      * Error captured during oAuth redirects
@@ -245,6 +255,7 @@ export function useUrlState() {
         useInviteUserDialog,
         useInstancesDialog,
         useInstanceTabsState,
+        useDeploymentsTabsState,
         useAuthError,
         useAppError,
         useAppNotification,

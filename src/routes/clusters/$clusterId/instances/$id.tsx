@@ -6,7 +6,7 @@ import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronLeft, Cog, Copy, Cpu, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
+import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Cog, Copy, Cpu, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/metric-card";
 import { StatusBadge } from "@/components/status-badge";
@@ -27,9 +27,12 @@ import { useUrlState } from "@/hooks/use-url-state";
 import { use2FA } from "@/hooks/use-2fa";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useCallback, useEffect } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useCallback, useEffect, useState } from "react";
 import { LogsWindow } from "@/components/logs-window";
 import { VersionSelector } from "@/components/version-selector";
+import { useDns } from "@/hooks/use-dns";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/$id")({
   component: ViewInstance,
@@ -104,18 +107,50 @@ function ViewInstance() {
   } = useInstanceViewState();
   const { logs, filteredLogs, selectedLevel, searchQuery, logsEndRef, setSelectedLevel, setSearchQuery } = useInstanceLogs(instanceId, logType, logMode);
 
+  const updatePayload = status?.update ?? null;
   const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
+  const [isCertOpen, setIsCertOpen] = useState(false);
+  const [domainInput, setDomainInput] = useState("");
+  const { dnsList, setupDnsAsync, isSettingUp, setupDetails, domainStatus, isPolling, getDomainStatus, deleteDnsAsync, isDeleting } = useDns(instanceId);
+  const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+  const [expandedDomainDetails, setExpandedDomainDetails] = useState<any>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const { useAppError } = useUrlState();
+  const [, setError] = useAppError();
 
-  const handleScrollPositionChange = useCallback((atBottom: boolean) => {
-    setIsAtBottom(atBottom);
-  }, [setIsAtBottom]);
+  // Get OAuth callback params from URL
+  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  const oauthProvider = searchParams.get("oauth");
+  const oauthStatus = searchParams.get("status");
+  const oauthDomain = searchParams.get("domain");
+
+  const handleScrollPositionChange = useCallback(
+    (atBottom: boolean) => {
+      setIsAtBottom(atBottom);
+    },
+    [setIsAtBottom]
+  );
 
   useEffect(() => {
-    const token = (status?.update?.status as any)?.debug?.auth?.bootstrap_token as string | undefined;
+    const token = (status?.update as any)?.debug?.auth?.bootstrap_token as string | undefined;
     if (token && !bootstrapToken) {
       setBootstrapToken(token);
     }
   }, [status, bootstrapToken, setBootstrapToken]);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    if (oauthStatus === "authorized" && oauthDomain) {
+      setError({
+        appError: {
+          message: `Domain ${oauthDomain} authorized with ${oauthProvider}. Configuring DNS...`,
+          helpLink: "",
+        },
+      });
+      // Clean up URL params
+      window.history.replaceState({}, "", window.location.pathname + window.location.hash);
+    }
+  }, [oauthStatus, oauthDomain, oauthProvider, setError]);
 
   useEffect(() => {
     if (!instance) return;
@@ -138,10 +173,12 @@ function ViewInstance() {
     }
   }, [isAtBottom, logMode, setLogMode]);
 
+
   const handleCopyStatus = async () => {
     try {
-      if (!status) return;
-      await navigator.clipboard.writeText(JSON.stringify(status, null, 2));
+      const payload = updatePayload ?? status;
+      if (!payload) return;
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
     } catch {
       return;
     }
@@ -199,7 +236,7 @@ function ViewInstance() {
     );
   }
 
-  const metrics = status?.update?.status as any;
+  const metrics = updatePayload as any;
   const uptimeRaw = metrics?.uptime;
   const uptimeSeconds = typeof uptimeRaw === "number" ? Math.floor(uptimeRaw) : typeof uptimeRaw === "string" ? Math.floor(parseFloat(uptimeRaw)) : 0;
   const uptime = (() => {
@@ -291,7 +328,7 @@ function ViewInstance() {
   return (
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
-        <div className="flex h-full min-h-0 flex-col gap-4 rounded-xl p-4">
+        <div className="flex h-full min-h-0 flex-col gap-4 rounded-xl">
           <div className="flex min-h-0 flex-1 auto-rows-min flex-col gap-6 px-9 py-2">
             <Tabs value={currentTab} onValueChange={value => setTab({ tab: value as any })} className="flex min-h-0 flex-1 flex-col w-full">
               <div className="flex items-center justify-between">
@@ -304,7 +341,7 @@ function ViewInstance() {
                 </TabsList>
 
                 <Button variant="outline" size="sm" onClick={() => window.history.back()} className="h-8 px-3 text-xs">
-                  <ChevronLeft className="mr-1 h-3 w-3" /> Back
+                  <ChevronLeft className="h-3 w-3" /> Back
                 </Button>
               </div>
 
@@ -361,38 +398,269 @@ function ViewInstance() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="config" className="mt-4 space-y-4">
-                <div className="relative rounded-xl border bg-background/40 p-4">
-                  <div className="space-y-4 text-sm">
-                    <div>
-                      <span className="text-xs text-muted-foreground">Address</span>
-                      <div className="font-mono">{instance?.address || "-"}</div>
-                    </div>
-                    <div>
-                      <span className="text-xs text-muted-foreground">Tag</span>
-                      <div>{instance?.tag || "-"}</div>
-                    </div>
-                    <div className="flex items-start justify-between gap-4">
+              {canViewConfig && (
+                <TabsContent value="config" className="mt-4 space-y-4">
+                  <div className="relative rounded-xl border bg-background/40 p-4 mb-6">
+                    <div className="space-y-4 text-sm">
                       <div>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">Bootstrap token</span>
-                        <div className="mt-1 font-mono text-xs">{`${bootstrapToken}...`}</div>
+                        <span className="text-xs text-muted-foreground">Address</span>
+                        <div className="font-mono">{instance?.address || "-"}</div>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Tag</span>
+                        <div>{instance?.tag || "-"}</div>
+                      </div>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">Bootstrap token</span>
+                          <div className="mt-1 font-mono text-xs">{`${bootstrapToken}...`}</div>
+                        </div>
+                      </div>
+                      <Button type="button" size="sm" variant="outline" onClick={handleRotateTokenClick} disabled={!bootstrapToken}>
+                        <RotateCcw className="h-4 w-4" />
+                        Rotate token
+                      </Button>
+                      <Collapsible open={isCertOpen} onOpenChange={setIsCertOpen}>
+                        <div className="flex items-center gap-2">
+                          <CollapsibleTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                              {isCertOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          </CollapsibleTrigger>
+                          <span className="text-xs text-muted-foreground">Public key</span>
+                        </div>
+                        <CollapsibleContent className="mt-2 ml-6">
+                          {(instance?.publicKey || "-").split("\n").map((line, idx) => (
+                            <div className="font-mono text-xs" key={idx}>
+                              {line}
+                            </div>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+
+                      <div>
+                        <span className="text-xs text-muted-foreground">Domains</span>
+                        {dnsList && dnsList.length > 0 ? (
+                          <div className="mt-2 space-y-1">
+                            {dnsList.map((d) => (
+                              <div key={d.id} className="space-y-2">
+                                <div className="flex items-center justify-between py-1">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="font-mono text-sm truncate">{d.domain}</span>
+                                    <StatusBadge status={d.status} variant="compact" />
+                                    {d.provider && <span className="text-xs text-muted-foreground shrink-0">({d.provider})</span>}
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {d.status === "pending" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2"
+                                        onClick={async () => {
+                                          if (expandedDomain === d.domain) {
+                                            setExpandedDomain(null);
+                                            setExpandedDomainDetails(null);
+                                          } else {
+                                            setExpandedDomain(d.domain);
+                                            setIsLoadingDetails(true);
+                                            try {
+                                              const details = await getDomainStatus(d.domain);
+                                              setExpandedDomainDetails(details);
+                                            } catch (error) {
+                                              console.error("Failed to fetch domain details:", error);
+                                            } finally {
+                                              setIsLoadingDetails(false);
+                                            }
+                                          }
+                                        }}
+                                      >
+                                        {expandedDomain === d.domain ? (
+                                          <ChevronUp className="h-3 w-3" />
+                                        ) : (
+                                          <ChevronDown className="h-3 w-3" />
+                                        )}
+                                        <span className="ml-1">Setup</span>
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-destructive hover:text-destructive"
+                                      onClick={async () => {
+                                        try {
+                                          await deleteDnsAsync(d.domain);
+                                          if (expandedDomain === d.domain) {
+                                            setExpandedDomain(null);
+                                            setExpandedDomainDetails(null);
+                                          }
+                                        } catch (error) {
+                                          console.error("Failed to delete DNS:", error);
+                                        }
+                                      }}
+                                      disabled={isDeleting}
+                                    >
+                                      {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {expandedDomain === d.domain && (
+                                  <div className="ml-4 rounded-md border border-dashed p-3 space-y-3">
+                                    {isLoadingDetails ? (
+                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        Loading setup details...
+                                      </div>
+                                    ) : expandedDomainDetails ? (
+                                      <>
+                                        <div>
+                                          <span className="text-xs text-muted-foreground">A Record</span>
+                                          <div className="mt-1 rounded-md bg-muted/50 p-2 font-mono text-xs space-y-0.5">
+                                            <div><span className="text-muted-foreground">Type:</span> {expandedDomainDetails.record?.type}</div>
+                                            <div><span className="text-muted-foreground">Name:</span> {expandedDomainDetails.record?.name}</div>
+                                            <div><span className="text-muted-foreground">Value:</span> {expandedDomainDetails.record?.value}</div>
+                                          </div>
+                                        </div>
+
+                                        {expandedDomainDetails.verification && (
+                                          <div>
+                                            <span className="text-xs text-muted-foreground">TXT Verification</span>
+                                            <div className="mt-1 rounded-md bg-muted/50 p-2 font-mono text-xs space-y-0.5">
+                                              <div><span className="text-muted-foreground">Type:</span> {expandedDomainDetails.verification.type}</div>
+                                              <div><span className="text-muted-foreground">Name:</span> {expandedDomainDetails.verification.name}</div>
+                                              <div><span className="text-muted-foreground">Value:</span> {expandedDomainDetails.verification.value}</div>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        <div className="flex items-center gap-2">
+                                          {expandedDomainDetails.autoSetupUrl && (
+                                            <Button variant="outline" size="sm" asChild>
+                                              <a href={expandedDomainDetails.autoSetupUrl} target="_blank" rel="noopener noreferrer">
+                                                Auto Setup <ArrowUpRightIcon className="ml-1 h-3 w-3" />
+                                              </a>
+                                            </Button>
+                                          )}
+                                          {expandedDomainDetails.manualGuideUrl && (
+                                            <Button variant="ghost" size="sm" asChild>
+                                              <a href={expandedDomainDetails.manualGuideUrl} target="_blank" rel="noopener noreferrer">
+                                                Manual Guide <ArrowUpRightIcon className="ml-1 h-3 w-3" />
+                                              </a>
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="text-sm text-muted-foreground">Failed to load setup details</div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">No domains configured</div>
+                        )}
+                      </div>
+
+                      {isPolling && setupDetails ? (
+                        <div className="rounded-md border border-dashed p-3 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-xs text-muted-foreground">Setting up</span>
+                              <div className="font-mono text-sm">{setupDetails.domain}</div>
+                            </div>
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          </div>
+
+                          {domainStatus?.status === "pending" && (
+                            <>
+                              <div>
+                                <span className="text-xs text-muted-foreground">A Record</span>
+                                <div className="mt-1 rounded-md bg-muted/50 p-2 font-mono text-xs space-y-0.5">
+                                  <div><span className="text-muted-foreground">Type:</span> {setupDetails.record?.type}</div>
+                                  <div><span className="text-muted-foreground">Name:</span> {setupDetails.record?.name}</div>
+                                  <div><span className="text-muted-foreground">Value:</span> {setupDetails.record?.value}</div>
+                                </div>
+                              </div>
+
+                              {setupDetails.verification && (
+                                <div>
+                                  <span className="text-xs text-muted-foreground">TXT Verification</span>
+                                  <div className="mt-1 rounded-md bg-muted/50 p-2 font-mono text-xs space-y-0.5">
+                                    <div><span className="text-muted-foreground">Type:</span> {setupDetails.verification.type}</div>
+                                    <div><span className="text-muted-foreground">Name:</span> {setupDetails.verification.name}</div>
+                                    <div><span className="text-muted-foreground">Value:</span> {setupDetails.verification.value}</div>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2">
+                                {setupDetails.autoSetupUrl && (
+                                  <Button variant="outline" size="sm" asChild>
+                                    <a href={setupDetails.autoSetupUrl} target="_blank" rel="noopener noreferrer">
+                                      Auto Setup <ArrowUpRightIcon className="ml-1 h-3 w-3" />
+                                    </a>
+                                  </Button>
+                                )}
+                                {setupDetails.manualGuideUrl && (
+                                  <Button variant="ghost" size="sm" asChild>
+                                    <a href={setupDetails.manualGuideUrl} target="_blank" rel="noopener noreferrer">
+                                      Manual Guide <ArrowUpRightIcon className="ml-1 h-3 w-3" />
+                                    </a>
+                                  </Button>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
+
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="domain"
+                          placeholder="example.com"
+                          value={domainInput}
+                          onChange={(e) => setDomainInput(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={async () => {
+                            if (!domainInput.trim()) {
+                              setError({
+                                appError: {
+                                  message: "Domain is required",
+                                  helpLink: "",
+                                },
+                              });
+                              return;
+                            }
+                            try {
+                              await setupDnsAsync({
+                                domain: domainInput,
+                                instanceId: instanceId!,
+                              });
+                              setDomainInput("");
+                            } catch (error: any) {
+                              setError({
+                                appError: {
+                                  message: error?.response?.data?.error || "Failed to setup DNS",
+                                  helpLink: "",
+                                },
+                              });
+                            }
+                          }}
+                          disabled={isSettingUp || !domainInput.trim()}
+                          size="sm"
+                          variant="outline"
+                        >
+                          {isSettingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                        </Button>
                       </div>
                     </div>
-                    <Button type="button" size="sm" variant="outline" onClick={handleRotateTokenClick} disabled={!bootstrapToken}>
-                      <RotateCcw className="h-4 w-4" />
-                      Rotate token
-                    </Button>
-                    <div>
-                      <span className="text-xs text-muted-foreground">Public key</span>
-                      {(instance?.publicKey || "-").split("\n").map((line, idx) => (
-                        <div className="font-mono text-xs" key={idx}>
-                          {line}
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                </div>
-              </TabsContent>
+                </TabsContent>
+              )}
 
               <TabsContent value="system" className="mt-4 space-y-4">
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
@@ -414,23 +682,13 @@ function ViewInstance() {
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center gap-1">
                       <p className="text-xs text-muted-foreground">Restart</p>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleRestartClick}
-                        className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center"
-                      >
+                      <Button variant="outline" size="icon" onClick={handleRestartClick} className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center">
                         <RefreshCcw className="h-4 w-4" />
                       </Button>
                     </div>
                     <div className="flex flex-col items-center gap-1">
                       <p className="text-xs text-muted-foreground">Reboot</p>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleRebootClick}
-                        className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center"
-                      >
+                      <Button variant="outline" size="icon" onClick={handleRebootClick} className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center">
                         <Power className="h-4 w-4" />
                       </Button>
                     </div>
@@ -512,11 +770,12 @@ function ViewInstance() {
                       size="icon"
                       className="absolute right-3 top-3 h-7 w-7 text-muted-foreground hover:text-foreground"
                       onClick={handleCopyStatus}
-                      aria-label="Copy status payload"
+                      aria-label="Copy update payload"
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
-                    <FormattedFile language="json" value={status} />
+
+                    <FormattedFile language="json" value={updatePayload ?? status} />
                   </div>
                   {debugEvents.length > 0 && (
                     <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-xl border bg-background/40 p-4">
@@ -624,9 +883,7 @@ function ViewInstance() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Restart Instance</DialogTitle>
-                  <DialogDescription>
-                    Restart the dployr daemon on this instance. The connection will briefly drop, but deployed apps and services will keep serving traffic.
-                  </DialogDescription>
+                  <DialogDescription>Restart the dployr daemon on this instance. The connection will briefly drop, but deployed apps and services will keep serving traffic.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="flex items-center space-x-2">
@@ -661,9 +918,7 @@ function ViewInstance() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Restart Instance</DialogTitle>
-                  <DialogDescription>
-                    Reboot the instance OS. Connections and services will be briefly unavailable, so prefer low-traffic periods.
-                  </DialogDescription>
+                  <DialogDescription>Reboot the instance OS. Connections and services will be briefly unavailable, so prefer low-traffic periods.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="flex items-center space-x-2">

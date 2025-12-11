@@ -1,73 +1,63 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-
 import type { Deployment } from "@/types";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useState } from "react";
 
 export function useDeployments() {
-    const { data: deployments, isLoading } = useQuery<Deployment[]>({
-        queryKey: ["deployments"],
-        queryFn: async () => {
-            const token = null;
+  const { data: deployments, isLoading } = useQuery<Deployment[]>({
+    queryKey: ["deployments"],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/deployments`);
+        const data = response?.data;
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error((error as Error).message || "An unknown error occoured while retrieving deployments");
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-            try {
-                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/deployments`);
-                const data = response?.data;
-                return Array.isArray(data) ? data : [];
-            } catch (error) {
-                console.error(
-                    (error as Error).message ||
-                    "An unknown error occoured while retrieving deployments",
-                );
-                return [];
-            }
-        },
-        staleTime: 5 * 60 * 1000,
-    });
+  const pathSegments = window.location.pathname.split("/");
+  const id = pathSegments[pathSegments.indexOf("deployments") + 1];
 
-    const pathSegments = window.location.pathname.split("/");
-    const id = pathSegments[pathSegments.indexOf("deployments") + 1];
+  const selectedDeployment = id ? deployments?.find(deployment => deployment.id === id) || null : null;
 
-    const selectedDeployment = id
-        ? deployments?.find((deployment) => deployment.id === id) || null
-        : null;
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDeployments = Array.isArray(deployments) ? deployments.slice(startIndex, endIndex) : [];
 
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
-    const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const paginatedDeployments = Array.isArray(deployments)
-        ? deployments.slice(startIndex, endIndex)
-        : [];
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
 
-    const goToPage = (page: number) => {
-        setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-    };
+  const goToPreviousPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
 
-    const goToPreviousPage = () => {
-        setCurrentPage((prev) => Math.max(1, prev - 1));
-    };
+  const goToNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
 
-    const goToNextPage = () => {
-        setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-    };
+  return {
+    selectedDeployment,
+    deployments,
+    paginatedDeployments,
+    currentPage,
+    totalPages,
+    startIndex,
+    endIndex,
+    isLoading,
 
-    return {
-        selectedDeployment,
-        deployments,
-        paginatedDeployments,
-        currentPage,
-        totalPages,
-        startIndex,
-        endIndex,
-        isLoading,
-
-        goToPage,
-        goToNextPage,
-        goToPreviousPage,
-    };
+    goToPage,
+    goToNextPage,
+    goToPreviousPage,
+  };
 }

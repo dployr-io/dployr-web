@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useServices } from "@/hooks/use-services";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { ProtectedRoute } from "@/components/protected-route";
+import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
 export const Route = createFileRoute("/clusters/$clusterId/services/")({
   component: Services,
 });
@@ -27,6 +28,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 function Services() {
   const { services, isLoading } = useServices();
+  const { handleStartCreate } = useDeploymentCreator();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -53,18 +55,16 @@ function Services() {
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
         <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-          <div className="flex w-full flex-col gap-6 px-9 py-6">
+          <div className="flex w-full flex-col gap-6 px-9">
             <div className="flex items-start justify-between">
               <div className="flex flex-col gap-1">
                 <p className="text-2xl font-black">Services</p>
                 <p className="text-sm font-normal text-muted-foreground">Manage your services here</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button className="flex items-center gap-2" asChild>
-                  <a href={"/deployments"}>
-                    <CirclePlus className="h-4 w-4" />
-                    Deploy Service
-                  </a>
+                <Button className="flex items-center gap-2" onClick={handleStartCreate}>
+                  <CirclePlus className="h-4 w-4" />
+                  Deploy Service
                 </Button>
               </div>
             </div>
@@ -81,8 +81,9 @@ function Services() {
                   </EmptyHeader>
                   <EmptyContent>
                     <div className="flex justify-center gap-2">
-                      <Button>
-                        <a href={"/deployments"}>Deploy Service</a>
+                      <Button onClick={handleStartCreate}>
+                        <CirclePlus className="h-4 w-4" />
+                        Deploy Service
                       </Button>
                       <Button variant="link" asChild className="text-muted-foreground" size="sm">
                         <a href="https://dployr.io/docs">

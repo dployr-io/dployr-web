@@ -91,7 +91,7 @@ function Instances() {
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
         <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-          <div className="flex w-full items-start justify-between gap-4 px-9 pt-6">
+          <div className="flex w-full items-start justify-between gap-4 px-9">
             <div className="flex flex-col gap-1">
               <p className="text-2xl font-black">Instances</p>
               <p className="text-sm text-muted-foreground">Manage dployr instances in this cluster.</p>

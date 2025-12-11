@@ -16,6 +16,7 @@ import { useDeployments } from "@/hooks/use-deployments";
 import { ArrowUpRightIcon, ChevronLeft, FileX2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { APP_LINKS } from "@/lib/constants";
 export const Route = createFileRoute("/clusters/$clusterId/deployments/$id")({
   component: ViewDeployment,
 });
@@ -71,7 +72,7 @@ function ViewDeployment() {
                   <a href={"#"}>Deploy Service</a>
                 </Button>
                 <Button variant="link" asChild className="text-muted-foreground" size="sm">
-                  <a href="#">
+                  <a href={APP_LINKS.DOCS.DEPLOYMENTS}>
                     Learn More <ArrowUpRightIcon />
                   </a>
                 </Button>

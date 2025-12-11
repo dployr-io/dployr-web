@@ -18,7 +18,7 @@ export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => {
   const [{ appNotification }, setAppNotification] = useAppNotification();
   return (
     <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
-      <div className="flex-1 min-h-0 px-12 pt-6">
+      <div className="flex-1 min-h-0 px-9">
         {appError.message && (
           <AlertBanner
             message={appError.message}
