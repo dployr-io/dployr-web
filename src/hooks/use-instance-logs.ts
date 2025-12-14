@@ -37,11 +37,11 @@ export function useInstanceLogs(
   }, []);
 
   const connect = useCallback(() => {
-    if (!instanceId || !clusterId || !logType) return;
+    if (!clusterId || !logType) return;
 
     const base = import.meta.env.VITE_BASE_URL || "";
     const wsBase = base.replace(/^http/i, "ws");
-    const url = `${wsBase}/v1/instances/${encodeURIComponent(instanceId)}/stream?clusterId=${encodeURIComponent(clusterId)}`;
+    const url = `${wsBase}/v1/instances/stream?clusterId=${encodeURIComponent(clusterId)}`;
 
     try {
       const socket = new WebSocket(url);
@@ -58,6 +58,8 @@ export function useInstanceLogs(
             kind: "log_subscribe",
             path: logType,
             startOffset: lastOffsetRef.current,
+            instanceId,
+            lastOffset,
           }),
         );
       };

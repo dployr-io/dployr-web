@@ -47,13 +47,15 @@ export function useDns(instanceId?: string) {
 
   // Get all active domains across all instances (for domain dropdown)
   const { data: allDomains, isLoading: isLoadingAllDomains } = useQuery<DnsDomain[]>({
-    queryKey: ["dns-all-domains", clusterId],
+    queryKey: ["dns-all-domains", instanceId],
     queryFn: async (): Promise<DnsDomain[]> => {
-      if (!clusterId) return [];
+      if (!instanceId) return [];
 
       try {
         const response = await axios.get<ApiSuccessResponse<DnsListResponse>>(
-          `${import.meta.env.VITE_BASE_URL}/v1/domains`,
+          `${import.meta.env.VITE_BASE_URL}/v1/domains/instance/${encodeURIComponent(
+            instanceId,
+          )}`,
           {
             params: { clusterId },
             withCredentials: true,

@@ -34,7 +34,7 @@ export function useInstanceStatus(instanceId?: string) {
 
     const base = import.meta.env.VITE_BASE_URL || "";
     const wsBase = base.replace(/^http/i, "ws");
-    const url = `${wsBase}/v1/instances/${encodeURIComponent(instanceId)}/stream?clusterId=${encodeURIComponent(
+    const url = `${wsBase}/v1/instances/stream?clusterId=${encodeURIComponent(
       clusterId,
     )}`;
 

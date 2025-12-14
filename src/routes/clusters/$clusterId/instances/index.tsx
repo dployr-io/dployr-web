@@ -249,7 +249,7 @@ function Instances() {
                         </TableCell>
                       </TableRow>
                     );
-                    })}
+                  })}
 
                 {!isLoading && instances.length === 0 && (
                   <TableRow>
