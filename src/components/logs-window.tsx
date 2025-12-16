@@ -8,9 +8,12 @@ import { Separator } from "@/components/ui/separator";
 import type { Log, LogLevel } from "@/types";
 import { formatMetadata, getLabelColor } from "@/lib/format-metadata";
 import { ArrowDown, ChevronDown, ChevronRight, Pause } from "lucide-react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { LogTimeSelector, type LogTimeRange, getTimeRangeMs } from "@/components/log-time-selector";
+export type { LogTimeRange };
+export { getTimeRangeMs };
 
 interface LogFilterOption<TValue extends string = string> {
   label: string;
@@ -35,6 +38,9 @@ interface Props<TFilterValue extends string = string> {
   logsEndRef: React.RefObject<HTMLDivElement | null>;
   extraFilters?: LogFilter<TFilterValue>[];
   onScrollPositionChange?: (isAtBottom: boolean) => void;
+  timeRange?: LogTimeRange;
+  onTimeRangeChange?: (range: LogTimeRange) => void;
+  isStreaming?: boolean;
 }
 
 const getLevelColor = (level: Log["level"]) => {
@@ -129,12 +135,24 @@ export function LogsWindow<TFilterValue extends string = string>({
   logsEndRef,
   extraFilters,
   onScrollPositionChange,
+  timeRange = "live",
+  onTimeRangeChange,
+  isStreaming,
 }: Props<TFilterValue>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [followMode, setFollowMode] = useState(true);
 
+  // Apply time-based filtering
+  const timeFilteredLogs = useMemo(() => {
+    const rangeMs = getTimeRangeMs(timeRange);
+    if (!rangeMs) return filteredLogs; // "live" mode shows all logs
+    
+    const cutoffTime = Date.now() - rangeMs;
+    return filteredLogs.filter(log => log.timestamp && log.timestamp.getTime() >= cutoffTime);
+  }, [filteredLogs, timeRange]);
+
   const virtualizer = useVirtualizer({
-    count: filteredLogs.length,
+    count: timeFilteredLogs.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => 56, // Estimated height of each log entry
     overscan: 10, // Render 10 extra items above/below viewport
@@ -164,10 +182,19 @@ export function LogsWindow<TFilterValue extends string = string>({
     if (followMode && logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: "auto" });
     }
-  }, [filteredLogs, followMode]);
+  }, [timeFilteredLogs, followMode]);
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border">
       <div className="flex shrink-0 gap-2 bg-neutral-50 p-2 dark:bg-neutral-900">
+        {/* Time Range Selector */}
+        {onTimeRangeChange && (
+          <LogTimeSelector
+            value={timeRange}
+            onChange={onTimeRangeChange}
+            isStreaming={isStreaming}
+          />
+        )}
+
         {/* Log Level Filter */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -258,7 +285,7 @@ export function LogsWindow<TFilterValue extends string = string>({
       <Separator />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
-          {filteredLogs.length === 0 ? (
+          {timeFilteredLogs.length === 0 ? (
             <div className="flex h-32 items-center justify-center">
               <p className="text-sm text-muted-foreground">No logs entries</p>
             </div>
@@ -283,7 +310,7 @@ export function LogsWindow<TFilterValue extends string = string>({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <LogEntry log={filteredLogs[virtualRow.index]} />
+                  <LogEntry log={timeFilteredLogs[virtualRow.index]} />
                 </div>
               ))}
             </div>
@@ -292,7 +319,7 @@ export function LogsWindow<TFilterValue extends string = string>({
         </div>
         <div className="border-t border-accent bg-neutral-50 p-2 dark:bg-neutral-800">
           <p className="text-center text-xs text-muted-foreground">
-            Showing {filteredLogs.length} of {logs.length} log entries
+            Showing {timeFilteredLogs.length} of {logs.length} log entries
           </p>
         </div>
       </div>

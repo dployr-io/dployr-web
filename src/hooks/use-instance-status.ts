@@ -1,9 +1,9 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { InstanceStream } from "@/types";
-import { useEffect, useRef, useState } from "react";
-import { useClusterId } from "@/hooks/use-cluster-id";
+import type { Deployment, InstanceStream } from "@/types";
+import { useEffect, useId, useState } from "react";
+import { useInstanceStream, type StreamMessage } from "@/hooks/use-instance-stream";
 
 export interface MetricDataPoint {
   timestamp: number;
@@ -16,109 +16,72 @@ export interface MetricDataPoint {
 }
 
 export function useInstanceStatus(instanceId?: string) {
-  const clusterId = useClusterId();
+  const subscriberId = useId();
+  const { isConnected, error: streamError, sendJson, subscribe, unsubscribe } = useInstanceStream();
   const [status, setStatus] = useState<InstanceStream | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugEvents, setDebugEvents] = useState<string[]>([]);
-  const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!instanceId || !clusterId) {
+    if (!instanceId) {
       setStatus(null);
-      setIsConnected(false);
       setError(null);
       setDebugEvents([]);
       return;
     }
 
-    const base = import.meta.env.VITE_BASE_URL || "";
-    const wsBase = base.replace(/^http/i, "ws");
-    const url = `${wsBase}/v1/instances/stream?clusterId=${encodeURIComponent(
-      clusterId,
-    )}`;
+    // Subscribe to updates
+    const handleMessage = (message: StreamMessage) => {
+      if (message.kind !== "update") {
+        return;
+      }
 
-    try {
-      const socket = new WebSocket(url);
-      socketRef.current = socket;
+      try {
+        const data = message as unknown as InstanceStream;
+        setStatus(data);
 
-      socket.onopen = () => {
-        setIsConnected(true);
-        setError(null);
-        try {
-          socket.send(JSON.stringify({ kind: "client_subscribe" }));
-        } catch (sendError) {
-          setError((sendError as Error).message || "Failed to subscribe to instance status");
-        }
-      };
+        // Extract metrics for time-series
+        const metrics = data?.update?.status as any;
+        const system = metrics?.debug?.system as any;
 
-      socket.onmessage = event => {
-        try {
-          const data = JSON.parse(event.data as string) as InstanceStream;
-          setStatus(data);
-
-          // Extract metrics for time-series
-          const metrics = data?.update?.status as any;
-          const system = metrics?.debug?.system as any;
-
-          if (system) {
-            const memUsed = typeof system?.mem_used_bytes === "number" ? system.mem_used_bytes / 1024 / 1024 : undefined;
-            const memTotal = typeof system?.mem_total_bytes === "number" ? system.mem_total_bytes / 1024 / 1024 : undefined;
-            const memPercent = memUsed && memTotal ? (memUsed / memTotal) * 100 : undefined;
-
-            // Calculate total disk usage
-            let totalDiskUsed = 0;
-            let totalDiskSize = 0;
-            if (Array.isArray(system?.disks)) {
-              system.disks.forEach((d: any) => {
-                const used = typeof d?.used_bytes === "number" ? d.used_bytes : 0;
-                const total = typeof d?.size_bytes === "number" ? d.size_bytes : 0;
-                totalDiskUsed += used;
-                totalDiskSize += total;
-              });
-            }
-
-            const dataPoint: MetricDataPoint = {
-              timestamp: Date.now(),
-              memoryUsedMB: memUsed,
-              memoryTotalMB: memTotal,
-              memoryPercent: memPercent,
-              diskUsedGB: totalDiskUsed > 0 ? totalDiskUsed / 1024 / 1024 / 1024 : undefined,
-              diskTotalGB: totalDiskSize > 0 ? totalDiskSize / 1024 / 1024 / 1024 : undefined,
-            };
-
+        if (system) {
+          let totalDiskUsed = 0;
+          let totalDiskSize = 0;
+          if (Array.isArray(system?.disks)) {
+            system.disks.forEach((d: any) => {
+              const used = typeof d?.used_bytes === "number" ? d.used_bytes : 0;
+              const total = typeof d?.size_bytes === "number" ? d.size_bytes : 0;
+              totalDiskUsed += used;
+              totalDiskSize += total;
+            });
           }
-        } catch (parseError) {
-          setError((parseError as Error).message || "Failed to parse status message");
-          setDebugEvents(prev => [...prev, `error: parse failed - ${(parseError as Error).message ?? "unknown"}`]);
         }
-      };
+      } catch (parseError) {
+        setError((parseError as Error).message || "Failed to parse status message");
+        setDebugEvents(prev => [...prev, `error: parse failed - ${(parseError as Error).message ?? "unknown"}`]);
+      }
+    };
 
-      socket.onerror = () => {
-        setIsConnected(false);
-        setError("An error occurred while streaming instance status");
-      };
+    subscribe(subscriberId, handleMessage);
 
-      socket.onclose = evt => {
-        setIsConnected(false);
-      };
-    } catch (connectError) {
-      setError((connectError as Error).message || "Failed to connect to instance status stream");
-      setIsConnected(false);
+    // Send subscribe message when connected
+    if (isConnected) {
+      sendJson({ kind: "client_subscribe" });
     }
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-        socketRef.current = null;
-      }
+      unsubscribe(subscriberId);
     };
-  }, [instanceId, clusterId]);
+  }, [instanceId, isConnected, subscriberId, subscribe, unsubscribe, sendJson]);
+
+  // Extract deployments from status update
+  const deployments: Deployment[] = (status?.update as any)?.deployments || [];
 
   return {
     status,
+    deployments,
     isConnected,
-    error,
+    error: error || streamError,
     debugEvents,
   };
 }

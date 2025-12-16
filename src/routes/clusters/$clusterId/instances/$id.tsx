@@ -4,7 +4,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
+import type { BreadcrumbItem, LogType, LogStreamMode, LogLevel } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Cog, Copy, Cpu, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,10 +29,11 @@ import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useCallback, useEffect, useState } from "react";
-import { LogsWindow } from "@/components/logs-window";
+import { LogsWindow, type LogTimeRange } from "@/components/logs-window";
 import { VersionSelector } from "@/components/version-selector";
 import { useDns } from "@/hooks/use-dns";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/$id")({
   component: ViewInstance,
@@ -56,7 +57,7 @@ const viewInstanceBreadcrumbs = (clusterId?: string, instanceId?: string, instan
 function ViewInstance() {
   const { id: instanceId, clusterId } = Route.useParams();
   const { useInstanceTabsState } = useUrlState();
-  const [{ tab }, setTab] = useInstanceTabsState();
+  const [{ tab, logRange, logLevel }, setTabState] = useInstanceTabsState();
   const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
   const { status, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instanceId);
@@ -105,7 +106,9 @@ function ViewInstance() {
     setLogMode,
     setIsAtBottom,
   } = useInstanceViewState();
-  const { logs, filteredLogs, selectedLevel, searchQuery, logsEndRef, setSelectedLevel, setSearchQuery } = useInstanceLogs(instanceId, logType, logMode);
+  const logTimeRange = (logRange || "live") as LogTimeRange;
+  const selectedLogLevel = (logLevel || "ALL") as "ALL" | LogLevel;
+  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, startStreaming, stopStreaming, restartStream } = useInstanceLogs(instanceId, logType, logMode, logTimeRange, selectedLogLevel);
 
   const updatePayload = status?.update ?? null;
   const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
@@ -172,6 +175,15 @@ function ViewInstance() {
       setLogMode(newMode);
     }
   }, [isAtBottom, logMode, setLogMode]);
+
+  // Start/stop log streaming on tab switch
+  useEffect(() => {
+    if (currentTab === "logs" && canViewLogs) {
+      startStreaming();
+    } else {
+      stopStreaming();
+    }
+  }, [currentTab, canViewLogs, startStreaming, stopStreaming]);
 
 
   const handleCopyStatus = async () => {
@@ -330,7 +342,7 @@ function ViewInstance() {
       <AppLayout breadcrumbs={breadcrumbs}>
         <div className="flex h-full min-h-0 flex-col gap-4 rounded-xl">
           <div className="flex min-h-0 flex-1 auto-rows-min flex-col gap-6 px-9 py-2">
-            <Tabs value={currentTab} onValueChange={value => setTab({ tab: value as any })} className="flex min-h-0 flex-1 flex-col w-full">
+            <Tabs value={currentTab} onValueChange={value => setTabState({ tab: value as any })} className="flex min-h-0 flex-1 flex-col w-full">
               <div className="flex items-center justify-between">
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -682,15 +694,25 @@ function ViewInstance() {
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center gap-1">
                       <p className="text-xs text-muted-foreground">Restart</p>
-                      <Button variant="outline" size="icon" onClick={handleRestartClick} className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center">
-                        <RefreshCcw className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={handleRestartClick} className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center">
+                            <RefreshCcw className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Restart the daemon without affecting services running on your instance</TooltipContent>
+                      </Tooltip>
                     </div>
                     <div className="flex flex-col items-center gap-1">
                       <p className="text-xs text-muted-foreground">Reboot</p>
-                      <Button variant="outline" size="icon" onClick={handleRebootClick} className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center">
-                        <Power className="h-4 w-4" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={handleRebootClick} className="h-8 w-8 p-0 text-xs rounded-md flex items-center justify-center">
+                            <Power className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Reboot will restart the machine and it may be unavailable for a few moments</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 </div>
@@ -740,12 +762,18 @@ function ViewInstance() {
                   <LogsWindow
                     logs={logs}
                     filteredLogs={filteredLogs}
-                    selectedLevel={selectedLevel}
-                    setSelectedLevel={setSelectedLevel}
+                    selectedLevel={selectedLogLevel}
+                    setSelectedLevel={(level) => setTabState({ logLevel: level })}
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     logsEndRef={logsEndRef}
                     onScrollPositionChange={handleScrollPositionChange}
+                    timeRange={logTimeRange}
+                    onTimeRangeChange={(range) => {
+                      setTabState({ logRange: range });
+                      restartStream(range);
+                    }}
+                    isStreaming={isStreaming}
                     extraFilters={[
                       {
                         id: "log-type",

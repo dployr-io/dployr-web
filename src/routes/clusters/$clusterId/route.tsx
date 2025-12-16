@@ -2,9 +2,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { InstanceStreamProvider } from "@/hooks/use-instance-stream";
+
+function ClusterLayout() {
+  return (
+    <InstanceStreamProvider>
+      <Outlet />
+    </InstanceStreamProvider>
+  );
+}
 
 export const Route = createFileRoute("/clusters/$clusterId")({
-  component: Outlet,
+  component: ClusterLayout,
   beforeLoad: ({ params, location }) => { 
     // redirect from cluster root
     const pathSegments = location.pathname.split('/').filter(Boolean);

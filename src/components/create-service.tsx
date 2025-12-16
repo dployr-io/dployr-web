@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KeyValueEditorModal } from "@/components/key-value-editor-modal";
+import { RemoteSelector } from "@/components/remote-selector";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import type { Remote, Runtime, ServiceSource } from "@/types";
 import { runtimes } from "@/types/runtimes";
@@ -50,13 +51,13 @@ interface Props {
   isLoadingDomains?: boolean;
   envVars?: Record<string, string>;
   secrets?: Record<string, string>;
+  instanceId?: string;
 
   // Unified handlers
   setField: (field: string, value: unknown) => void;
   onSourceValueChanged: (arg0: ServiceSource) => void;
-  onRemoteValueChanged: (arg0: Remote) => void;
   onRuntimeValueChanged: (arg0: Runtime) => void;
-  onDeploy?: () => void;
+  onDeploy?: (instanceId: string) => void;
 }
 
 export function CreateServiceForm({
@@ -88,6 +89,11 @@ export function CreateServiceForm({
   isLoadingDomains = false,
   envVars = {},
   secrets = {},
+  instanceId,
+  remote,
+  remotes,
+  isRemotesLoading,
+  remoteError,
   setField,
   onSourceValueChanged,
   onRuntimeValueChanged,
@@ -95,34 +101,38 @@ export function CreateServiceForm({
 }: Props) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-3">
-        <Label htmlFor="source">
-          Source <span className="text-destructive">*</span>
-        </Label>
-        <Select value={source} onValueChange={onSourceValueChanged}>
-          <SelectTrigger id="source" disabled={processing}>
-            <SelectValue>
-              <div className="flex items-center gap-2">
-                <span>{source === "image" ? "Docker Image" : source === "remote" ? "Remote Repository" : source}</span>
-              </div>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {(["image", "remote"] as ServiceSource[]).map(option => {
-              let label = "";
-              if (option === "image") label = "Docker Image";
-              else if (option === "remote") label = "Remote Repository";
-              else label = option;
-              return (
-                <SelectItem key={option} value={option}>
-                  <div className="flex items-center gap-2">
-                    <span>{label}</span>
-                  </div>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3">
+          <Label htmlFor="source">
+            Source <span className="text-destructive">*</span>
+          </Label>
+          <Select value={source} onValueChange={onSourceValueChanged}>
+            <SelectTrigger id="source" disabled={processing}>
+              <SelectValue>
+                <div className="flex items-center gap-2">
+                  <span>{source === "image" ? "Docker Image" : source === "remote" ? "Remote Repository" : source}</span>
+                </div>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {(["image", "remote"] as ServiceSource[]).map(option => {
+                let label = "";
+                if (option === "image") label = "Docker Image";
+                else if (option === "remote") label = "Remote Repository";
+                else label = option;
+                return (
+                  <SelectItem key={option} value={option}>
+                    <div className="flex items-center gap-2">
+                      <span>{label}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {source === "remote" && <RemoteSelector value={remote || null} remotes={remotes} isLoading={isRemotesLoading} error={remoteError} disabled={processing} onChange={remote => setField("remote", remote)} />}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -221,6 +231,14 @@ export function CreateServiceForm({
         )}
 
         {source === "remote" && (
+          <div className="grid gap-3 md:col-span-1">
+            <Label htmlFor="build_cmd">Build Command</Label>
+            <Input id="build_cmd" name="build_cmd" placeholder="npm run build" value={buildCmd || ""} onChange={e => setField("buildCmd", e.target.value)} disabled={processing} />
+            {(buildCmdError || errors.build_cmd) && <div className="text-sm text-destructive">{buildCmdError || errors.build_cmd}</div>}
+          </div>
+        )}
+
+        {source === "remote" && (
           <div className="grid gap-3 md:col-span-2">
             <Label htmlFor="run_cmd">
               {runtime === "static" ? "Build Command" : "Run Command"} {runtime !== "static" && <span className="text-destructive">*</span>}
@@ -231,31 +249,22 @@ export function CreateServiceForm({
         )}
 
         {source === "remote" && (
-          <div className="grid gap-3 md:col-span-1">
-            <Label htmlFor="build_cmd">Build Command</Label>
-            <Input id="build_cmd" name="build_cmd" placeholder="npm run build" value={buildCmd || ""} onChange={e => setField("buildCmd", e.target.value)} disabled={processing} />
-            {(buildCmdError || errors.build_cmd) && <div className="text-sm text-destructive">{buildCmdError || errors.build_cmd}</div>}
+          <div className={`grid gap-3 ${source === "remote" && runtime === "static" ? "md:col-span-2" : "md:col-span-3"}`}>
+            <Label htmlFor="working_dir">
+              Working Directory <span className="text-xs text-muted-foreground">(Defaults to root)</span>
+            </Label>
+            <Input id="working_dir" name="working_dir" placeholder="src" value={workingDir!} onChange={e => setField("workingDir", e.target.value)} disabled={processing} />
+            {(workingDirError || errors.working_dir) && <div className="text-sm text-destructive">{workingDirError || errors.working_dir}</div>}
           </div>
         )}
 
-          {source === "remote" && (
-            <div className={`grid gap-3 ${source === "remote" && runtime === "static" ? "md:col-span-2" : "md:col-span-3"}`}>
-              <Label htmlFor="working_dir">
-                Working Directory <span className="text-xs text-muted-foreground">(Defaults to root)</span>
-              </Label>
-              <Input id="working_dir" name="working_dir" placeholder="src" value={workingDir!} onChange={e => setField("workingDir", e.target.value)} disabled={processing} />
-              {(workingDirError || errors.working_dir) && <div className="text-sm text-destructive">{workingDirError || errors.working_dir}</div>}
-            </div>
-          )}
-
-          {source === "remote" && runtime === "static" && (
-            <div className="grid gap-3 md:col-span-1">
-              <Label htmlFor="static_dir">Static Directory</Label>
-              <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
-              {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
-            </div>
-          )}
-
+        {source === "remote" && runtime === "static" && (
+          <div className="grid gap-3 md:col-span-1">
+            <Label htmlFor="static_dir">Static Directory</Label>
+            <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
+            {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
+          </div>
+        )}
 
         {/* Environment Variables & Secrets */}
         <div className="grid gap-3 md:col-span-3">
@@ -295,9 +304,9 @@ export function CreateServiceForm({
       </div>
 
       {/* Deploy button */}
-      {onDeploy && (
+      {onDeploy && instanceId && (
         <div className="flex justify-end pt-4">
-          <Button onClick={onDeploy} disabled={processing} size="lg">
+          <Button onClick={() => onDeploy(instanceId)} disabled={processing} size="lg">
             <Rocket className="h-4 w-4" />
             Deploy
           </Button>

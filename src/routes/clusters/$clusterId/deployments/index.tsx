@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
@@ -15,7 +16,9 @@ import { FaGitlab } from "react-icons/fa";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { StatusChip } from "@/components/status-chip";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { useDeployments } from "@/hooks/use-deployments";
+import { useInstances } from "@/hooks/use-instances";
+import { useInstanceStatus } from "@/hooks/use-instance-status";
+import { useRemotes } from "@/hooks/use-remotes";
 import { ProtectedRoute } from "@/components/protected-route";
 import { formatWithoutSuffix } from "@/lib/utils";
 import { APP_LINKS } from "@/lib/constants";
@@ -24,6 +27,8 @@ import { CreateServiceForm } from "@/components/create-service";
 import { CodeEditor } from "@/components/ui/code-editor";
 import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { getFileExtension } from "@/lib/blueprint-schema";
 export const Route = createFileRoute("/clusters/$clusterId/deployments/")({
   component: Deployments,
@@ -37,7 +42,35 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Deployments() {
-  const { deployments, isLoading: isDeploymentsLoading, paginatedDeployments, currentPage, totalPages, startIndex, endIndex, goToPage, goToNextPage, goToPreviousPage } = useDeployments();
+  const { instances } = useInstances();
+  const { remotes, isLoading: isRemotesLoading } = useRemotes();
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string>("all");
+  const isAllInstances = selectedInstanceId === "all";
+  const targetInstanceId = isAllInstances ? instances?.[0]?.id : selectedInstanceId;
+  const { deployments: singleInstanceDeployments, isConnected } = useInstanceStatus(targetInstanceId);
+  
+  // Aggregate deployments from all instances if "all" is selected
+  const allDeployments = isAllInstances 
+    ? instances.flatMap((_, idx) => {
+        if (idx === 0) return singleInstanceDeployments;
+        return [];
+      })
+    : singleInstanceDeployments;
+  
+  const deployments = allDeployments;
+  const isDeploymentsLoading = !isConnected && deployments.length === 0;
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const totalPages = Math.max(1, Math.ceil(deployments.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedDeployments = deployments.slice(startIndex, endIndex);
+  
+  const goToPage = (page: number) => setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  const goToPreviousPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
+  const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
 
   // Use the deployment creator hook for all creation state and handlers
   const {
@@ -84,6 +117,21 @@ function Deployments() {
                     <p className="text-sm font-normal text-muted-foreground">Manage your deployments here</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Select instance" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          All Instances
+                        </SelectItem>
+                        {instances.map(instance => (
+                          <SelectItem key={instance.id} value={instance.id}>
+                            {instance.tag || instance.id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {drafts.length > 0 && (
                       <Button variant="outline" onClick={() => setShowDrafts(!showDrafts)}>
                         <FileText className="h-4 w-4" />
@@ -298,44 +346,61 @@ function Deployments() {
                   </div>
 
                   <TabsContent value="quick" className="my-6 space-y-4">
-                    <CreateServiceForm
-                      name={currentDraft?.name || ""}
-                      nameError={validationErrors.name || ""}
-                      description={currentDraft?.description || ""}
-                      version={currentDraft?.version || ""}
-                      image={currentDraft?.image || ""}
-                      imageError={validationErrors.image || ""}
-                      buildCmd={currentDraft?.build_cmd || ""}
-                      buildCmdError={validationErrors.build_cmd || ""}
-                      staticDir={currentDraft?.static_dir || ""}
-                      staticDirError={validationErrors.static_dir || ""}
-                      remoteError={validationErrors.remote || ""}
-                      workingDir={currentDraft?.working_dir || ""}
-                      workingDirError={validationErrors.working_dir || ""}
-                      runtime={currentDraft?.runtime || "nodejs"}
-                      runtimeError={validationErrors.runtime || ""}
-                      remote={currentDraft?.remote ? { url: currentDraft.remote.url, branch: currentDraft.remote.branch, commit_hash: currentDraft.remote.commit_hash, avatar_url: "" } : null}
-                      remotes={[]}
-                      isRemotesLoading={false}
-                      runCmd={currentDraft?.run_cmd || ""}
-                      runCmdError={validationErrors.run_cmd || ""}
-                      source={currentDraft?.source || "remote"}
-                      processing={false}
-                      errors={validationErrors}
-                      port={currentDraft?.port ?? null}
-                      portError={validationErrors.port || ""}
-                      domain={currentDraft?.domain || ""}
-                      domainError={validationErrors.domain || ""}
-                      availableDomains={allActiveDomains.map(d => ({ domain: d.domain, provider: d.provider }))}
-                      isLoadingDomains={isLoadingAllDomains}
-                      envVars={currentDraft?.env_vars || {}}
-                      secrets={currentDraft?.secrets || {}}
-                      setField={setField}
-                      onSourceValueChanged={value => updateDraft("source", value)}
-                      onRemoteValueChanged={() => {}}
-                      onRuntimeValueChanged={value => updateDraft("runtime", value)}
-                      onDeploy={handleDeploy}
-                    />
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="instance">Target Instance <span className="text-destructive">*</span></Label>
+                        <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
+                          <SelectTrigger id="instance">
+                            <SelectValue placeholder="Select an instance" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {instances.map(instance => (
+                              <SelectItem key={instance.id} value={instance.id}>
+                                {instance.tag || instance.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <CreateServiceForm
+                        name={currentDraft?.name || ""}
+                        nameError={validationErrors.name || ""}
+                        description={currentDraft?.description || ""}
+                        version={currentDraft?.version || ""}
+                        image={currentDraft?.image || ""}
+                        imageError={validationErrors.image || ""}
+                        buildCmd={currentDraft?.build_cmd || ""}
+                        buildCmdError={validationErrors.build_cmd || ""}
+                        staticDir={currentDraft?.static_dir || ""}
+                        staticDirError={validationErrors.static_dir || ""}
+                        remoteError={validationErrors.remote || ""}
+                        workingDir={currentDraft?.working_dir || ""}
+                        workingDirError={validationErrors.working_dir || ""}
+                        runtime={currentDraft?.runtime || "nodejs"}
+                        runtimeError={validationErrors.runtime || ""}
+                        remote={currentDraft?.remote ? { url: currentDraft.remote.url, branch: currentDraft.remote.branch, commit_hash: currentDraft.remote.commit_hash, avatar_url: "" } : null}
+                        remotes={remotes}
+                        isRemotesLoading={isRemotesLoading}
+                        runCmd={currentDraft?.run_cmd || ""}
+                        runCmdError={validationErrors.run_cmd || ""}
+                        source={currentDraft?.source || "remote"}
+                        processing={false}
+                        errors={validationErrors}
+                        port={currentDraft?.port ?? null}
+                        portError={validationErrors.port || ""}
+                        domain={currentDraft?.domain || ""}
+                        domainError={validationErrors.domain || ""}
+                        availableDomains={allActiveDomains.map(d => ({ domain: d.domain, provider: d.provider }))}
+                        isLoadingDomains={isLoadingAllDomains}
+                        envVars={currentDraft?.env_vars || {}}
+                        secrets={currentDraft?.secrets || {}}
+                        instanceId={selectedInstanceId}
+                        setField={setField}
+                        onSourceValueChanged={value => updateDraft("source", value)}
+                        onRuntimeValueChanged={value => updateDraft("runtime", value)}
+                        onDeploy={handleDeploy}
+                      />
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="blueprint-editor" className="my-6 flex flex-col gap-4">
@@ -351,7 +416,7 @@ function Deployments() {
                       showFormatSelector
                     />
                     <div className="flex justify-end">
-                      <Button onClick={handleDeploy} disabled={schemaErrors.length > 0} size="lg">
+                      <Button onClick={() => selectedInstanceId && handleDeploy(selectedInstanceId)} disabled={schemaErrors.length > 0 || !selectedInstanceId} size="lg">
                         <Rocket className="h-4 w-4" />
                         Deploy
                       </Button>

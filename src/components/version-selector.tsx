@@ -51,10 +51,10 @@ export function VersionSelector({ currentVersion, latestVersion, upgradeLevel, o
 
   const normalizedCurrentVersion = normalizeVersionValue(currentVersion);
   const hasUpdate = latestVersion && normalizeVersionValue(latestVersion) !== normalizedCurrentVersion;
-  const selectedMatchesCurrent = selectedVersion ? normalizeVersionValue(selectedVersion) === normalizedCurrentVersion : false;
-  const shouldDisableInstall = isInstalling || (!selectedVersion && !hasUpdate) || selectedMatchesCurrent;
-  const buttonLabel = isInstalling ? "Installing..." : selectedMatchesCurrent ? "Installed" : "Install";
-  const buttonIcon = isInstalling ? <Loader2 className="h-3 w-3 animate-spin" /> : selectedMatchesCurrent ? <Check className="h-3 w-3" /> : <Download className="h-3 w-3" />;
+  const isMatchesCurrent = selectedVersion ? normalizeVersionValue(selectedVersion) === normalizedCurrentVersion : false;
+  const shouldDisableInstall = isInstalling || (!selectedVersion && !hasUpdate) || isMatchesCurrent;
+  const buttonLabel = isInstalling ? "Installing..." : isMatchesCurrent ? "Installed" : "Install";
+  const buttonIcon = isInstalling ? <Loader2 className="h-3 w-3 animate-spin" /> : isMatchesCurrent ? <Check className="h-3 w-3" /> : <Download className="h-3 w-3" />;
 
   const isVersionDeprecated = (version: string) => {
     if (!versionsData?.oldestSupportedVersion) {

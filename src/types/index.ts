@@ -148,6 +148,9 @@ export interface InstanceStreamUpdate {
     go: string;
   };
   status: InstanceStreamStatus;
+  deployments?: Deployment[];
+  services?: any[];
+  proxies?: any[];
 }
 
 export interface InstanceStream {

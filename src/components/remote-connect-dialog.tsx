@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useAuth } from "@/hooks/use-auth";
+import { useClusterId } from "@/hooks/use-cluster-id";
 import type { Integrations, IntegrationUI } from "@/types";
 
 interface Props {
@@ -14,13 +14,12 @@ interface Props {
 }
 
 export function RemoteConnectDialog({ integration, integrations, open, onOpenChange }: Props) {
-  const { handleGitHubSignIn } = useAuth();
+  const clusterId = useClusterId();
 
-  function handleInstallApp()  {
-    if (integrations?.remote?.gitHub.installUrl) {
-      window.open(integrations?.remote?.gitHub.installUrl, "_blank");
-    }
-  };
+  function handleInstallApp() {
+    const installUrl = `${import.meta.env.VITE_BASE_URL}/v1/integrations/github/install?clusterId=${clusterId}`;
+    window.open(installUrl, "_blank");
+  }
 
   if (!integration) return null;
 
@@ -42,7 +41,7 @@ export function RemoteConnectDialog({ integration, integrations, open, onOpenCha
               <div className="flex items-center gap-3">
                 <div className="text-sm">
                   <div className="font-medium">{integrations.remote?.gitHub.loginId}</div>
-                  <div className="text-muted-foreground">{integrations.remote?.gitHub.remotesCount} repo</div>
+                  <div className="text-muted-foreground">{integrations.remote?.gitHub.remotesCount} remotes</div>
                 </div>
               </div>
             </div>
@@ -51,19 +50,7 @@ export function RemoteConnectDialog({ integration, integrations, open, onOpenCha
         <DialogFooter>
           <Button
             type="button"
-            onClick={() => {
-              integrations?.remote?.gitHub?.loginId
-                ? window.open(`${import.meta.env.VITE_BASE_URL}/v1/github/connection/manage`)
-                : handleGitHubSignIn('/settings/integrations?appNotification={"message":"Successfully connected GitHub account!"}');
-            }}
-          >
-            {integrations?.remote?.gitHub?.loginId ? "View" : "Connect"}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-               handleInstallApp();
-            }}
+            onClick={handleInstallApp}
           >
             {integrations?.remote?.gitHub?.installationId ? "Manage" : "Install"}
           </Button>

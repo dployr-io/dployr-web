@@ -8,6 +8,7 @@ import { useDeploymentDraft } from "./use-deployment-draft";
 import { useDns } from "./use-dns";
 import { useUrlState } from "./use-url-state";
 import { useClusterId } from "./use-cluster-id";
+import { useInstanceStream } from "./use-instance-stream";
 import {
   validateContent,
   formatContent,
@@ -23,11 +24,15 @@ import {
 export function useDeploymentCreator() {
   const navigate = useNavigate();
   const clusterId = useClusterId();
-  const { useDeploymentsTabsState } = useUrlState();
+  const { useDeploymentsTabsState, useAppError } = useUrlState();
   const [{ tab }, setTab] = useDeploymentsTabsState();
+  const [, setAppError] = useAppError();
   const currentTab = (tab || "quick") as "quick" | "blueprint-editor";
 
   const { allActiveDomains, isLoadingAllDomains } = useDns();
+
+  // WebSocket connection
+  const { sendJson, isConnected: wsConnected } = useInstanceStream();
 
   const {
     currentDraft,
@@ -139,17 +144,71 @@ export function useDeploymentCreator() {
   }, [currentDraft, toBlueprint, blueprintFormat]);
 
   // Deploy handler
-  const handleDeploy = useCallback(() => {
-
+  const handleDeploy = useCallback((instanceId: string) => {
     const result = validate();
     if (!result.isValid) {
       setValidationErrors(result.errors);
-      alert("Please fix validation errors before deploying:\n" + Object.values(result.errors).join("\n"));
       return;
     }
-    // For now, just show an alert
-    alert("Deployment initiated! (This is a placeholder - actual deployment will be implemented)");
-  }, [validate]);
+
+    if (!currentDraft || !clusterId) {
+      setAppError({
+        appError: {
+          message: "Unable to start deployment. Please try again.",
+          helpLink: "",
+        },
+      });
+      return;
+    }
+
+    const payload = {
+      name: currentDraft.name,
+      description: currentDraft.description || undefined,
+      source: currentDraft.source,
+      runtime: currentDraft.runtime,
+      version: currentDraft.version || undefined,
+      run_cmd: currentDraft.run_cmd || undefined,
+      build_cmd: currentDraft.build_cmd || undefined,
+      port: currentDraft.port ?? undefined,
+      working_dir: currentDraft.working_dir || undefined,
+      static_dir: currentDraft.static_dir || undefined,
+      image: currentDraft.image || undefined,
+      env_vars: Object.keys(currentDraft.env_vars).length > 0 ? currentDraft.env_vars : undefined,
+      secrets: Object.keys(currentDraft.secrets).length > 0 ? currentDraft.secrets : undefined,
+      remote: currentDraft.remote.url ? currentDraft.remote : undefined,
+      domain: currentDraft.domain || undefined,
+    };
+
+    if (!wsConnected) {
+      setAppError({
+        appError: {
+          message: "Not connected to deployment service. Please try again.",
+          helpLink: "",
+        },
+      });
+      return;
+    }
+
+    const sent = sendJson({
+      kind: "deploy",
+      instanceId,
+      payload,
+    });
+
+    if (!sent) {
+      setAppError({
+        appError: {
+          message: "Failed to send deployment request. Please try again.",
+          helpLink: "",
+        },
+      });
+      return;
+    }
+
+    // Clean up draft after successful deploy initiation
+    discardDraft();
+    setIsCreating(false);
+  }, [validate, currentDraft, clusterId, discardDraft, wsConnected, sendJson, setAppError]);
 
   // Handle back button
   const handleBack = useCallback(() => {
@@ -248,6 +307,14 @@ export function useDeploymentCreator() {
           break;
         case "secrets":
           updateDraft("secrets", value as Record<string, string>);
+          break;
+        case "remote":
+          const remoteValue = value as { url: string; branch: string; commit_hash: string; avatar_url?: string };
+          updateDraft("remote", {
+            url: remoteValue.url,
+            branch: remoteValue.branch || "main",
+            commit_hash: remoteValue.commit_hash || "",
+          });
           break;
       }
       // Clear validation error for this field
