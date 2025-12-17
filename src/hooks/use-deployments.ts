@@ -2,31 +2,49 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Deployment } from "@/types";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { useInstanceStream, type StreamMessage } from "@/hooks/use-instance-stream";
 
 export function useDeployments() {
-  const { data: deployments, isLoading } = useQuery<Deployment[]>({
-    queryKey: ["deployments"],
-    queryFn: async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/deployments`);
-        const data = response?.data;
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error((error as Error).message || "An unknown error occoured while retrieving deployments");
-        return [];
-      }
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const subscriberId = useId();
+  const { isConnected, error: streamError, sendJson, subscribe, unsubscribe } = useInstanceStream();
+  const [deployments, setDeployments] = useState<Deployment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Get deployment ID from URL
   const pathSegments = window.location.pathname.split("/");
   const id = pathSegments[pathSegments.indexOf("deployments") + 1];
 
-  const selectedDeployment = id ? deployments?.find(deployment => deployment.id === id) || null : null;
+  useEffect(() => {
+    const handleMessage = (message: StreamMessage) => {
+      if (message.kind !== "update") {
+        return;
+      }
 
+      try {
+        const data = message as any;
+        const streamDeployments: Deployment[] = data?.update?.deployments || [];
+        setDeployments(streamDeployments);
+        setIsLoading(false);
+      } catch (parseError) {
+        setError((parseError as Error).message || "Failed to parse deployments");
+        setIsLoading(false);
+      }
+    };
+
+    subscribe(subscriberId, handleMessage);
+
+    if (isConnected) {
+      sendJson({ kind: "client_subscribe" });
+    }
+
+    return () => {
+      unsubscribe(subscriberId);
+    };
+  }, [isConnected, subscriberId, subscribe, unsubscribe, sendJson]);
+
+  const selectedDeployment = id ? deployments?.find(deployment => deployment.id === id) || null : null;
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
@@ -55,6 +73,8 @@ export function useDeployments() {
     startIndex,
     endIndex,
     isLoading,
+    isConnected,
+    error: error || streamError,
 
     goToPage,
     goToNextPage,

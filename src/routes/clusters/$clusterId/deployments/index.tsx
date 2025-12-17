@@ -1,8 +1,8 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
@@ -48,18 +48,19 @@ function Deployments() {
   const isAllInstances = selectedInstanceId === "all";
   const targetInstanceId = isAllInstances ? instances?.[0]?.id : selectedInstanceId;
   const { deployments: singleInstanceDeployments, isConnected } = useInstanceStatus(targetInstanceId);
-  
+  const { clusterId } = Route.useParams();
+
   // Aggregate deployments from all instances if "all" is selected
-  const allDeployments = isAllInstances 
+  const allDeployments = isAllInstances
     ? instances.flatMap((_, idx) => {
         if (idx === 0) return singleInstanceDeployments;
         return [];
       })
     : singleInstanceDeployments;
-  
+
   const deployments = allDeployments;
   const isDeploymentsLoading = !isConnected && deployments.length === 0;
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -67,7 +68,53 @@ function Deployments() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedDeployments = deployments.slice(startIndex, endIndex);
-  
+
+  const paginationRange = useMemo(() => {
+    const totalPageNumbersToShow = 7;
+    if (totalPages <= totalPageNumbersToShow) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const current = currentPage;
+    const firstPage = 1;
+    const lastPage = totalPages;
+    const siblingCount = 1;
+    const leftSibling = Math.max(current - siblingCount, firstPage + 1);
+    const rightSibling = Math.min(current + siblingCount, lastPage - 1);
+
+    const showLeftDots = leftSibling > firstPage + 1;
+    const showRightDots = rightSibling < lastPage - 1;
+
+    const pages: (number | "dots")[] = [firstPage];
+
+    if (!showLeftDots && showRightDots) {
+      const leftRangeEnd = 3 + 2 * siblingCount;
+      for (let i = 2; i <= leftRangeEnd; i++) {
+        pages.push(i);
+      }
+      pages.push("dots");
+    } else if (showLeftDots && !showRightDots) {
+      pages.push("dots");
+      const rightRangeStart = totalPages - (3 + 2 * siblingCount) + 1;
+      for (let i = rightRangeStart; i < lastPage; i++) {
+        pages.push(i);
+      }
+    } else if (showLeftDots && showRightDots) {
+      pages.push("dots");
+      for (let i = leftSibling; i <= rightSibling; i++) {
+        pages.push(i);
+      }
+      pages.push("dots");
+    } else {
+      for (let i = 2; i < lastPage; i++) {
+        pages.push(i);
+      }
+    }
+
+    pages.push(lastPage);
+    return pages;
+  }, [currentPage, totalPages]);
+
   const goToPage = (page: number) => setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   const goToPreviousPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
   const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
@@ -90,7 +137,6 @@ function Deployments() {
     allActiveDomains,
     isLoadingAllDomains,
     handleStartCreate,
-    handleBack,
     handleSaveAndExit,
     handleDiscardAndExit,
     handleLoadDraft,
@@ -122,9 +168,7 @@ function Deployments() {
                         <SelectValue placeholder="Select instance" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">
-                          All Instances
-                        </SelectItem>
+                        <SelectItem value="all">All Instances</SelectItem>
                         {instances.map(instance => (
                           <SelectItem key={instance.id} value={instance.id}>
                             {instance.tag || instance.id}
@@ -211,13 +255,8 @@ function Deployments() {
                       <TableBody>
                         {!isDeploymentsLoading
                           ? paginatedDeployments.map(deployment => (
-                              <TableRow
-                                key={deployment.id}
-                                className="h-16 cursor-pointer"
-                                onClick={() => {
-                                  window.location.href = `/deployments/${deployment.id}`;
-                                }}
-                              >
+                              <Link key={deployment.id} to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="contents">
+                                <TableRow className="h-16 cursor-pointer">
                                 <TableCell className="h-16 w-60 overflow-hidden align-middle font-medium">
                                   <span className="block truncate">{String(deployment.config?.name || "-")}</span>
                                 </TableCell>
@@ -273,7 +312,8 @@ function Deployments() {
                                 <TableCell className="h-16 w-[200px] overflow-hidden text-right align-middle">
                                   <span className="block truncate text-right">{String(deployment.config?.run_cmd || "-")}</span>
                                 </TableCell>
-                              </TableRow>
+                                </TableRow>
+                              </Link>
                             ))
                           : Array.from({ length: 3 }).map((_, idx) => (
                               <TableRow key={`skeleton-${idx}`} className="h-16">
@@ -302,11 +342,16 @@ function Deployments() {
 
                     <div className="flex items-center justify-between px-2 py-4">
                       <div className="text-sm text-muted-foreground">
-                        {(deployments || []).length === 0
-                          ? "No deployments found"
-                          : deployments!.length === 1
-                            ? "Showing 1 of 1 deployment"
-                            : `Showing ${startIndex + 1} to ${Math.min(endIndex, (deployments || []).length || 0)} of ${(deployments || []).length} deployments`}{" "}
+                        {(() => {
+                          const totalItems = deployments?.length ?? 0;
+                          if (totalItems === 0) return "No deployments found";
+                          if (totalItems === 1) return "Showing 1 of 1 deployment";
+
+                          const start = (currentPage - 1) * itemsPerPage + 1;
+                          const end = Math.min(start + paginatedDeployments.length - 1, totalItems);
+
+                          return `Showing ${start} to ${end} of ${totalItems} deployments`;
+                        })()}
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button variant="outline" size="sm" onClick={goToPreviousPage} disabled={currentPage === 1} className="flex items-center gap-1">
@@ -315,11 +360,22 @@ function Deployments() {
                         </Button>
 
                         <div className="flex items-center space-x-1">
-                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                            <Button key={page} variant={currentPage === page ? "default" : "outline"} size="sm" onClick={() => goToPage(page)} className="h-8 w-8 p-0">
-                              {page}
-                            </Button>
-                          ))}
+                          {paginationRange.map((item, index) => {
+                            if (item === "dots") {
+                              return (
+                                <Button key={`dots-${index}`} variant="outline" size="sm" disabled className="h-8 w-8 p-0">
+                                  ...
+                                </Button>
+                              );
+                            }
+
+                            const page = item as number;
+                            return (
+                              <Button key={page} variant={currentPage === page ? "default" : "outline"} size="sm" onClick={() => goToPage(page)} className="h-8 w-8 p-0">
+                                {page}
+                              </Button>
+                            );
+                          })}
                         </div>
 
                         <Button variant="outline" size="sm" onClick={goToNextPage} disabled={currentPage === totalPages} className="flex items-center gap-1">
@@ -340,15 +396,17 @@ function Deployments() {
                       <TabsTrigger value="blueprint-editor">Blueprint Editor</TabsTrigger>
                     </TabsList>
 
-                    <Button variant="outline" size="sm" onClick={handleBack} className="h-8 px-3 text-xs">
-                      <ChevronLeft className="h-3 w-3" /> Back
+                    <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
+                      <ChevronLeft /> Back
                     </Button>
                   </div>
 
                   <TabsContent value="quick" className="my-6 space-y-4">
                     <div className="space-y-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="instance">Target Instance <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="instance">
+                          Target Instance <span className="text-destructive">*</span>
+                        </Label>
                         <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
                           <SelectTrigger id="instance">
                             <SelectValue placeholder="Select an instance" />

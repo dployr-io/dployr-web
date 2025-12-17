@@ -186,6 +186,37 @@ export function useUrlState() {
         });
     }
 
+    function useDeploymentTabsState() {
+        return useQueryStates({
+            tab: parseAsStringLiteral([
+                "logs",
+                "blueprint",
+            ]).withDefault("logs"),
+            logRange: parseAsStringLiteral([
+                "live",
+                "5m",
+                "15m",
+                "30m",
+                "1h",
+                "3h",
+                "6h",
+                "12h",
+                "24h",
+            ]).withDefault("live"),
+            logLevel: parseAsStringLiteral([
+                "ALL",
+                "DEBUG",
+                "INFO",
+                "NOTICE",
+                "WARNING",
+                "ERROR",
+                "CRITICAL",
+                "ALERT",
+                "EMERGENCY",
+            ]).withDefault("ALL"),
+        });
+    }
+
     /**
      * URL state management for auth errors
      * Error captured during oAuth redirects
@@ -278,6 +309,7 @@ export function useUrlState() {
         useInstancesDialog,
         useInstanceTabsState,
         useDeploymentsTabsState,
+        useDeploymentTabsState,
         useAuthError,
         useAppError,
         useAppNotification,

@@ -108,7 +108,13 @@ function ViewInstance() {
   } = useInstanceViewState();
   const logTimeRange = (logRange || "live") as LogTimeRange;
   const selectedLogLevel = (logLevel || "ALL") as "ALL" | LogLevel;
-  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, startStreaming, stopStreaming, restartStream } = useInstanceLogs(instanceId, logType, logMode, logTimeRange, selectedLogLevel);
+  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, startStreaming, stopStreaming, restartStream } = useInstanceLogs(
+    instanceId,
+    logType,
+    logMode,
+    logTimeRange,
+    selectedLogLevel
+  );
 
   const updatePayload = status?.update ?? null;
   const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
@@ -184,7 +190,6 @@ function ViewInstance() {
       stopStreaming();
     }
   }, [currentTab, canViewLogs, startStreaming, stopStreaming]);
-
 
   const handleCopyStatus = async () => {
     try {
@@ -352,8 +357,8 @@ function ViewInstance() {
                   {canViewAdvanced && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
                 </TabsList>
 
-                <Button variant="outline" size="sm" onClick={() => window.history.back()} className="h-8 px-3 text-xs">
-                  <ChevronLeft className="h-3 w-3" /> Back
+                <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
+                  <ChevronLeft /> Back
                 </Button>
               </div>
 
@@ -454,7 +459,7 @@ function ViewInstance() {
                         <span className="text-xs text-muted-foreground">Domains</span>
                         {dnsList && dnsList.length > 0 ? (
                           <div className="mt-2 space-y-1">
-                            {dnsList.map((d) => (
+                            {dnsList.map(d => (
                               <div key={d.id} className="space-y-2">
                                 <div className="flex items-center justify-between py-1">
                                   <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -486,11 +491,7 @@ function ViewInstance() {
                                           }
                                         }}
                                       >
-                                        {expandedDomain === d.domain ? (
-                                          <ChevronUp className="h-3 w-3" />
-                                        ) : (
-                                          <ChevronDown className="h-3 w-3" />
-                                        )}
+                                        {expandedDomain === d.domain ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                                         <span className="ml-1">Setup</span>
                                       </Button>
                                     )}
@@ -528,9 +529,15 @@ function ViewInstance() {
                                         <div>
                                           <span className="text-xs text-muted-foreground">A Record</span>
                                           <div className="mt-1 rounded-md bg-muted/50 p-2 font-mono text-xs space-y-0.5">
-                                            <div><span className="text-muted-foreground">Type:</span> {expandedDomainDetails.record?.type}</div>
-                                            <div><span className="text-muted-foreground">Name:</span> {expandedDomainDetails.record?.name}</div>
-                                            <div><span className="text-muted-foreground">Value:</span> {expandedDomainDetails.record?.value}</div>
+                                            <div>
+                                              <span className="text-muted-foreground">Type:</span> {expandedDomainDetails.record?.type}
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Name:</span> {expandedDomainDetails.record?.name}
+                                            </div>
+                                            <div>
+                                              <span className="text-muted-foreground">Value:</span> {expandedDomainDetails.record?.value}
+                                            </div>
                                           </div>
                                         </div>
 
@@ -538,9 +545,15 @@ function ViewInstance() {
                                           <div>
                                             <span className="text-xs text-muted-foreground">TXT Verification</span>
                                             <div className="mt-1 rounded-md bg-muted/50 p-2 font-mono text-xs space-y-0.5">
-                                              <div><span className="text-muted-foreground">Type:</span> {expandedDomainDetails.verification.type}</div>
-                                              <div><span className="text-muted-foreground">Name:</span> {expandedDomainDetails.verification.name}</div>
-                                              <div><span className="text-muted-foreground">Value:</span> {expandedDomainDetails.verification.value}</div>
+                                              <div>
+                                                <span className="text-muted-foreground">Type:</span> {expandedDomainDetails.verification.type}
+                                              </div>
+                                              <div>
+                                                <span className="text-muted-foreground">Name:</span> {expandedDomainDetails.verification.name}
+                                              </div>
+                                              <div>
+                                                <span className="text-muted-foreground">Value:</span> {expandedDomainDetails.verification.value}
+                                              </div>
                                             </div>
                                           </div>
                                         )}
@@ -590,9 +603,15 @@ function ViewInstance() {
                               <div>
                                 <span className="text-xs text-muted-foreground">A Record</span>
                                 <div className="mt-1 rounded-md bg-muted/50 p-2 font-mono text-xs space-y-0.5">
-                                  <div><span className="text-muted-foreground">Type:</span> {setupDetails.record?.type}</div>
-                                  <div><span className="text-muted-foreground">Name:</span> {setupDetails.record?.name}</div>
-                                  <div><span className="text-muted-foreground">Value:</span> {setupDetails.record?.value}</div>
+                                  <div>
+                                    <span className="text-muted-foreground">Type:</span> {setupDetails.record?.type}
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Name:</span> {setupDetails.record?.name}
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Value:</span> {setupDetails.record?.value}
+                                  </div>
                                 </div>
                               </div>
 
@@ -600,9 +619,15 @@ function ViewInstance() {
                                 <div>
                                   <span className="text-xs text-muted-foreground">TXT Verification</span>
                                   <div className="mt-1 rounded-md bg-muted/50 p-2 font-mono text-xs space-y-0.5">
-                                    <div><span className="text-muted-foreground">Type:</span> {setupDetails.verification.type}</div>
-                                    <div><span className="text-muted-foreground">Name:</span> {setupDetails.verification.name}</div>
-                                    <div><span className="text-muted-foreground">Value:</span> {setupDetails.verification.value}</div>
+                                    <div>
+                                      <span className="text-muted-foreground">Type:</span> {setupDetails.verification.type}
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">Name:</span> {setupDetails.verification.name}
+                                    </div>
+                                    <div>
+                                      <span className="text-muted-foreground">Value:</span> {setupDetails.verification.value}
+                                    </div>
                                   </div>
                                 </div>
                               )}
@@ -629,13 +654,7 @@ function ViewInstance() {
                       ) : null}
 
                       <div className="flex items-center gap-2">
-                        <Input
-                          id="domain"
-                          placeholder="example.com"
-                          value={domainInput}
-                          onChange={(e) => setDomainInput(e.target.value)}
-                          className="flex-1"
-                        />
+                        <Input id="domain" placeholder="example.com" value={domainInput} onChange={e => setDomainInput(e.target.value)} className="flex-1" />
                         <Button
                           onClick={async () => {
                             if (!domainInput.trim()) {
@@ -763,13 +782,13 @@ function ViewInstance() {
                     logs={logs}
                     filteredLogs={filteredLogs}
                     selectedLevel={selectedLogLevel}
-                    setSelectedLevel={(level) => setTabState({ logLevel: level })}
+                    setSelectedLevel={level => setTabState({ logLevel: level })}
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
                     logsEndRef={logsEndRef}
                     onScrollPositionChange={handleScrollPositionChange}
                     timeRange={logTimeRange}
-                    onTimeRangeChange={(range) => {
+                    onTimeRangeChange={range => {
                       setTabState({ logRange: range });
                       restartStream(range);
                     }}

@@ -5,6 +5,7 @@ import type { Log, LogLevel, LogStreamMode, LogType } from "@/types";
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useInstanceStream, type StreamMessage } from "@/hooks/use-instance-stream";
 import type { LogTimeRange } from "@/components/log-time-selector";
+import { parseLogEntries, filterLogs, resetLogState, isNearBottom } from "@/lib/log-utils";
 
 export function useInstanceLogs(
   instanceId?: string,
@@ -28,7 +29,6 @@ export function useInstanceLogs(
   const lastOffsetRef = useRef(0);
   const hasSubscribedRef = useRef(false);
 
-  // Flush buffered logs to state
   const flushLogs = useCallback(() => {
     if (logBufferRef.current.length > 0) {
       setLogs(prev => [...prev, ...logBufferRef.current]);
@@ -36,7 +36,6 @@ export function useInstanceLogs(
     }
   }, []);
 
-  // Handle incoming messages
   const handleMessage = useCallback((message: StreamMessage) => {
     try {
       if (message.kind === "log_subscribed") {
@@ -46,36 +45,18 @@ export function useInstanceLogs(
 
       if (message.kind === "log_chunk" && Array.isArray(message.entries)) {
         const entries = message.entries as any[];
-        const newLogs: Log[] = entries.map((entry: any) => {
-          const { msg, level, time, ...rest } = entry || {};
-          const metadata: Record<string, unknown> = {};
-          for (const [key, value] of Object.entries(rest || {})) {
-            if (value !== undefined && value !== null) {
-              metadata[key] = value;
-            }
-          }
-
-          return {
-            id: `log-${logCounterRef.current++}`,
-            message: msg ?? "",
-            level: level?.toUpperCase() || "INFO",
-            timestamp: new Date(time),
-            ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
-          };
-        });
-
-        // Buffer logs 
+        const newLogs = parseLogEntries(entries, logCounterRef);
         logBufferRef.current.push(...newLogs);
 
         if (typeof message.offset === "number") {
           setLastOffset((message.offset as number) + entries.length);
         }
-        
+
         if (!flushTimerRef.current) {
           flushTimerRef.current = setTimeout(() => {
             flushLogs();
             flushTimerRef.current = null;
-          }, 100); // 100ms batching window
+          }, 100);
         }
       }
 
@@ -147,14 +128,8 @@ export function useInstanceLogs(
       setCurrentStreamId(null);
     }
 
-    // Clear logs when switching to historical mode (need fresh fetch from beginning)
-    // Also clear when switching between different historical ranges
     if (isHistorical) {
-      setLogs([]);
-      logBufferRef.current = [];
-      logCounterRef.current = 0;
-      setLastOffset(0);
-      lastOffsetRef.current = 0;
+      resetLogState(setLogs, logBufferRef, logCounterRef, setLastOffset, lastOffsetRef);
     }
 
     // Ensure we're subscribed to message handlers
@@ -204,47 +179,17 @@ export function useInstanceLogs(
     };
   }, [isStreaming, subscriberId, unsubscribe]);
 
-  // Defer filtering to avoid blocking on heavy updates
   const deferredLogs = useDeferredValue(logs);
-  
-  // Log level hierarchy (from least to most severe)
-  const logLevelHierarchy = ["DEBUG", "INFO", "NOTICE", "WARNING", "ERROR", "CRITICAL", "ALERT", "EMERGENCY"] as const;
-  
-  // Filter logs based on level (selected level and above/more severe) and search query
-  const filteredLogs = useMemo(() => {
-    let filtered = deferredLogs;
+  const filteredLogs = useMemo(
+    () => filterLogs(deferredLogs, selectedLevel, searchQuery),
+    [deferredLogs, selectedLevel, searchQuery]
+  );
 
-    if (selectedLevel !== "ALL") {
-      const selectedLevelIndex = logLevelHierarchy.indexOf(selectedLevel as any);
-      filtered = filtered.filter(log => {
-        if (!log.level) return false;
-        const logLevelIndex = logLevelHierarchy.indexOf(log.level as any);
-        // Include logs at selected level and above (more severe)
-        return logLevelIndex >= selectedLevelIndex;
-      });
-    }
-
-    if (searchQuery) {
-      filtered = filtered.filter(log =>
-        log.message.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-    }
-
-    return filtered;
-  }, [deferredLogs, selectedLevel, searchQuery]);
-
-  // Auto-scroll to bottom when new logs arrive (only if already at bottom)
   useEffect(() => {
     if (initialMode !== "tail") return;
-    
-    // Only auto-scroll if we're already near the bottom (within 100px)
     const container = logsEndRef.current?.parentElement;
     if (!container) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    
-    if (isNearBottom) {
+    if (isNearBottom(container)) {
       logsEndRef.current?.scrollIntoView({ behavior: "auto" });
     }
   }, [filteredLogs, initialMode]);
