@@ -14,6 +14,7 @@ import reportWebVitals from './reportWebVitals.ts'
 import './css/app.css';
 
 import { initializeTheme } from '@/hooks/use-appearance';
+import { restoreCacheFromStorage } from '@/lib/query-cache-persistence';
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -24,6 +25,9 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// Restore persisted cache on app load
+restoreCacheFromStorage(queryClient);
 
 // Create a new router instance
 const router = createRouter({

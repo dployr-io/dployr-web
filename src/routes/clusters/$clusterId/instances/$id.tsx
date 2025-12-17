@@ -120,7 +120,7 @@ function ViewInstance() {
   const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
   const [isCertOpen, setIsCertOpen] = useState(false);
   const [domainInput, setDomainInput] = useState("");
-  const { dnsList, setupDnsAsync, isSettingUp, setupDetails, domainStatus, isPolling, getDomainStatus, deleteDnsAsync, isDeleting } = useDns(instanceId);
+  const { dnsList, setupDnsAsync, isSettingUp, setupDetails, domainStatus, isPolling, getDomainStatus, deleteDnsAsync, isDeleting, requestVerification, isRequestingVerification } = useDns(instanceId);
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [expandedDomainDetails, setExpandedDomainDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
@@ -559,6 +559,25 @@ function ViewInstance() {
                                         )}
 
                                         <div className="flex items-center gap-2">
+                                          {d.status === "pending" && (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => {
+                                                requestVerification({ domain: d.domain });
+                                              }}
+                                              disabled={isRequestingVerification}
+                                            >
+                                              {isRequestingVerification ? (
+                                                <>
+                                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                                  Requesting...
+                                                </>
+                                              ) : (
+                                                "Check Records"
+                                              )}
+                                            </Button>
+                                          )}
                                           {expandedDomainDetails.autoSetupUrl && (
                                             <Button variant="outline" size="sm" asChild>
                                               <a href={expandedDomainDetails.autoSetupUrl} target="_blank" rel="noopener noreferrer">
@@ -930,7 +949,7 @@ function ViewInstance() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Restart Instance</DialogTitle>
-                  <DialogDescription>Restart the dployr daemon on this instance. The connection will briefly drop, but deployed apps and services will keep serving traffic.</DialogDescription>
+                  <DialogDescription>Restart the dployr daemon on this instance. The connection will briefly drop, this won't affect your deployed services.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="flex items-center space-x-2">

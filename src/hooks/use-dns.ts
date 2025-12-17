@@ -5,6 +5,7 @@ import type { ApiSuccessResponse } from "@/types";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClusterId } from "@/hooks/use-cluster-id";
+import { useUrlState } from "@/hooks/use-url-state";
 import { useState } from "react";
 
 export interface DnsDomain {
@@ -42,8 +43,9 @@ export interface DnsSetupResponse {
 export function useDns(instanceId?: string) {
   const queryClient = useQueryClient();
   const clusterId = useClusterId();
+  const { useAppError } = useUrlState();
+  const [, setError] = useAppError();
   const [setupDetails, setSetupDetails] = useState<DnsSetupResponse | null>(null);
-  const [pollingDomain, setPollingDomain] = useState<string | null>(null);
 
   // Get all active domains across all instances (for domain dropdown)
   const { data: allDomains, isLoading: isLoadingAllDomains } = useQuery<DnsDomain[]>({
@@ -94,15 +96,18 @@ export function useDns(instanceId?: string) {
     enabled: Boolean(instanceId && clusterId),
   });
 
+  // Determine which domain to poll from dnsList
+  const pendingDomain = dnsList?.domains?.find((d: DnsDomain) => d.status === "pending")?.domain;
+
   // Poll domain status until active
   const { data: domainStatus } = useQuery({
-    queryKey: ["dns-status", pollingDomain, clusterId],
+    queryKey: ["dns-status", pendingDomain, clusterId],
     queryFn: async () => {
-      if (!pollingDomain || !clusterId) return null;
+      if (!pendingDomain || !clusterId) return null;
 
       try {
         const response = await axios.get<ApiSuccessResponse<any>>(
-          `${import.meta.env.VITE_BASE_URL}/v1/domains/status/${pollingDomain}`,
+          `${import.meta.env.VITE_BASE_URL}/v1/domains/status/${pendingDomain}`,
           {
             params: { clusterId },
             withCredentials: true,
@@ -114,8 +119,8 @@ export function useDns(instanceId?: string) {
         return null;
       }
     },
-    enabled: Boolean(pollingDomain && clusterId),
-    refetchInterval: pollingDomain ? 5000 : false, // Poll every 5s
+    enabled: Boolean(pendingDomain && clusterId),
+    refetchInterval: pendingDomain ? 5000 : false,
     refetchIntervalInBackground: true,
   });
 
@@ -126,7 +131,7 @@ export function useDns(instanceId?: string) {
         throw new Error("Cluster ID is required to configure domains");
       }
       const response = await axios.post<ApiSuccessResponse<DnsSetupResponse>>(
-        `${import.meta.env.VITE_BASE_URL}/v1/domains/setup`,
+        `${import.meta.env.VITE_BASE_URL}/v1/domains`,
         { domain, instanceId },
         {
           params: { clusterId },
@@ -136,9 +141,20 @@ export function useDns(instanceId?: string) {
       return response.data.data;
     },
     onSuccess: (data) => {
-      // Store setup details and start polling
+      // Store setup details
       setSetupDetails(data);
-      setPollingDomain(data.domain);
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while setting up domain.";
+      const helpLink = error?.response?.data?.error?.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
     },
   });
 
@@ -157,6 +173,39 @@ export function useDns(instanceId?: string) {
     return response.data.data;
   };
 
+  // Request domain verification
+  const requestVerificationMutation = useMutation({
+    mutationFn: async ({ domain }: { domain: string; }) => {
+      if (!instanceId) {
+        throw new Error("Instance ID is required to request verification");
+      }
+      const response = await axios.post<ApiSuccessResponse<DnsSetupResponse>>(
+        `${import.meta.env.VITE_BASE_URL}/v1/domains/${domain}/verify`,
+        { domain },
+        {
+          params: { instanceId },
+          withCredentials: true,
+        }
+      );
+      return response.data.data;
+    },
+    onSuccess: (data) => {
+      setSetupDetails(data);
+    },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while requesting verification.";
+      const helpLink = error?.response?.data?.error?.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
+    },
+  });
+
   // Delete DNS configuration
   const deleteDnsMutation = useMutation({
     mutationFn: async (domain: string) => {
@@ -171,15 +220,26 @@ export function useDns(instanceId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
     },
+    onError: (error: any) => {
+      const errorData = error?.response?.data?.error;
+      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while deleting domain.";
+      const helpLink = error?.response?.data?.error?.helpLink;
+
+      setError({
+        appError: {
+          message: errorMessage,
+          helpLink,
+        },
+      });
+    },
   });
 
   const stopPolling = () => {
-    setPollingDomain(null);
     setSetupDetails(null);
   };
 
   // Stop polling when domain becomes active
-  if (domainStatus?.status === "active" && pollingDomain) {
+  if (domainStatus?.status === "active" && pendingDomain) {
     queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
     stopPolling();
   }
@@ -195,9 +255,13 @@ export function useDns(instanceId?: string) {
     setupError: setupDnsMutation.error,
     setupDetails,
     domainStatus,
-    isPolling: Boolean(pollingDomain),
+    isPolling: Boolean(pendingDomain),
     stopPolling,
     getDomainStatus,
+    requestVerification: requestVerificationMutation.mutate,
+    requestVerificationAsync: requestVerificationMutation.mutateAsync,
+    isRequestingVerification: requestVerificationMutation.isPending,
+    requestVerificationError: requestVerificationMutation.error,
     deleteDns: deleteDnsMutation.mutate,
     deleteDnsAsync: deleteDnsMutation.mutateAsync,
     isDeleting: deleteDnsMutation.isPending,

@@ -47,14 +47,12 @@ function ViewDeployment() {
   const { blueprintFormat, setBlueprintFormat } = useServiceForm();
   const { clusterId } = Route.useParams();
 
-  // URL state for tabs and log settings
   const { useDeploymentTabsState } = useUrlState();
   const [{ tab, logRange, logLevel }, setTabState] = useDeploymentTabsState();
   const currentTab = (tab || "logs") as "logs" | "blueprint";
   const logTimeRange = (logRange || "live") as LogTimeRange;
   const selectedLogLevel = (logLevel || "ALL") as "ALL" | LogLevel;
   
-  // Streaming logs
   const [isAtBottom, setIsAtBottom] = useState(true);
   const logMode = isAtBottom ? "tail" : "historical";
   const {
@@ -76,7 +74,6 @@ function ViewDeployment() {
     [setIsAtBottom]
   );
 
-  // Start/stop log streaming on tab switch
   useEffect(() => {
     if (currentTab === "logs" && deployment?.id) {
       startStreaming();

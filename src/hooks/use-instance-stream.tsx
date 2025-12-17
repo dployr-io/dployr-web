@@ -3,6 +3,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useClusterId } from "./use-cluster-id";
+import { useQueryClient } from "@tanstack/react-query";
+import type { InstanceStream } from "@/types";
+import { persistCacheToStorage } from "@/lib/query-cache-persistence";
 
 export type StreamConnectionState = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -37,12 +40,14 @@ interface InstanceStreamProviderProps {
 
 export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStreamProviderProps) {
   const clusterId = useClusterId();
+  const queryClient = useQueryClient();
   
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retriesRef = useRef(0);
   const closeRequestedRef = useRef(false);
   const handlersRef = useRef<Map<string, MessageHandler>>(new Map());
+  const persistTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isConnected, setIsConnected] = useState(false);
   const [state, setState] = useState<StreamConnectionState>("idle");
@@ -126,6 +131,22 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
     socket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data as string) as StreamMessage;
+        
+        if (message.kind === "update") {
+          const data = message as unknown as InstanceStream;
+          const instanceId = (data?.update as any)?.instance_id;
+          if (instanceId) {
+            queryClient.setQueryData<InstanceStream>(["instance-status", instanceId], data);
+            
+            // Debounce 
+            if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
+            persistTimeoutRef.current = setTimeout(() => {
+              persistCacheToStorage(queryClient);
+              persistTimeoutRef.current = null;
+            }, 500);
+          }
+        }
+        
         handlersRef.current.forEach((handler) => {
           try {
             handler(message);
