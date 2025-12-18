@@ -36,7 +36,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { formatBytes } from "./instance-metrics";
-import axios from "axios";
+import { useFileSystem } from "@/hooks/use-file-system";
 
 interface FileSystemBrowserProps {
   instanceId: string;
@@ -53,7 +53,7 @@ interface FileOperation {
   error?: string;
 }
 
-export function FileSystemBrowser({ instanceId, fs, clusterId, className, onRefresh }: FileSystemBrowserProps) {
+export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: FileSystemBrowserProps) {
   const [selectedNode, setSelectedNode] = useState<FsNode | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [fileContent, setFileContent] = useState<string>("");
@@ -68,7 +68,8 @@ export function FileSystemBrowser({ instanceId, fs, clusterId, className, onRefr
   const [newItemName, setNewItemName] = useState("");
   const [targetPath, setTargetPath] = useState("");
 
-  const baseUrl = import.meta.env.VITE_BASE_URL;
+  // Use WebSocket-based file system operations
+  const fileSystem = useFileSystem({ instanceId });
 
   const toggleExpand = useCallback((path: string) => {
     setExpandedPaths(prev => {
@@ -89,20 +90,15 @@ export function FileSystemBrowser({ instanceId, fs, clusterId, className, onRefr
     setSelectedNode(node);
     
     try {
-      const response = await axios.get(`${baseUrl}/v1/instances/${instanceId}/system/fs/read`, {
-        params: { clusterId, path: node.path },
-        withCredentials: true,
-      });
-      
-      const content = response.data?.data?.content ?? "";
-      setFileContent(content);
-      setEditedContent(content);
+      const result = await fileSystem.readFile(node.path);
+      setFileContent(result.content);
+      setEditedContent(result.content);
       setOperation(null);
     } catch (error: any) {
-      const message = error?.response?.data?.error?.message || error.message || "Failed to read file";
+      const message = error?.message || "Failed to read file";
       setOperation({ type: "read", path: node.path, loading: false, error: message });
     }
-  }, [baseUrl, instanceId, clusterId]);
+  }, [fileSystem]);
 
   const writeFile = useCallback(async () => {
     if (!selectedNode || !selectedNode.writable) return;
@@ -110,24 +106,16 @@ export function FileSystemBrowser({ instanceId, fs, clusterId, className, onRefr
     setOperation({ type: "write", path: selectedNode.path, loading: true });
     
     try {
-      await axios.put(`${baseUrl}/v1/instances/${instanceId}/system/fs/write`, {
-        path: selectedNode.path,
-        content: editedContent,
-        encoding: "utf8",
-      }, {
-        params: { clusterId },
-        withCredentials: true,
-      });
-      
+      await fileSystem.writeFile(selectedNode.path, editedContent, "utf8");
       setFileContent(editedContent);
       setIsEditing(false);
       setOperation(null);
       onRefresh?.();
     } catch (error: any) {
-      const message = error?.response?.data?.error?.message || error.message || "Failed to write file";
+      const message = error?.message || "Failed to write file";
       setOperation({ type: "write", path: selectedNode.path, loading: false, error: message });
     }
-  }, [baseUrl, instanceId, clusterId, selectedNode, editedContent, onRefresh]);
+  }, [fileSystem, selectedNode, editedContent, onRefresh]);
 
   const createItem = useCallback(async () => {
     if (!newItemName.trim()) return;
@@ -136,23 +124,16 @@ export function FileSystemBrowser({ instanceId, fs, clusterId, className, onRefr
     setOperation({ type: "create", path: fullPath, loading: true });
     
     try {
-      await axios.post(`${baseUrl}/v1/instances/${instanceId}/system/fs/create`, {
-        path: fullPath,
-        type: createType,
-      }, {
-        params: { clusterId },
-        withCredentials: true,
-      });
-      
+      await fileSystem.createItem(fullPath, createType);
       setShowCreateDialog(false);
       setNewItemName("");
       setOperation(null);
       onRefresh?.();
     } catch (error: any) {
-      const message = error?.response?.data?.error?.message || error.message || "Failed to create item";
+      const message = error?.message || "Failed to create item";
       setOperation({ type: "create", path: fullPath, loading: false, error: message });
     }
-  }, [baseUrl, instanceId, clusterId, targetPath, newItemName, createType, onRefresh]);
+  }, [fileSystem, targetPath, newItemName, createType, onRefresh]);
 
   const deleteItem = useCallback(async () => {
     if (!selectedNode) return;
@@ -160,21 +141,18 @@ export function FileSystemBrowser({ instanceId, fs, clusterId, className, onRefr
     setOperation({ type: "delete", path: selectedNode.path, loading: true });
     
     try {
-      await axios.delete(`${baseUrl}/v1/instances/${instanceId}/system/fs/delete`, {
-        params: { clusterId, path: selectedNode.path },
-        withCredentials: true,
-      });
-      
+      const recursive = selectedNode.type === "dir";
+      await fileSystem.deleteItem(selectedNode.path, recursive);
       setShowDeleteDialog(false);
       setSelectedNode(null);
       setFileContent("");
       setOperation(null);
       onRefresh?.();
     } catch (error: any) {
-      const message = error?.response?.data?.error?.message || error.message || "Failed to delete item";
+      const message = error?.message || "Failed to delete item";
       setOperation({ type: "delete", path: selectedNode.path, loading: false, error: message });
     }
-  }, [baseUrl, instanceId, clusterId, selectedNode, onRefresh]);
+  }, [fileSystem, selectedNode, onRefresh]);
 
   const handleContextAction = useCallback((action: string, node: FsNode) => {
     switch (action) {

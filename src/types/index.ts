@@ -229,6 +229,33 @@ export interface FsSnapshot {
   roots: FsNode[];
 }
 
+// Filesystem Task Types
+export type FsTaskType = "fs_read" | "fs_write" | "fs_create" | "fs_delete" | "fs_list";
+
+export interface FsTaskRequest {
+  kind: FsTaskType;
+  taskId: string;
+  instanceId: string;
+  path: string;
+  content?: string;
+  encoding?: "utf8" | "base64";
+  type?: "file" | "dir";
+  recursive?: boolean;
+}
+
+export interface FsTaskResponse {
+  kind: "fs_result";
+  taskId: string;
+  success: boolean;
+  error?: string;
+  data?: {
+    content?: string;
+    encoding?: string;
+    node?: FsNode;
+    nodes?: FsNode[];
+  };
+}
+
 // Proxy Status
 export interface ProxyStatus {
   status: "running" | "stopped" | "error";
