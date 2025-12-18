@@ -395,7 +395,7 @@ function ViewInstance() {
                   <div className="flex flex-col gap-3">
                     <MetricCard
                       label="Services"
-                      value={typeof metrics?.services?.running === "number" && typeof metrics?.services?.total === "number" ? `${metrics.services.running}/${metrics.services.total} running` : "-"}
+                      value={`${metrics?.services.length} running`}
                     />
                     <MetricCard label="Health" value={<StatusBadge status={metrics?.health?.overall || "-"} variant="compact" />} />
                   </div>
