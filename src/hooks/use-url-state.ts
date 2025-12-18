@@ -147,6 +147,7 @@ export function useUrlState() {
             tab: parseAsStringLiteral([
                 "overview",
                 "system",
+                "files",
                 "config",
                 "logs",
                 "advanced",
@@ -192,6 +193,39 @@ export function useUrlState() {
                 "logs",
                 "blueprint",
             ]).withDefault("logs"),
+            logRange: parseAsStringLiteral([
+                "live",
+                "5m",
+                "15m",
+                "30m",
+                "1h",
+                "3h",
+                "6h",
+                "12h",
+                "24h",
+            ]).withDefault("live"),
+            logLevel: parseAsStringLiteral([
+                "ALL",
+                "DEBUG",
+                "INFO",
+                "NOTICE",
+                "WARNING",
+                "ERROR",
+                "CRITICAL",
+                "ALERT",
+                "EMERGENCY",
+            ]).withDefault("ALL"),
+        });
+    }
+
+    function useServiceTabsState() {
+        return useQueryStates({
+            tab: parseAsStringLiteral([
+                "overview",
+                "logs",
+                "env",
+                "settings",
+            ]).withDefault("overview"),
             logRange: parseAsStringLiteral([
                 "live",
                 "5m",
@@ -310,6 +344,7 @@ export function useUrlState() {
         useInstanceTabsState,
         useDeploymentsTabsState,
         useDeploymentTabsState,
+        useServiceTabsState,
         useAuthError,
         useAppError,
         useAppNotification,

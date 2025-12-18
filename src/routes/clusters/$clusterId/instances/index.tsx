@@ -4,12 +4,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, Instance } from "@/types";
+import type { BreadcrumbItem, Instance, InstanceStream, InstanceStreamUpdateV1 } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, ChevronRight, CirclePlus, MoreHorizontal, Settings2, RotateCcw, Trash2, Copy, Check } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChevronLeft, ChevronRight, CirclePlus, MoreHorizontal, Settings2, RotateCcw, Trash2, Copy, Check, Boxes, HardDrive } from "lucide-react";
 import TimeAgo from "react-timeago";
 import { formatWithoutSuffix } from "@/lib/utils";
 import { useInstances } from "@/hooks/use-instances";
@@ -24,6 +25,10 @@ import { useClusterId } from "@/hooks/use-cluster-id";
 import { use2FA } from "@/hooks/use-2fa";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInstanceStream } from "@/hooks/use-instance-stream";
+import { StatusBadge } from "@/components/status-badge";
+import { DiskBrowserDialog } from "@/components/disk-browser";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/")({
   component: Instances,
@@ -40,7 +45,6 @@ function Instances() {
   const { paginatedInstances, instances, isLoading, currentPage, totalPages, startIndex, endIndex, goToPage, goToPreviousPage, goToNextPage, addInstance, deleteInstance } = useInstances();
   const clusterId = useClusterId();
   const navigate = Route.useNavigate();
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const { useInstancesDialog } = useUrlState();
   const [{ new: isNewInstanceOpen }, setInstancesDialog] = useInstancesDialog();
   const { address, tag, setAddress, setTag, getFormData } = useInstancesForm();
@@ -49,6 +53,18 @@ function Instances() {
   const [createdInstanceData, setCreatedInstanceData] = useState<{ tag: string; token: string } | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<"linux" | "windows">("linux");
   const [copied, setCopied] = useState(false);
+  
+  const queryClient = useQueryClient();
+  useInstanceStream(); // Ensure stream is active
+  
+  // Get instance status data from cache
+  const getInstanceStatus = (instanceId: string): InstanceStreamUpdateV1 | null => {
+    const data = queryClient.getQueryData<InstanceStream>(["instance-status", instanceId]);
+    if (data?.update?.schema === "v1") {
+      return data.update as InstanceStreamUpdateV1;
+    }
+    return null;
+  };
 
   async function handleCreateInstance() {
     const data = getFormData();
@@ -143,31 +159,40 @@ function Instances() {
             <Table className="overflow-hidden rounded-t-lg">
               <TableHeader className="gap-2 rounded-t-xl bg-neutral-50 p-2 dark:bg-neutral-900">
                 <TableRow className="h-12">
-                  <TableHead className="w-[240px]">Instance</TableHead>
-                  <TableHead className="w-[220px]">Address</TableHead>
-                  <TableHead className="w-[140px]">Created</TableHead>
-                  <TableHead className="w-[80px] text-right"></TableHead>
+                  <TableHead className="w-[200px]">Instance</TableHead>
+                  <TableHead className="w-[100px]">Status</TableHead>
+                  <TableHead className="w-[100px]">Services</TableHead>
+                  <TableHead className="w-[120px]">Created</TableHead>
+                  <TableHead className="w-[60px] text-right"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading
                   ? Array.from({ length: 3 }).map((_, idx) => (
                       <TableRow key={`skeleton-${idx}`} className="h-16">
-                        <TableCell className="h-16 max-w-[240px] align-middle font-medium">
-                          <Skeleton className="h-4 w-40" />
+                        <TableCell className="h-16 max-w-[200px] align-middle font-medium">
+                          <Skeleton className="h-4 w-32" />
                         </TableCell>
-                        <TableCell className="h-16 max-w-[220px] align-middle">
-                          <Skeleton className="h-4 w-40" />
+                        <TableCell className="h-16 max-w-[100px] align-middle">
+                          <Skeleton className="h-5 w-16 rounded-full" />
                         </TableCell>
-                        <TableCell className="h-16 max-w-[140px] align-middle">
-                          <Skeleton className="h-4 w-24" />
+                        <TableCell className="h-16 max-w-[100px] align-middle">
+                          <Skeleton className="h-4 w-8" />
                         </TableCell>
-                        <TableCell className="h-16 max-w-[80px] align-middle text-right">
+                        <TableCell className="h-16 max-w-[120px] align-middle">
+                          <Skeleton className="h-4 w-16" />
+                        </TableCell>
+                        <TableCell className="h-16 max-w-[60px] align-middle text-right">
                           <Skeleton className="h-8 w-8 rounded-full" />
                         </TableCell>
                       </TableRow>
                     ))
                   : paginatedInstances.map((instance: Instance) => {
+                      const status = getInstanceStatus(instance.id);
+                      const servicesCount = status?.services?.length ?? 0;
+                      const hasFs = !!status?.fs;
+                      const disks = status?.debug?.system?.disks;
+                      
                       return (
                       <TableRow
                         key={instance.id}
@@ -180,16 +205,33 @@ function Instances() {
                           });
                         }}
                       >
-                        <TableCell className="h-16 max-w-[140px] align-middle font-medium">
+                        <TableCell className="h-16 max-w-[200px] align-middle font-medium">
                           <div className="flex flex-col gap-0.5">
                             <span className="truncate text-sm font-semibold">{instance.tag}</span>
-                            <span className="truncate text-[11px] text-muted-foreground">{timeZone}</span>
+                            <span className="truncate font-mono text-[11px] text-muted-foreground">{instance.address}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="h-16 max-w-[80px] align-middle">
-                          <span className="truncate font-mono text-sm text-muted-foreground">{instance.address}</span>
+                        <TableCell className="h-16 max-w-[100px] align-middle">
+                          {status ? (
+                            <StatusBadge status={status.status} variant="compact" />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
-                        <TableCell className="h-16 max-w-[80px] align-middle">
+                        <TableCell className="h-16 max-w-[100px] align-middle">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5">
+                                <Boxes className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className="text-sm">{servicesCount}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {servicesCount === 0 ? "No services running" : `${servicesCount} service${servicesCount > 1 ? "s" : ""} running`}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell className="h-16 max-w-[120px] align-middle">
                           <span className="text-sm text-muted-foreground">
                             {(() => {
                               if (!instance.createdAt) return "N/A";
@@ -201,7 +243,7 @@ function Instances() {
                             })()}
                           </span>
                         </TableCell>
-                        <TableCell className="h-16 max-w-[80px] align-middle text-right">
+                        <TableCell className="h-16 max-w-[60px] align-middle text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
@@ -228,6 +270,28 @@ function Instances() {
                                 <RotateCcw className="h-4 w-4 text-foreground" />
                                 Restart
                               </DropdownMenuItem>
+                              {(hasFs || (disks && disks.length > 0)) && (
+                                <DropdownMenuItem
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                  }}
+                                  className="cursor-pointer p-0"
+                                  asChild
+                                >
+                                  <div>
+                                    <DiskBrowserDialog
+                                      disks={disks}
+                                      fs={status?.fs}
+                                      trigger={
+                                        <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
+                                          <HardDrive className="h-4 w-4 text-foreground" />
+                                          Browse Files
+                                        </button>
+                                      }
+                                    />
+                                  </div>
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 onClick={e => {
                                   e.stopPropagation();

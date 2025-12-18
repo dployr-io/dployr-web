@@ -3,6 +3,8 @@
 
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { Deployment, Instance, InstanceStream } from "@/types";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
@@ -41,24 +43,31 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
+function useAggregatedDeployments(instances: Instance[], selectedInstanceId: string): Deployment[] {
+  const queryClient = useQueryClient();
+  const isAllInstances = selectedInstanceId === "all";
+
+  return useMemo(() => {
+    if (!isAllInstances) {
+      const cached = queryClient.getQueryData<InstanceStream>(["instance-status", selectedInstanceId]);
+      return (cached?.update as any)?.deployments || [];
+    }
+
+    return instances.flatMap(instance => {
+      const cached = queryClient.getQueryData<InstanceStream>(["instance-status", instance.id]);
+      return (cached?.update as any)?.deployments || [];
+    });
+  }, [isAllInstances, selectedInstanceId, instances, queryClient]);
+}
+
 function Deployments() {
   const { instances } = useInstances();
   const { remotes, isLoading: isRemotesLoading } = useRemotes();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("all");
-  const isAllInstances = selectedInstanceId === "all";
-  const targetInstanceId = isAllInstances ? instances?.[0]?.id : selectedInstanceId;
-  const { deployments: singleInstanceDeployments, isConnected } = useInstanceStatus(targetInstanceId);
   const { clusterId } = Route.useParams();
 
-  // Aggregate deployments from all instances if "all" is selected
-  const allDeployments = isAllInstances
-    ? instances.flatMap((_, idx) => {
-        if (idx === 0) return singleInstanceDeployments;
-        return [];
-      })
-    : singleInstanceDeployments;
-
-  const deployments = allDeployments;
+  const deployments = useAggregatedDeployments(instances, selectedInstanceId);
+  const { isConnected } = useInstanceStatus(instances?.[0]?.id);
   const isDeploymentsLoading = !isConnected && deployments.length === 0;
 
   // Pagination

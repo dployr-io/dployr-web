@@ -107,32 +107,158 @@ export type UserRole = "owner" | "admin" | "developer" | "viewer";
 
 export type InstanceStatus = "ready" | "starting" | "stopped" | "error" | string;
 
-export interface InstanceStreamStatus {
-  uptime: number;
-  load_avg: [number, number, number];
+// Agent Health Status
+export type AgentHealthStatus = "ok" | "degraded" | "error";
+
+export interface AgentHealth {
+  overall: AgentHealthStatus;
+  ws: AgentHealthStatus;
+  tasks: AgentHealthStatus;
+  auth: AgentHealthStatus;
+}
+
+// Disk Information
+export interface DiskInfo {
+  filesystem: string;
+  mountpoint: string;
+  size_bytes: number;
+  used_bytes?: number;
+  available_bytes: number;
+}
+
+// System Debug Information
+export interface SystemDebug {
+  cpu_count: number;
+  mem_total_bytes: number;
+  mem_used_bytes: number;
+  mem_free_bytes: number;
+  disks: DiskInfo[];
+  workers: number;
+}
+
+// Debug Information
+export interface AgentDebug {
+  ws: {
+    connected: boolean;
+    last_connect_at: string;
+    reconnects_since_start: number;
+  };
+  tasks: {
+    inflight: number;
+    done_unsent: number;
+  };
+  auth: {
+    agent_token_age_s: number;
+    agent_token_expires_in_s: number;
+    bootstrap_token: string;
+  };
+  system: SystemDebug;
+}
+
+// Process Information for Top
+export interface ProcessInfo {
+  pid: number;
+  user: string;
+  command: string;
+  cpu_percent: number;
+  mem_percent: number;
+  rss_bytes: number;
+  vms_bytes: number;
+  state: string;
+}
+
+// Top Metrics (real-time system stats)
+export interface TopMetrics {
+  timestamp: string;
+  uptime_seconds: number;
+  load_avg: {
+    load1: number;
+    load5: number;
+    load15: number;
+  };
   cpu: {
     user: number;
     system: number;
+    idle: number;
+    iowait: number;
+    steal: number;
   };
-  mem: {
+  memory: {
+    total_bytes: number;
+    used_bytes: number;
+    free_bytes: number;
+    available_bytes: number;
+    used_percent: number;
+    swap_total_bytes: number;
+    swap_used_bytes: number;
+    swap_free_bytes: number;
+  };
+  tasks: {
     total: number;
-    used: number;
-    free: number;
+    running: number;
+    sleeping: number;
+    stopped: number;
+    zombie: number;
   };
-  disk: {
-    total: number;
-    used: number;
-    free: number;
-  };
-  debug: {
-    auth: {
-      bootstrap_token: string;
-    };
-  };
+  processes: ProcessInfo[];
 }
 
-export interface InstanceStreamUpdate {
-  schema: string;
+// Filesystem Node
+export interface FsNode {
+  path: string;
+  name: string;
+  type: "file" | "dir" | "symlink";
+  size_bytes: number;
+  mod_time: string;
+  mode: string;
+  owner: string;
+  group: string;
+  uid: number;
+  gid: number;
+  readable: boolean;
+  writable: boolean;
+  executable: boolean;
+  children?: FsNode[];
+  truncated?: boolean;
+  child_count?: number;
+}
+
+// Filesystem Snapshot
+export interface FsSnapshot {
+  generated_at: string;
+  roots: FsNode[];
+}
+
+// Proxy Status
+export interface ProxyStatus {
+  status: "running" | "stopped" | "error";
+  routes: number;
+}
+
+// Agent Service (from stream)
+export interface AgentService {
+  id: string;
+  name: string;
+  description: string;
+  source: string;
+  runtime: string;
+  runtime_version: string;
+  run_cmd: string;
+  build_cmd: string;
+  port: number;
+  working_dir: string;
+  status: string;
+  remote: string;
+  branch: string;
+  commit_hash: string;
+  blueprint?: Blueprint;
+  created_at: string;
+  updated_at: string;
+}
+
+// New v1 schema update
+export interface InstanceStreamUpdateV1 {
+  schema: "v1";
   seq: number;
   epoch: string;
   full: boolean;
@@ -141,22 +267,40 @@ export interface InstanceStreamUpdate {
     version: string;
     commit: string;
     date: string;
+    go_version: string;
   };
   platform: {
     os: string;
     arch: string;
-    go: string;
   };
-  status: InstanceStreamStatus;
+  status: "healthy" | "degraded" | "unhealthy" | string;
+  mode: "ready" | "starting" | "stopping" | string;
+  uptime: string;
   deployments?: Deployment[];
-  services?: any[];
+  services?: AgentService[];
   proxies?: any[];
+  proxy?: ProxyStatus;
+  health?: AgentHealth;
+  debug?: AgentDebug;
+  fs?: FsSnapshot;
+  top?: TopMetrics;
 }
+
 
 export interface InstanceStream {
   kind: string;
   timestamp: number;
-  update: InstanceStreamUpdate;
+  update: InstanceStreamUpdateV1;
+}
+
+// Memory profile entry for caching
+export interface MemoryProfileEntry {
+  timestamp: number;
+  mem_used_bytes: number;
+  mem_total_bytes: number;
+  mem_used_percent: number;
+  cpu_user: number;
+  cpu_system: number;
 }
 
 export interface OtpVerifyRequest {

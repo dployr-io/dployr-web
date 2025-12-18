@@ -18,7 +18,7 @@ import { useInstanceViewState } from "@/hooks/use-instance-view-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { useClusters } from "@/hooks/use-clusters";
-import { getRolePriority } from "@/lib/utils";
+import { getRolePriority, cn } from "@/lib/utils";
 import { useInstances } from "@/hooks/use-instances";
 import { FormattedFile } from "@/components/formatted-file";
 import { useInstancesForm } from "@/hooks/use-instances-form";
@@ -34,6 +34,11 @@ import { VersionSelector } from "@/components/version-selector";
 import { useDns } from "@/hooks/use-dns";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { FileSystemBrowser } from "@/components/file-system-browser";
+import type { InstanceStreamUpdateV1 } from "@/types";
+import { InstanceMetricsChart } from "@/components/metrics-chart";
+import { getMemoryProfile } from "@/lib/query-cache-persistence";
+import { ProcessViewer } from "@/components/resource-viewer";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/$id")({
   component: ViewInstance,
@@ -352,6 +357,7 @@ function ViewInstance() {
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="system">System</TabsTrigger>
+                  {(status?.update as InstanceStreamUpdateV1)?.fs && <TabsTrigger value="files">Files</TabsTrigger>}
                   {canViewConfig && <TabsTrigger value="config">Configuration</TabsTrigger>}
                   {canViewLogs && <TabsTrigger value="logs">Logs</TabsTrigger>}
                   {canViewAdvanced && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
@@ -713,6 +719,12 @@ function ViewInstance() {
               )}
 
               <TabsContent value="system" className="mt-4 space-y-4">
+                {/* Real-time Resource Chart */}
+                <InstanceMetricsChart data={getMemoryProfile(instanceId)} height={140} />
+
+                {/* Top Processes */}
+                <ProcessViewer processes={(status?.update as InstanceStreamUpdateV1)?.top?.processes} />
+
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
                   <MetricCard label="CPU" icon={<Cpu className="h-3 w-3" />} value={typeof system?.cpu_count === "number" ? system.cpu_count.toString() : "-"} />
 
@@ -738,7 +750,7 @@ function ViewInstance() {
                             <RefreshCcw className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Restart the daemon without affecting services running on your instance</TooltipContent>
+                        <TooltipContent>Services keeps running</TooltipContent>
                       </Tooltip>
                     </div>
                     <div className="flex flex-col items-center gap-1">
@@ -749,21 +761,22 @@ function ViewInstance() {
                             <Power className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Reboot will restart the machine and it may be unavailable for a few moments</TooltipContent>
+                        <TooltipContent>Services might be unavailable for a few moments</TooltipContent>
                       </Tooltip>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl border bg-background/40 p-4">
-                  <p className="text-sm font-medium">Disks</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border bg-background/40 p-4 mb-6">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {Array.isArray(system?.disks) && system.disks.length > 0 ? (
                       system.disks.map((d: any, idx: number) => {
                         const total = typeof d?.size_bytes === "number" ? d.size_bytes : 0;
                         const available = typeof d?.available_bytes === "number" ? d.available_bytes : 0;
                         const used = typeof d?.used_bytes === "number" ? d.used_bytes : Math.max(0, total - available);
                         const percent = total > 0 ? (used / total) * 100 : 0;
+                        const mountpoint = d?.mountpoint || "-";
+                        const hasFs = (status?.update as InstanceStreamUpdateV1)?.fs;
 
                         const formatBytes = (bytes: number) => {
                           const kb = 1024;
@@ -783,9 +796,21 @@ function ViewInstance() {
                         };
 
                         return (
-                          <div key={`${idx}-${d?.filesystem || d?.mountpoint || "disk"}`} className="rounded-md border bg-background/60 p-3">
-                            <MetricCard label={d?.mountpoint || "-"} icon={<HardDrive className="h-3 w-3" />} value={`${formatBytes(used)} / ${formatBytes(total)}`} progress={percent} />
-                          </div>
+                          <button
+                            key={`${idx}-${d?.filesystem || mountpoint || "disk"}`}
+                            className={cn(
+                              "rounded-md border bg-background/60 p-3 text-left transition-all",
+                              hasFs && "cursor-pointer hover:bg-muted/50 hover:border-border active:scale-[0.98]"
+                            )}
+                            onClick={() => {
+                              if (hasFs) {
+                                setTabState({ tab: "files" });
+                              }
+                            }}
+                            disabled={!hasFs}
+                          >
+                            <MetricCard label={mountpoint} icon={<HardDrive className="h-3 w-3" />} value={`${formatBytes(used)} / ${formatBytes(total)}`} progress={percent} />
+                          </button>
                         );
                       })
                     ) : (
@@ -794,6 +819,20 @@ function ViewInstance() {
                   </div>
                 </div>
               </TabsContent>
+
+              {/* Files Tab */}
+              {(status?.update as InstanceStreamUpdateV1)?.fs && (
+                <TabsContent value="files" className="mt-4 flex min-h-0 flex-1 flex-col">
+                  <div className="flex-1 rounded-xl border bg-background/40 overflow-hidden" style={{ minHeight: '500px' }}>
+                    <FileSystemBrowser
+                      instanceId={instanceId}
+                      clusterId={clusterId}
+                      fs={(status?.update as InstanceStreamUpdateV1)?.fs}
+                      className="h-full"
+                    />
+                  </div>
+                </TabsContent>
+              )}
 
               {canViewLogs && (
                 <TabsContent value="logs" className="mt-4 flex min-h-0 flex-1 flex-col">

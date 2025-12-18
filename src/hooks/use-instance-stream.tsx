@@ -5,7 +5,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useClusterId } from "./use-cluster-id";
 import { useQueryClient } from "@tanstack/react-query";
 import type { InstanceStream } from "@/types";
-import { persistCacheToStorage } from "@/lib/query-cache-persistence";
+import { persistCacheToStorage, addMemoryProfileEntry, persistMemoryProfiles } from "@/lib/query-cache-persistence";
+import type { InstanceStreamUpdateV1 } from "@/types";
 
 export type StreamConnectionState = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -134,14 +135,22 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
         
         if (message.kind === "update") {
           const data = message as unknown as InstanceStream;
-          const instanceId = (data?.update as any)?.instance_id;
+          const update = data?.update as InstanceStreamUpdateV1;
+          const instanceId = update?.instance_id;
+          
           if (instanceId) {
             queryClient.setQueryData<InstanceStream>(["instance-status", instanceId], data);
             
-            // Debounce 
+            // Add memory profile entry if v1 schema with top metrics
+            if (update?.schema === "v1" && update?.top?.memory) {
+              addMemoryProfileEntry(instanceId, update);
+            }
+            
+            // Debounce cache persistence
             if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
             persistTimeoutRef.current = setTimeout(() => {
               persistCacheToStorage(queryClient);
+              persistMemoryProfiles();
               persistTimeoutRef.current = null;
             }, 500);
           }
