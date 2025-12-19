@@ -16,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RxGithubLogo } from "react-icons/rx";
 import { FaGitlab } from "react-icons/fa";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
-import { StatusChip } from "@/components/status-chip";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstances } from "@/hooks/use-instances";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
@@ -32,6 +31,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { getFileExtension } from "@/lib/blueprint-schema";
+import { StatusBadge } from "@/components/status-badge";
 export const Route = createFileRoute("/clusters/$clusterId/deployments/")({
   component: Deployments,
 });
@@ -296,7 +296,7 @@ function Deployments() {
                                   )}
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] gap-2 align-middle">
-                                  <StatusChip status={deployment.status} />
+                                  <StatusBadge status={deployment.status} />
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
                                   <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ function Deployments() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[320px] overflow-hidden align-middle">
-                                  <div className="flex min-w-0 items-center gap-2">
+                                  <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
                                     {!deployment.config?.remote?.url ? (
                                       <div className="max-w-[320px] overflow-hidden align-middle">
                                         <Skeleton className="h-4 w-40" />
@@ -319,7 +319,7 @@ function Deployments() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="h-16 w-[200px] overflow-hidden text-right align-middle">
-                                  <span className="block truncate text-right">{String(deployment.config?.run_cmd || "-")}</span>
+                                  <span className="block truncate text-right font-mono text-sm text-muted-foreground">{String(deployment.config?.run_cmd || "-")}</span>
                                 </TableCell>
                                 </TableRow>
                               </Link>

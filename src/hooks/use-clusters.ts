@@ -7,6 +7,7 @@ import axios from "axios";
 import { useAuth } from "./use-auth";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useState } from "react";
+import { useClusterId } from "./use-cluster-id";
 
 export function useClusters() {
   const { clusters } = useAuth();
@@ -15,16 +16,9 @@ export function useClusters() {
   const [, setError] = useAppError();
   const [usersToAdd, setUsersToAdd] = useState<string[]>([]);
 
-  // Get cluster ID from URL path
-  function getClusterIdFromPath() {
-    const pathSegments = window.location.pathname.split('/');
-    const clusterIndex = pathSegments.indexOf('clusters');
-    return clusterIndex !== -1 && pathSegments[clusterIndex + 1] 
-      ? pathSegments[clusterIndex + 1]
-      : undefined;
-  };
+  const clusterId = useClusterId() || "";
 
-  const clusterId = getClusterIdFromPath();
+  const userCluster = clusters?.find(cluster => cluster.id === clusterId);
   
   // load invites received
   const { data: invitesReceived, isLoading: isLoadingInvitesReceived } = useQuery<
@@ -277,5 +271,6 @@ export function useClusters() {
     removeInvites,
     removeUsers,
     clusterId,
+    userCluster,
   };
 }

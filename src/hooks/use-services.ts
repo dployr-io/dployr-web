@@ -1,19 +1,10 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { InstanceStream } from "@/types";
+import type { InstanceStream, Service } from "@/types";
 import { useMemo, useState } from "react";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { useQueryClient } from "@tanstack/react-query";
-
-export interface AppService {
-  id: string;
-  name: string;
-  port: number;
-  domains: string[];
-  created_at: string;
-  updated_at: string;
-}
 
 export function useServices() {
   const queryClient = useQueryClient();
@@ -27,7 +18,7 @@ export function useServices() {
   const services = useMemo(() => {
     return allCachedData.flatMap(([, data]) => {
       const update = data?.update as any;
-      const services = update?.services as AppService[] | undefined;
+      const services = update?.services as Service[] | undefined;
       return services || [];
     });
   }, [allCachedData]);

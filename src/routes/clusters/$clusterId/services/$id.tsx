@@ -4,13 +4,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem } from "@/types";
+import type { BreadcrumbItem, Service } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
 import { ArrowUpRightIcon, ChevronLeft, CirclePlus, FileX2, Globe, Loader2, Network, Plus, Save, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { useServices, type AppService } from "@/hooks/use-services";
+import { useServices } from "@/hooks/use-services";
 import { ConfigTable } from "@/components/config-table";
 import { useEnv } from "@/hooks/use-env";
 import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
@@ -21,12 +21,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 import TimeAgo from "react-timeago";
+import { useClusters } from "@/hooks/use-clusters";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
 });
 
-const viewServiceBreadcrumbs = (service: AppService | null, clusterId?: string): BreadcrumbItem[] => {
+const viewServiceBreadcrumbs = (service: Service | null, clusterId?: string): BreadcrumbItem[] => {
   const base = clusterId ? `/clusters/${clusterId}/services` : "/services";
 
   return [
@@ -44,7 +45,7 @@ const viewServiceBreadcrumbs = (service: AppService | null, clusterId?: string):
 function ViewService() {
   const { selectedService: service, isLoading } = useServices();
   const { handleStartCreate } = useDeploymentCreator();
-  const { clusterId } = Route.useParams();
+  const { clusterId, userCluster } = useClusters();
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
   const { useServiceTabsState } = useUrlState();
   const [{ tab }, setTabState] = useServiceTabsState();
@@ -55,7 +56,7 @@ function ViewService() {
   // Settings form state
   const [serviceName, setServiceName] = useState(service?.name || "");
   const [servicePort, setServicePort] = useState(service?.port?.toString() || "");
-  const [domains, setDomains] = useState<string[]>(service?.domains || []);
+  const [domains, setDomains] = useState<string[]>([]);
   const [newDomain, setNewDomain] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -172,18 +173,13 @@ function ViewService() {
                     <Globe className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Domains</span>
                   </div>
-                  {service.domains && service.domains.length > 0 ? (
-                    <div className="space-y-2">
-                      {service.domains.map((domain, idx) => (
-                        <div key={idx} className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-                          <Network className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-mono text-sm">{domain}</span>
-                        </div>
-                      ))}
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                      <Network className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-mono text-sm">{service.domain ? service.domain : `${service.name}.${service.name}.${userCluster?.name}.dployr.io`}</span>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No domains configured</p>
-                  )}
+                  </div>
                 </div>
 
                 <div className="rounded-xl border bg-background/40 p-4">
@@ -222,22 +218,11 @@ function ViewService() {
                   <CardContent className="space-y-4">
                     <div className="grid gap-2">
                       <Label htmlFor="service-name">Service Name</Label>
-                      <Input
-                        id="service-name"
-                        value={serviceName}
-                        onChange={e => setServiceName(e.target.value)}
-                        placeholder="my-service"
-                      />
+                      <Input id="service-name" value={serviceName} onChange={e => setServiceName(e.target.value)} placeholder="my-service" />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="service-port">Port</Label>
-                      <Input
-                        id="service-port"
-                        type="number"
-                        value={servicePort}
-                        onChange={e => setServicePort(e.target.value)}
-                        placeholder="3000"
-                      />
+                      <Input id="service-port" type="number" value={servicePort} onChange={e => setServicePort(e.target.value)} placeholder="3000" />
                     </div>
                   </CardContent>
                 </Card>
@@ -249,35 +234,23 @@ function ViewService() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex gap-2">
-                      <Input
-                        value={newDomain}
-                        onChange={e => setNewDomain(e.target.value)}
-                        placeholder="example.com"
-                        onKeyDown={e => e.key === "Enter" && handleAddDomain()}
-                      />
+                      <Input value={newDomain} onChange={e => setNewDomain(e.target.value)} placeholder="example.com" onKeyDown={e => e.key === "Enter" && handleAddDomain()} />
                       <Button onClick={handleAddDomain} variant="outline">
                         <Plus className="h-4 w-4" />
                         Add
                       </Button>
                     </div>
-                    {domains.length > 0 ? (
+                    {domains.length > 0 && (
                       <div className="space-y-2">
                         {domains.map((domain, idx) => (
                           <div key={idx} className="flex items-center justify-between rounded-md border px-3 py-2">
                             <span className="font-mono text-sm">{domain}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveDomain(domain)}
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleRemoveDomain(domain)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">No domains added yet</p>
                     )}
                   </CardContent>
                 </Card>
@@ -285,7 +258,7 @@ function ViewService() {
                 <Card className="border-destructive/50">
                   <CardHeader>
                     <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                    <CardDescription>Irreversible actions for this service</CardDescription>
+                    <CardDescription>Permanently delete this service and all associated data. This action cannot be undone.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Button variant="destructive" size="sm">
@@ -295,7 +268,7 @@ function ViewService() {
                   </CardContent>
                 </Card>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end mb-6">
                   <Button onClick={handleSaveSettings} disabled={isSaving}>
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save Changes

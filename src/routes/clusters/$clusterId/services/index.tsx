@@ -1,16 +1,15 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, InstanceStream, InstanceStreamUpdateV1, AgentService } from "@/types";
+import type { BreadcrumbItem, InstanceStream, InstanceStreamUpdateV1, Service } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowUpRightIcon, BoxesIcon, ChevronLeft, ChevronRight, CirclePlus, Globe } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { useServices, type AppService } from "@/hooks/use-services";
+import { useServices } from "@/hooks/use-services";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +17,8 @@ import TimeAgo from "react-timeago";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { StatusBadge } from "@/components/status-badge";
+import { useClusters } from "@/hooks/use-clusters";
+import { useInstances } from "@/hooks/use-instances";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/")({
   component: Services,
@@ -31,44 +32,34 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 // Extended service type with instance info
-interface ServiceWithInstance extends AppService {
+interface ServiceWithInstance extends Service {
   instanceId?: string;
   instanceTag?: string;
-  status?: string;
 }
 
 function Services() {
-  const {
-    services,
-    paginatedServices,
-    currentPage,
-    totalPages,
-    startIndex,
-    endIndex,
-    isLoading,
-    goToPage,
-    goToPreviousPage,
-    goToNextPage,
-  } = useServices();
+  const { services, paginatedServices, currentPage, totalPages, startIndex, endIndex, isLoading, goToPage, goToPreviousPage, goToNextPage } = useServices();
   const { handleStartCreate } = useDeploymentCreator();
-  const { clusterId } = Route.useParams();
+  const { clusterId, userCluster } = useClusters();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { instances } = useInstances();
 
   // Get all instance statuses and map services to their instances
   const servicesWithInstances = useMemo(() => {
-    const allCachedData = queryClient.getQueriesData<InstanceStream>({ queryKey: ['instance-status'] });
+    const status = queryClient.getQueriesData<InstanceStream>({ queryKey: ["instance-status"] });
     const serviceInstanceMap = new Map<string, { instanceId: string; instanceTag: string; status: string }>();
 
-    allCachedData.forEach(([, data]) => {
+    status.forEach(([, data]) => {
       if (!data?.update) return;
       const update = data.update as InstanceStreamUpdateV1;
       const instanceId = update.instance_id;
-      
+
       if (update.services) {
-        update.services.forEach((svc: AgentService) => {
+        update.services.forEach((svc: Service) => {
           serviceInstanceMap.set(svc.id, {
             instanceId,
-            instanceTag: instanceId.slice(-8), // Use last 8 chars as tag fallback
+            instanceTag: instances.find(i => i.id === instanceId)?.tag || "",
             status: svc.status || update.status,
           });
         });
@@ -79,7 +70,7 @@ function Services() {
       ...service,
       ...serviceInstanceMap.get(service.id),
     })) as ServiceWithInstance[];
-  }, [paginatedServices, queryClient]);
+  }, [paginatedServices, queryClient, instances]);
 
   return (
     <ProtectedRoute>
@@ -132,7 +123,7 @@ function Services() {
                       <TableHead className="h-14 w-[200px] align-middle">Name</TableHead>
                       <TableHead className="h-14 w-[100px] align-middle">Status</TableHead>
                       <TableHead className="h-14 w-[80px] align-middle">Port</TableHead>
-                      <TableHead className="h-14 w-[120px] align-middle">Instance</TableHead>
+                      <TableHead className="h-14 align-middle">Instance</TableHead>
                       <TableHead className="h-14 align-middle">Domains</TableHead>
                       <TableHead className="h-14 w-[140px] text-right align-middle">Updated</TableHead>
                     </TableRow>
@@ -141,33 +132,27 @@ function Services() {
                     {!isLoading && servicesWithInstances.length > 0
                       ? servicesWithInstances.map(service => {
                           return (
-                          <Link key={service.id} to="/clusters/$clusterId/services/$id" params={{ clusterId, id: service.id }} className="contents">
-                            <TableRow className="h-16 cursor-pointer">
+                            <TableRow 
+                              key={service.id} 
+                              className="h-16 cursor-pointer"
+                              onClick={() => navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.id } })}
+                            >
                               <TableCell className="h-16 max-w-[200px] align-middle font-medium">
                                 <div className="flex flex-col gap-0.5">
                                   <span className="truncate text-sm font-semibold">{service.name}</span>
                                 </div>
                               </TableCell>
                               <TableCell className="h-16 max-w-[100px] align-middle">
-                                {service.status ? (
-                                  <StatusBadge status={service.status} variant="compact" />
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
+                                {service.status ? <StatusBadge status={service.status} variant="compact" /> : <span className="text-xs text-muted-foreground">—</span>}
                               </TableCell>
                               <TableCell className="h-16 max-w-[80px] align-middle">
-                                <span className="font-mono text-sm">{service.port || "—"}</span>
+                                <span className="font-mono text-sm">{service.blueprint?.port || "—"}</span>
                               </TableCell>
-                              <TableCell className="h-16 max-w-[120px] align-middle">
-                                {service.instanceId ? (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="truncate text-xs font-mono text-muted-foreground">
-                                        {service.instanceTag}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>{service.instanceId}</TooltipContent>
-                                  </Tooltip>
+                              <TableCell className="h-16 align-middle">
+                                {service.instanceTag ? (
+                                  <span className="inline-flex items-center rounded-full border border-sidebar-border px-2 py-0.5 text-xs font-mono text-muted-foreground">
+                                    {service.instanceTag}
+                                  </span>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">—</span>
                                 )}
@@ -175,21 +160,15 @@ function Services() {
                               <TableCell className="h-16 align-middle">
                                 <div className="flex items-center gap-2">
                                   <Globe className="h-4 w-4 text-muted-foreground" />
-                                  <span className="truncate max-w-[160px]">
-                                    {service.domains?.length > 0 ? service.domains[0] : "—"}
-                                  </span>
-                                  {service.domains?.length > 1 && (
-                                    <span className="text-xs text-muted-foreground">+{service.domains.length - 1}</span>
-                                  )}
+                                  <span className="truncate text-xs font-mono text-muted-foreground">{service.domain ? service.domain : `${service.name}.${userCluster?.name}.dployr.io`}</span>
                                 </div>
                               </TableCell>
                               <TableCell className="h-16 w-[140px] text-right align-middle">
                                 <TimeAgo date={service.updated_at} />
                               </TableCell>
                             </TableRow>
-                          </Link>
-                        );
-                      })
+                          );
+                        })
                       : Array.from({ length: 3 }).map((_, idx) => (
                           <TableRow key={`skeleton-${idx}`} className="h-16">
                             <TableCell className="h-16 max-w-[200px] overflow-hidden align-middle font-medium">
