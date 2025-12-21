@@ -1,19 +1,26 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { Log, LogLevel, LogStreamMode, LogType } from "@/types";
+import type { Log, LogLevel, LogStreamMode, LogTimeRange } from "@/types";
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useInstanceStream, type StreamMessage } from "@/hooks/use-instance-stream";
-import type { LogTimeRange } from "@/components/log-time-selector";
-import { parseLogEntries, filterLogs, resetLogState, isNearBottom } from "@/lib/log-utils";
+import { parseLogEntries, filterLogs, isNearBottom, sortLogsByTimestamp, mergeSortedLogs } from "@/lib/log-utils";
 
-export function useInstanceLogs(
-  instanceId?: string,
-  logType?: LogType,
-  initialMode?: LogStreamMode,
-  timeRange: LogTimeRange = "live",
-  selectedLevel: "ALL" | LogLevel = "ALL",
-) {
+interface UseLogsOptions {
+  instanceId?: string;
+  path: string;  // Can be LogType ("app" | "install") or deployment ID
+  initialMode?: LogStreamMode;
+  duration?: LogTimeRange;
+  selectedLevel?: "ALL" | LogLevel;
+}
+
+export function useLogs({
+  instanceId,
+  path,
+  initialMode,
+  duration = "live",
+  selectedLevel = "ALL",
+}: UseLogsOptions) {
   const subscriberId = useId();
   const { isConnected, error: streamError, sendJson, subscribe, unsubscribe } = useInstanceStream();
   const [logs, setLogs] = useState<Log[]>([]);
@@ -31,7 +38,10 @@ export function useInstanceLogs(
 
   const flushLogs = useCallback(() => {
     if (logBufferRef.current.length > 0) {
-      setLogs(prev => [...prev, ...logBufferRef.current]);
+      const sortedBuffer = sortLogsByTimestamp([...logBufferRef.current]);
+  
+      setLogs(prev => mergeSortedLogs(prev, sortedBuffer));
+      
       logBufferRef.current = [];
     }
   }, []);
@@ -72,34 +82,44 @@ export function useInstanceLogs(
     lastOffsetRef.current = lastOffset;
   }, [lastOffset]);
 
+  const sendSubscribe = useCallback((startOffset: number) => {
+    if (!path || !isConnected) return false;
+
+    const payload: any = {
+      kind: "log_subscribe",
+      path,
+      startOffset,
+      duration,
+    };
+
+    if (instanceId) {
+      payload.instanceId = instanceId;
+    }
+
+    sendJson(payload);
+    hasSubscribedRef.current = true;
+    return true;
+  }, [instanceId, path, isConnected, duration, sendJson]);
+
   // Start streaming logs on-demand
   const startStreaming = useCallback((fromOffset?: number) => {
-    if (!instanceId || !logType) return;
+    if (!path) return;
 
     if (!isStreaming) {
       subscribe(subscriberId, handleMessage);
       setIsStreaming(true);
     }
 
-    if (isConnected) {
-      const startOffset = fromOffset ?? (timeRange === "live" ? lastOffsetRef.current : 0);
-      
-      sendJson({
-        kind: "log_subscribe",
-        path: logType,
-        startOffset,
-        instanceId,
-      });
-      hasSubscribedRef.current = true;
-    }
-  }, [instanceId, logType, isStreaming, isConnected, timeRange, subscriberId, subscribe, handleMessage, sendJson]);
+    const startOffset = fromOffset ?? (duration === "live" ? lastOffsetRef.current : 0);
+    sendSubscribe(startOffset);
+  }, [path, isStreaming, duration, subscriberId, subscribe, handleMessage, sendSubscribe]);
 
   // Stop streaming logs
   const stopStreaming = useCallback(() => {
-    if (currentStreamId && isConnected) {
+    if (path && isConnected) {
       sendJson({
         kind: "log_unsubscribe",
-        streamId: currentStreamId,
+        path,
       });
     }
     
@@ -111,61 +131,13 @@ export function useInstanceLogs(
       clearTimeout(flushTimerRef.current);
       flushLogs();
     }
-  }, [subscriberId, unsubscribe, flushLogs, currentStreamId, isConnected, sendJson]);
+  }, [subscriberId, unsubscribe, flushLogs, path, isConnected, sendJson]);
 
-  const restartStream = useCallback((newTimeRange?: LogTimeRange) => {
-    if (!instanceId || !logType || !isConnected) return;
-
-    const effectiveRange = newTimeRange ?? timeRange;
-    const isHistorical = effectiveRange !== "live";
-
-    // Unsubscribe from current stream on server
-    if (currentStreamId) {
-      sendJson({
-        kind: "log_unsubscribe",
-        streamId: currentStreamId,
-      });
-      setCurrentStreamId(null);
-    }
-
-    if (isHistorical) {
-      resetLogState(setLogs, logBufferRef, logCounterRef, setLastOffset, lastOffsetRef);
-    }
-
-    // Ensure we're subscribed to message handlers
-    if (!isStreaming) {
-      subscribe(subscriberId, handleMessage);
-      setIsStreaming(true);
-    }
-    
-    // For historical ranges, start from beginning (0) to get all logs for filtering
-    // For live, continue from current offset to follow new logs
-    const startOffset = isHistorical ? 0 : lastOffsetRef.current;
-    
-    console.log(`[restartStream] Sending log_subscribe: path=${logType}, startOffset=${startOffset}, isHistorical=${isHistorical}`);
-    
-    sendJson({
-      kind: "log_subscribe",
-      path: logType,
-      startOffset,
-      instanceId,
-    });
-    hasSubscribedRef.current = true;
-  }, [instanceId, logType, isConnected, isStreaming, currentStreamId, timeRange, sendJson, subscribe, subscriberId, handleMessage]);
-
-  // Send log_subscribe when connection becomes available while streaming
+  // Auto-resubscribe when connection becomes available while streaming
   useEffect(() => {
-    if (!isConnected || !instanceId || !logType || !isStreaming || hasSubscribedRef.current) return;
-
-    sendJson({
-      kind: "log_subscribe",
-      path: logType,
-      startOffset: lastOffsetRef.current,
-      instanceId,
-      lastOffset,
-    });
-    hasSubscribedRef.current = true;
-  }, [isConnected, instanceId, logType, isStreaming, lastOffset, sendJson]);
+    if (!isConnected || !path || !isStreaming || hasSubscribedRef.current) return;
+    sendSubscribe(lastOffsetRef.current);
+  }, [isConnected, path, isStreaming, sendSubscribe]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -207,6 +179,5 @@ export function useInstanceLogs(
     setSearchQuery,
     startStreaming,
     stopStreaming,
-    restartStream,
   };
 }

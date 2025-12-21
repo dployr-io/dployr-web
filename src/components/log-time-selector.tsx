@@ -10,9 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import type { LogTimeRange } from "@/types";
 import { ChevronDown, Clock, Radio } from "lucide-react";
-
-export type LogTimeRange = "live" | "5m" | "15m" | "30m" | "1h" | "3h" | "6h" | "12h" | "24h";
 
 export function getTimeRangeMs(range: LogTimeRange): number | null {
   if (range === "live") return null;

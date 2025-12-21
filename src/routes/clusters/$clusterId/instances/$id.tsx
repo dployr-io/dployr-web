@@ -13,7 +13,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
-import { useInstanceLogs } from "@/hooks/use-instance-logs";
+import { useLogs } from "@/hooks/use-instance-logs";
 import { useInstanceViewState } from "@/hooks/use-instance-view-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
@@ -62,7 +62,7 @@ const viewInstanceBreadcrumbs = (clusterId?: string, instanceId?: string, instan
 function ViewInstance() {
   const { id: instanceId, clusterId } = Route.useParams();
   const { useInstanceTabsState } = useUrlState();
-  const [{ tab, logRange, logLevel }, setTabState] = useInstanceTabsState();
+  const [{ tab, logRange, logLevel, duration }, setTabState] = useInstanceTabsState();
   const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
   const { status, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instanceId);
@@ -113,13 +113,14 @@ function ViewInstance() {
   } = useInstanceViewState();
   const logTimeRange = (logRange || "live") as LogTimeRange;
   const selectedLogLevel = (logLevel || "ALL") as "ALL" | LogLevel;
-  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, startStreaming, stopStreaming, restartStream } = useInstanceLogs(
+  const logDuration = (duration || logRange || "live") as LogTimeRange;
+  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, startStreaming, stopStreaming } = useLogs({
     instanceId,
-    logType,
-    logMode,
-    logTimeRange,
-    selectedLogLevel
-  );
+    path: logType || "app",
+    initialMode: logMode,
+    duration: logDuration,
+    selectedLevel: selectedLogLevel,
+  });
 
   const updatePayload = status?.update ?? null;
   const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
@@ -393,10 +394,7 @@ function ViewInstance() {
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <MetricCard
-                      label="Services"
-                      value={`${metrics?.services.length} running`}
-                    />
+                    <MetricCard label="Services" value={metrics?.services.length > 0 ? `${metrics?.services.length} running` : "-"} />
                     <MetricCard label="Health" value={<StatusBadge status={metrics?.health?.overall || "-"} variant="compact" />} />
                   </div>
 
@@ -798,10 +796,7 @@ function ViewInstance() {
                         return (
                           <button
                             key={`${idx}-${d?.filesystem || mountpoint || "disk"}`}
-                            className={cn(
-                              "rounded-md border bg-background/60 p-3 text-left transition-all",
-                              hasFs && "cursor-pointer hover:bg-muted/50 hover:border-border active:scale-[0.98]"
-                            )}
+                            className={cn("rounded-md border bg-background/60 p-3 text-left transition-all", hasFs && "cursor-pointer hover:bg-muted/50 hover:border-border active:scale-[0.98]")}
                             onClick={() => {
                               if (hasFs) {
                                 setTabState({ tab: "files" });
@@ -823,13 +818,8 @@ function ViewInstance() {
               {/* Files Tab */}
               {(status?.update as InstanceStreamUpdateV1)?.fs && (
                 <TabsContent value="files" className="mt-4 flex min-h-0 flex-1 flex-col">
-                  <div className="flex-1 rounded-xl border bg-background/40 overflow-hidden" style={{ minHeight: '500px' }}>
-                    <FileSystemBrowser
-                      instanceId={instanceId}
-                      clusterId={clusterId}
-                      fs={(status?.update as InstanceStreamUpdateV1)?.fs}
-                      className="h-full"
-                    />
+                  <div className="flex-1 rounded-xl border bg-background/40 overflow-hidden" style={{ minHeight: "500px" }}>
+                    <FileSystemBrowser instanceId={instanceId} clusterId={clusterId} fs={(status?.update as InstanceStreamUpdateV1)?.fs} className="h-full" />
                   </div>
                 </TabsContent>
               )}
@@ -847,8 +837,7 @@ function ViewInstance() {
                     onScrollPositionChange={handleScrollPositionChange}
                     timeRange={logTimeRange}
                     onTimeRangeChange={range => {
-                      setTabState({ logRange: range });
-                      restartStream(range);
+                      setTabState({ logRange: range, duration: range });
                     }}
                     isStreaming={isStreaming}
                     extraFilters={[

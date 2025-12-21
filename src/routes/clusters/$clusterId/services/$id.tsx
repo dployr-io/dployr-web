@@ -4,24 +4,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, Service } from "@/types";
+import type { BreadcrumbItem, Runtime, Service } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronLeft, CirclePlus, FileX2, Globe, Loader2, Network, Plus, Save, Trash2, X } from "lucide-react";
+import { ArrowUpRightIcon, Check, ChevronLeft, CirclePlus, Edit2, FileX2, Globe, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
 import { ConfigTable } from "@/components/config-table";
-import { useEnv } from "@/hooks/use-env";
+import { useServiceEnv } from "@/hooks/use-service-env";
+import { useServiceEditor } from "@/hooks/use-service-editor";
 import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
 import { useUrlState } from "@/hooks/use-url-state";
 import { MetricCard } from "@/components/metric-card";
+import TimeAgo from "react-timeago";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
-import TimeAgo from "react-timeago";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useClusters } from "@/hooks/use-clusters";
+import { getRuntimeIcon } from "@/lib/runtime-icon";
+import { useInstances } from "@/hooks/use-instances";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
@@ -46,37 +50,34 @@ function ViewService() {
   const { selectedService: service, isLoading } = useServices();
   const { handleStartCreate } = useDeploymentCreator();
   const { clusterId, userCluster } = useClusters();
+  const { instances } = useInstances();
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
   const { useServiceTabsState } = useUrlState();
   const [{ tab }, setTabState] = useServiceTabsState();
   const currentTab = (tab || "overview") as "overview" | "logs" | "env" | "settings";
 
-  const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useEnv();
+  const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useServiceEnv(service, instances[0]?.id || "");
 
-  // Settings form state
-  const [serviceName, setServiceName] = useState(service?.name || "");
-  const [servicePort, setServicePort] = useState(service?.port?.toString() || "");
-  const [domains, setDomains] = useState<string[]>([]);
-  const [newDomain, setNewDomain] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleAddDomain = () => {
-    if (newDomain.trim() && !domains.includes(newDomain.trim())) {
-      setDomains([...domains, newDomain.trim()]);
-      setNewDomain("");
-    }
-  };
-
-  const handleRemoveDomain = (domain: string) => {
-    setDomains(domains.filter(d => d !== domain));
-  };
-
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    // TODO: Implement save via WebSocket task message
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setIsSaving(false);
-  };
+  const {
+    isEditMode,
+    editedName,
+    editedDescription,
+    secrets,
+    editingSecretKey,
+    editSecretValue,
+    setEditedName,
+    setEditedDescription,
+    setEditSecretValue,
+    handleStartEdit,
+    handleCancelEdit,
+    handleSave: handleSaveEdit,
+    handleEditSecret,
+    handleSaveSecret,
+    handleCancelSecret,
+    handleKeyboardPressSecret,
+    handleAddSecret,
+    handleRemoveSecret,
+  } = useServiceEditor(service, instances[0]?.id || "", clusterId || "");
 
   if (isLoading) {
     return (
@@ -153,47 +154,165 @@ function ViewService() {
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="env">Environment</TabsTrigger>
-                  <TabsTrigger value="settings">Settings</TabsTrigger>
                 </TabsList>
 
-                <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
-                  <ChevronLeft /> Back
-                </Button>
+                <div className="flex gap-3">
+                  <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
+                    <ChevronLeft /> Back
+                  </Button>
+
+                  <Button size="sm" onClick={handleStartEdit}>
+                    <Edit2 className="h-4 w-4" />
+                    Edit
+                  </Button>
+                </div>
               </div>
 
               <TabsContent value="overview" className="mt-4 space-y-4">
-                <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
-                  <MetricCard label="Name" value={service.name} />
-                  <MetricCard label="Port" value={<span className="font-mono">{service.port}</span>} />
-                  <MetricCard label="Updated" value={<TimeAgo date={service.updated_at} />} />
-                </div>
-
-                <div className="rounded-xl border bg-background/40 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Domains</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-                      <Network className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-mono text-sm">{service.domain ? service.domain : `${service.name}.${service.name}.${userCluster?.name}.dployr.io`}</span>
+                {!isEditMode ? (
+                  <>
+                    <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
+                      <MetricCard label="Name" value={service.name} />
+                      <MetricCard label="Port" value={<span className="font-mono">{service.port || service.blueprint?.port}</span>} />
+                      <MetricCard
+                        label="Runtime"
+                        value={
+                          <div className="flex items-center gap-2">
+                            {getRuntimeIcon((service.runtime || "custom") as Runtime)}
+                            <span>{service.runtime}</span>
+                          </div>
+                        }
+                      />
+                      <MetricCard label="Created" value={<TimeAgo date={service.created_at} />} />
                     </div>
-                  </div>
-                </div>
 
-                <div className="rounded-xl border bg-background/40 p-4">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Service ID</span>
-                      <span className="font-mono">{service.id}</span>
+                    {service.description && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-sm font-medium">Description</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">{service.description}</p>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    <div className="rounded-xl border bg-background/40 p-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-mono text-sm">{service.domain ? service.domain : `${service.name}.${userCluster?.name}.dployr.io`}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Created</span>
-                      <TimeAgo date={service.created_at} />
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold">Edit</h2>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                          <X className="h-4 w-4" />
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={handleSaveEdit}>
+                          <Save className="h-4 w-4" />
+                          Save & Deploy
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </div>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Basic Information</CardTitle>
+                        <CardDescription>Update the service name and description</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="name">Service Name</Label>
+                          <Input id="name" value={editedName} onChange={e => setEditedName(e.target.value)} placeholder="Enter service name" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="description">Description</Label>
+                          <Textarea id="description" value={editedDescription} onChange={e => setEditedDescription(e.target.value)} placeholder="Enter service description" rows={3} />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle>Secrets</CardTitle>
+                            <CardDescription>Manage sensitive environment variables</CardDescription>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={handleAddSecret}>
+                            <Plus className="h-4 w-4" />
+                            Add Secret
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {Object.keys(secrets).length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No secrets configured</p>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-[200px]">Key</TableHead>
+                                <TableHead>Value</TableHead>
+                                <TableHead className="w-[150px] text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {Object.entries(secrets).map(([key, value]) => (
+                                <TableRow key={key}>
+                                  <TableCell className="font-medium font-mono text-sm">{key}</TableCell>
+                                  <TableCell>
+                                    {editingSecretKey === key ? (
+                                      <Input
+                                        type="password"
+                                        value={editSecretValue}
+                                        onChange={e => setEditSecretValue(e.target.value)}
+                                        onKeyDown={e => handleKeyboardPressSecret(e, key)}
+                                        placeholder="Enter secret value"
+                                        className="h-8 w-full"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <span className="text-sm text-muted-foreground">{value ? "••••••••" : "Not set"}</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {editingSecretKey === key ? (
+                                      <div className="flex justify-end gap-2">
+                                        <Button size="sm" onClick={() => handleSaveSecret(key)} className="h-8 px-3">
+                                          <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={handleCancelSecret} className="h-8 px-3">
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex justify-end gap-2">
+                                        <Button size="sm" variant="outline" onClick={() => handleEditSecret(key)} className="h-8 px-3">
+                                          <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button size="sm" variant="destructive" onClick={() => handleRemoveSecret(key)} className="h-8 px-3">
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
               </TabsContent>
 
               <TabsContent value="env" className="mt-4">
@@ -207,73 +326,6 @@ function ViewService() {
                   handleKeyboardPress={handleKeyboardPress}
                   handleCancel={handleCancel}
                 />
-              </TabsContent>
-
-              <TabsContent value="settings" className="mt-4 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>General Settings</CardTitle>
-                    <CardDescription>Configure basic service settings</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="service-name">Service Name</Label>
-                      <Input id="service-name" value={serviceName} onChange={e => setServiceName(e.target.value)} placeholder="my-service" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="service-port">Port</Label>
-                      <Input id="service-port" type="number" value={servicePort} onChange={e => setServicePort(e.target.value)} placeholder="3000" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Domains</CardTitle>
-                    <CardDescription>Manage custom domains for this service</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input value={newDomain} onChange={e => setNewDomain(e.target.value)} placeholder="example.com" onKeyDown={e => e.key === "Enter" && handleAddDomain()} />
-                      <Button onClick={handleAddDomain} variant="outline">
-                        <Plus className="h-4 w-4" />
-                        Add
-                      </Button>
-                    </div>
-                    {domains.length > 0 && (
-                      <div className="space-y-2">
-                        {domains.map((domain, idx) => (
-                          <div key={idx} className="flex items-center justify-between rounded-md border px-3 py-2">
-                            <span className="font-mono text-sm">{domain}</span>
-                            <Button variant="ghost" size="sm" onClick={() => handleRemoveDomain(domain)} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="border-destructive/50">
-                  <CardHeader>
-                    <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                    <CardDescription>Permanently delete this service and all associated data. This action cannot be undone.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4" />
-                      Delete Service
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <div className="flex justify-end mb-6">
-                  <Button onClick={handleSaveSettings} disabled={isSaving}>
-                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Changes
-                  </Button>
-                </div>
               </TabsContent>
             </Tabs>
           </div>

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
 import { toJson, toYaml } from "@/lib/utils";
 import { useServiceForm } from "@/hooks/use-service-form";
-import { useDeploymentLogs } from "@/hooks/use-deployment-logs";
+import { useLogs } from "@/hooks/use-instance-logs";
 import { useUrlState } from "@/hooks/use-url-state";
 import type { LogLevel } from "@/types";
 import type { LogTimeRange } from "@/components/logs-window";
@@ -48,10 +48,11 @@ function ViewDeployment() {
   const { clusterId } = Route.useParams();
 
   const { useDeploymentTabsState } = useUrlState();
-  const [{ tab, logRange, logLevel }, setTabState] = useDeploymentTabsState();
+  const [{ tab, logRange, logLevel, duration }, setTabState] = useDeploymentTabsState();
   const currentTab = (tab || "logs") as "logs" | "blueprint";
   const logTimeRange = (logRange || "live") as LogTimeRange;
   const selectedLogLevel = (logLevel || "ALL") as "ALL" | LogLevel;
+  const logDuration = (duration || logRange || "live") as LogTimeRange;
   
   const [isAtBottom, setIsAtBottom] = useState(true);
   const logMode = isAtBottom ? "tail" : "historical";
@@ -64,8 +65,12 @@ function ViewDeployment() {
     setSearchQuery,
     startStreaming,
     stopStreaming,
-    restartStream,
-  } = useDeploymentLogs(deployment?.id, logMode, logTimeRange, selectedLogLevel);
+  } = useLogs({
+    path: deployment?.id || "",
+    initialMode: logMode,
+    duration: logDuration,
+    selectedLevel: selectedLogLevel,
+  });
 
   const handleScrollPositionChange = useCallback(
     (atBottom: boolean) => {
@@ -181,8 +186,7 @@ function ViewDeployment() {
                     onScrollPositionChange={handleScrollPositionChange}
                     timeRange={logTimeRange}
                     onTimeRangeChange={(range) => {
-                      setTabState({ logRange: range });
-                      restartStream(range);
+                      setTabState({ logRange: range, duration: range });
                     }}
                     isStreaming={isStreaming}
                   />

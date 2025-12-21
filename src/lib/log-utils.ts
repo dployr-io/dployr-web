@@ -43,17 +43,65 @@ export function parseLogEntries(entries: any[], logCounterRef: React.MutableRefO
 }
 
 /**
+ * Sort logs by timestamp in ascending order (oldest first)
+ */
+export function sortLogsByTimestamp(logs: Log[]): Log[] {
+  return logs.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+}
+
+/**
+ * Merge two sorted log arrays efficiently
+ * Assumes both arrays are already sorted by timestamp
+ * Returns a new sorted array without modifying inputs
+ */
+export function mergeSortedLogs(existing: Log[], incoming: Log[]): Log[] {
+  if (incoming.length === 0) return existing;
+  if (existing.length === 0) return incoming;
+
+  const result: Log[] = [];
+  let i = 0;
+  let j = 0;
+
+  while (i < existing.length && j < incoming.length) {
+    if (existing[i].timestamp.getTime() <= incoming[j].timestamp.getTime()) {
+      result.push(existing[i]);
+      i++;
+    } else {
+      result.push(incoming[j]);
+      j++;
+    }
+  }
+
+  // Append remaining elements
+  while (i < existing.length) {
+    result.push(existing[i]);
+    i++;
+  }
+
+  while (j < incoming.length) {
+    result.push(incoming[j]);
+    j++;
+  }
+
+  return result;
+}
+
+/**
  * Create a buffered flush function for batching log updates
+ * Sorts buffer by timestamp before merging with existing logs
  */
 export function createLogFlusher(
-  logBufferRef: React.MutableRefObject<Log[]>,
-  flushTimerRef: React.MutableRefObject<NodeJS.Timeout | null>,
+  logBufferRef: React.RefObject<Log[]>,
+  flushTimerRef: React.RefObject<NodeJS.Timeout | null>,
   setLogs: React.Dispatch<React.SetStateAction<Log[]>>,
   batchMs: number = 100,
 ) {
   const flushLogs = () => {
     if (logBufferRef.current.length > 0) {
-      setLogs(prev => [...prev, ...logBufferRef.current]);
+      const sortedBuffer = sortLogsByTimestamp([...logBufferRef.current]);
+      
+      setLogs(prev => mergeSortedLogs(prev, sortedBuffer));
+      
       logBufferRef.current = [];
     }
   };

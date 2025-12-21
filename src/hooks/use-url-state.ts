@@ -174,6 +174,17 @@ export function useUrlState() {
                 "ALERT",
                 "EMERGENCY",
             ]).withDefault("ALL"),
+            duration: parseAsStringLiteral([
+                "live",
+                "5m",
+                "15m",
+                "30m",
+                "1h",
+                "3h",
+                "6h",
+                "12h",
+                "24h",
+            ]).withDefault("live"),
         });
     }
 
@@ -215,6 +226,17 @@ export function useUrlState() {
                 "ALERT",
                 "EMERGENCY",
             ]).withDefault("ALL"),
+            duration: parseAsStringLiteral([
+                "live",
+                "5m",
+                "15m",
+                "30m",
+                "1h",
+                "3h",
+                "6h",
+                "12h",
+                "24h",
+            ]).withDefault("live"),
         });
     }
 
@@ -222,9 +244,7 @@ export function useUrlState() {
         return useQueryStates({
             tab: parseAsStringLiteral([
                 "overview",
-                "logs",
                 "env",
-                "settings",
             ]).withDefault("overview"),
             logRange: parseAsStringLiteral([
                 "live",
