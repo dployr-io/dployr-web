@@ -106,7 +106,7 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
     setOperation({ type: "write", path: selectedNode.path, loading: true });
     
     try {
-      await fileSystem.writeFile(selectedNode.path, editedContent, "utf8");
+      await fileSystem.writeFile(selectedNode.path, editedContent, { encoding: "utf8" });
       setFileContent(editedContent);
       setIsEditing(false);
       setOperation(null);
@@ -380,11 +380,11 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
             </Button>
             <Button onClick={createItem} disabled={!newItemName.trim() || operation?.loading}>
               {operation?.loading && operation.type === "create" ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : createType === "file" ? (
-                <FilePlus className="h-4 w-4 mr-2" />
+                <FilePlus className="h-4 w-4" />
               ) : (
-                <FolderPlus className="h-4 w-4 mr-2" />
+                <FolderPlus className="h-4 w-4" />
               )}
               Create
             </Button>

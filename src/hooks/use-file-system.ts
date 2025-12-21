@@ -2,126 +2,241 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useInstanceStream } from "./use-instance-stream";
-import type { FsTaskRequest, FsTaskResponse, FsNode } from "@/types";
-
-interface PendingTask {
-  resolve: (response: FsTaskResponse) => void;
-  reject: (error: Error) => void;
-  timeout: NodeJS.Timeout;
-}
+import { useInstanceStream, type StreamMessage } from "./use-instance-stream";
+import type { FsTaskRequest, FsNode } from "@/types";
+import { ulid } from "ulid";
 
 interface FileSystemState {
   isLoading: boolean;
   error: string | null;
+  pendingCount: number;
 }
 
 interface UseFileSystemOptions {
   instanceId: string;
   timeout?: number;
+  maxPending?: number;
+  maxRetries?: number;
 }
 
-export function useFileSystem({ instanceId, timeout = 30000 }: UseFileSystemOptions) {
+interface PendingRequest {
+  resolve: (response: any) => void;
+  reject: (error: Error) => void;
+  timeout: NodeJS.Timeout;
+  request: Omit<FsTaskRequest, "requestId" | "instanceId">;
+  retryCount: number;
+}
+
+interface QueuedRequest {
+  request: Omit<FsTaskRequest, "requestId" | "instanceId">;
+  resolve: (response: any) => void;
+  reject: (error: Error) => void;
+  retryCount: number;
+}
+
+// Transient errors that should be retried
+const RETRYABLE_ERRORS = [
+  "RATE_LIMITED",
+  "TOO_MANY_PENDING",
+  "AGENT_DISCONNECTED",
+  "AGENT_TIMEOUT",
+];
+
+export function useFileSystem({ 
+  instanceId, 
+  timeout = 25000,
+  maxPending = 50,
+  maxRetries = 3 
+}: UseFileSystemOptions) {
   const subscriberId = useId();
   const { isConnected, sendJson, subscribe, unsubscribe } = useInstanceStream();
-  const pendingTasksRef = useRef<Map<string, PendingTask>>(new Map());
-  const taskCounterRef = useRef(0);
+  const pendingRequestsRef = useRef<Map<string, PendingRequest>>(new Map());
+  const requestQueueRef = useRef<QueuedRequest[]>([]);
 
   const [state, setState] = useState<FileSystemState>({
     isLoading: false,
     error: null,
+    pendingCount: 0,
   });
 
-  const generateTaskId = useCallback(() => {
-    taskCounterRef.current += 1;
-    return `fs-${instanceId}-${Date.now()}-${taskCounterRef.current}`;
-  }, [instanceId]);
-
-  const handleMessage = useCallback((message: { kind: string; [key: string]: unknown }) => {
-    if (message.kind !== "fs_result") return;
-
-    const response = message as unknown as FsTaskResponse;
-    const pending = pendingTasksRef.current.get(response.taskId);
-
-    if (pending) {
-      clearTimeout(pending.timeout);
-      pendingTasksRef.current.delete(response.taskId);
-      pending.resolve(response);
+  const processQueue = useCallback(() => {
+    if (requestQueueRef.current.length > 0 && pendingRequestsRef.current.size < maxPending) {
+      const queued = requestQueueRef.current.shift();
+      if (queued) {
+        sendTaskInternal(queued.request, queued.resolve, queued.reject, queued.retryCount);
+      }
     }
-  }, []);
+  }, [maxPending]);
+
+  const handleMessage = useCallback((message: StreamMessage) => {
+    const responseKinds = [
+      "file_read_response",
+      "file_write_response",
+      "file_create_response",
+      "file_delete_response",
+      "file_tree_response",
+    ];
+
+    if (responseKinds.includes(message.kind)) {
+      const requestId = message.requestId as string;
+      const pending = pendingRequestsRef.current.get(requestId);
+
+      if (pending) {
+        clearTimeout(pending.timeout);
+        pendingRequestsRef.current.delete(requestId);
+        setState(prev => ({ ...prev, pendingCount: pendingRequestsRef.current.size }));
+        
+        console.log(`[FileSystem] Response received for ${requestId}:`, message.kind);
+        pending.resolve(message);
+        
+        // Process queued requests
+        processQueue();
+      }
+    }
+
+    if (message.kind === "error") {
+      const requestId = message.requestId as string;
+      const pending = pendingRequestsRef.current.get(requestId);
+
+      if (pending) {
+        clearTimeout(pending.timeout);
+        pendingRequestsRef.current.delete(requestId);
+        setState(prev => ({ ...prev, pendingCount: pendingRequestsRef.current.size }));
+        
+        const errorCode = message.code as string;
+        const errorMessage = message.message as string;
+        
+        console.error(`[FileSystem] Error for ${requestId}: [${errorCode}] ${errorMessage}`);
+        
+        // Check if error is retryable
+        if (RETRYABLE_ERRORS.includes(errorCode) && pending.retryCount < maxRetries) {
+          const backoffMs = Math.min(1000 * Math.pow(2, pending.retryCount), 30000);
+          console.log(`[FileSystem] Retrying ${requestId} after ${backoffMs}ms (attempt ${pending.retryCount + 1}/${maxRetries})`);
+          
+          setTimeout(() => {
+            sendTaskInternal(
+              pending.request,
+              pending.resolve,
+              pending.reject,
+              pending.retryCount + 1
+            );
+          }, backoffMs);
+        } else {
+          pending.reject(new Error(`[${errorCode}] ${errorMessage}`));
+        }
+        
+        // Process queued requests
+        processQueue();
+      }
+    }
+  }, [maxRetries, processQueue]);
 
   useEffect(() => {
     subscribe(subscriberId, handleMessage);
     return () => {
       unsubscribe(subscriberId);
-      // Clear all pending tasks on unmount
-      pendingTasksRef.current.forEach((pending) => {
+      pendingRequestsRef.current.forEach((pending) => {
         clearTimeout(pending.timeout);
         pending.reject(new Error("Component unmounted"));
       });
-      pendingTasksRef.current.clear();
+      pendingRequestsRef.current.clear();
     };
   }, [subscriberId, subscribe, unsubscribe, handleMessage]);
 
+  const sendTaskInternal = useCallback(
+    (
+      request: Omit<FsTaskRequest, "requestId" | "instanceId">,
+      resolve: (response: any) => void,
+      reject: (error: Error) => void,
+      retryCount: number = 0
+    ) => {
+      if (!isConnected) {
+        reject(new Error("WebSocket not connected"));
+        return;
+      }
+
+      const requestId = ulid();
+      const fullRequest: FsTaskRequest = {
+        ...request,
+        requestId,
+        instanceId,
+      };
+
+      console.log(`[FileSystem] Sending ${request.kind} request ${requestId} (retry: ${retryCount})`);
+
+      const timeoutHandle = setTimeout(() => {
+        pendingRequestsRef.current.delete(requestId);
+        setState(prev => ({ ...prev, pendingCount: pendingRequestsRef.current.size }));
+        console.error(`[FileSystem] Request ${requestId} timed out after ${timeout}ms`);
+        reject(new Error("Request timed out"));
+        processQueue();
+      }, timeout);
+
+      pendingRequestsRef.current.set(requestId, {
+        resolve,
+        reject,
+        timeout: timeoutHandle,
+        request,
+        retryCount,
+      });
+
+      setState(prev => ({ ...prev, pendingCount: pendingRequestsRef.current.size }));
+
+      const sent = sendJson(fullRequest);
+      
+      if (!sent) {
+        clearTimeout(timeoutHandle);
+        pendingRequestsRef.current.delete(requestId);
+        setState(prev => ({ ...prev, pendingCount: pendingRequestsRef.current.size }));
+        console.error(`[FileSystem] Failed to send request ${requestId}`);
+        reject(new Error("Failed to send request"));
+        processQueue();
+      }
+    },
+    [isConnected, instanceId, sendJson, timeout, processQueue]
+  );
+
   const sendTask = useCallback(
-    (request: Omit<FsTaskRequest, "taskId" | "instanceId">): Promise<FsTaskResponse> => {
+    (request: Omit<FsTaskRequest, "requestId" | "instanceId">): Promise<any> => {
       return new Promise((resolve, reject) => {
-        if (!isConnected) {
-          reject(new Error("WebSocket not connected"));
+        // Check if we're at the rate limit
+        if (pendingRequestsRef.current.size >= maxPending) {
+          console.warn(`[FileSystem] Rate limit reached (${maxPending}), queueing request`);
+          requestQueueRef.current.push({ request, resolve, reject, retryCount: 0 });
           return;
         }
 
-        const taskId = generateTaskId();
-        const fullRequest: FsTaskRequest = {
-          ...request,
-          taskId,
-          instanceId,
-        };
-
-        const timeoutHandle = setTimeout(() => {
-          pendingTasksRef.current.delete(taskId);
-          reject(new Error("Task timed out"));
-        }, timeout);
-
-        pendingTasksRef.current.set(taskId, {
-          resolve,
-          reject,
-          timeout: timeoutHandle,
-        });
-
-        const sent = sendJson(fullRequest);
-        if (!sent) {
-          clearTimeout(timeoutHandle);
-          pendingTasksRef.current.delete(taskId);
-          reject(new Error("Failed to send task"));
-        }
+        sendTaskInternal(request, resolve, reject, 0);
       });
     },
-    [isConnected, instanceId, generateTaskId, sendJson, timeout]
+    [maxPending, sendTaskInternal]
   );
 
   const readFile = useCallback(
-    async (path: string): Promise<{ content: string; encoding: string }> => {
-      setState({ isLoading: true, error: null });
+    async (
+      path: string,
+      options?: { offset?: number; limit?: number }
+    ): Promise<{ content: string; encoding: string; size: number; truncated: boolean }> => {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const response = await sendTask({
-          kind: "fs_read",
+          kind: "file_read",
           path,
+          offset: options?.offset,
+          limit: options?.limit,
         });
 
-        if (!response.success) {
-          throw new Error(response.error || "Failed to read file");
-        }
-
-        setState({ isLoading: false, error: null });
+        setState(prev => ({ ...prev, isLoading: false, error: null }));
         return {
-          content: response.data?.content ?? "",
-          encoding: response.data?.encoding ?? "utf8",
+          content: response.content ?? "",
+          encoding: response.encoding ?? "utf8",
+          size: response.size ?? 0,
+          truncated: response.truncated ?? false,
         };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to read file";
-        setState({ isLoading: false, error: message });
+        setState(prev => ({ ...prev, isLoading: false, error: message }));
         throw error;
       }
     },
@@ -129,25 +244,26 @@ export function useFileSystem({ instanceId, timeout = 30000 }: UseFileSystemOpti
   );
 
   const writeFile = useCallback(
-    async (path: string, content: string, encoding: "utf8" | "base64" = "utf8"): Promise<void> => {
-      setState({ isLoading: true, error: null });
+    async (
+      path: string,
+      content: string,
+      options?: { encoding?: "utf8" | "base64"; mode?: string }
+    ): Promise<void> => {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const response = await sendTask({
-          kind: "fs_write",
+        await sendTask({
+          kind: "file_write",
           path,
           content,
-          encoding,
+          encoding: options?.encoding ?? "utf8",
+          mode: options?.mode,
         });
 
-        if (!response.success) {
-          throw new Error(response.error || "Failed to write file");
-        }
-
-        setState({ isLoading: false, error: null });
+        setState(prev => ({ ...prev, isLoading: false, error: null }));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to write file";
-        setState({ isLoading: false, error: message });
+        setState(prev => ({ ...prev, isLoading: false, error: message }));
         throw error;
       }
     },
@@ -155,25 +271,27 @@ export function useFileSystem({ instanceId, timeout = 30000 }: UseFileSystemOpti
   );
 
   const createItem = useCallback(
-    async (path: string, type: "file" | "dir"): Promise<FsNode | undefined> => {
-      setState({ isLoading: true, error: null });
+    async (
+      path: string,
+      type: "file" | "dir",
+      options?: { content?: string; mode?: string }
+    ): Promise<FsNode | undefined> => {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const response = await sendTask({
-          kind: "fs_create",
+          kind: "file_create",
           path,
           type,
+          content: options?.content,
+          mode: options?.mode,
         });
 
-        if (!response.success) {
-          throw new Error(response.error || "Failed to create item");
-        }
-
-        setState({ isLoading: false, error: null });
-        return response.data?.node;
+        setState(prev => ({ ...prev, isLoading: false, error: null }));
+        return response.node;
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to create item";
-        setState({ isLoading: false, error: message });
+        setState(prev => ({ ...prev, isLoading: false, error: message }));
         throw error;
       }
     },
@@ -182,23 +300,19 @@ export function useFileSystem({ instanceId, timeout = 30000 }: UseFileSystemOpti
 
   const deleteItem = useCallback(
     async (path: string, recursive = false): Promise<void> => {
-      setState({ isLoading: true, error: null });
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const response = await sendTask({
-          kind: "fs_delete",
+        await sendTask({
+          kind: "file_delete",
           path,
           recursive,
         });
 
-        if (!response.success) {
-          throw new Error(response.error || "Failed to delete item");
-        }
-
-        setState({ isLoading: false, error: null });
+        setState(prev => ({ ...prev, isLoading: false, error: null }));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to delete item";
-        setState({ isLoading: false, error: message });
+        setState(prev => ({ ...prev, isLoading: false, error: message }));
         throw error;
       }
     },
@@ -206,24 +320,30 @@ export function useFileSystem({ instanceId, timeout = 30000 }: UseFileSystemOpti
   );
 
   const listDirectory = useCallback(
-    async (path: string): Promise<FsNode[]> => {
-      setState({ isLoading: true, error: null });
+    async (
+      path: string,
+      options?: { depth?: number; limit?: number; cursor?: string }
+    ): Promise<{ node: FsNode; next_cursor?: string; has_more: boolean }> => {
+      setState(prev => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const response = await sendTask({
-          kind: "fs_list",
+          kind: "file_tree",
           path,
+          depth: options?.depth,
+          limit: options?.limit,
+          cursor: options?.cursor,
         });
 
-        if (!response.success) {
-          throw new Error(response.error || "Failed to list directory");
-        }
-
-        setState({ isLoading: false, error: null });
-        return response.data?.nodes ?? [];
+        setState(prev => ({ ...prev, isLoading: false, error: null }));
+        return {
+          node: response.node ?? { path, name: "", type: "dir", size_bytes: 0, mod_time: "", mode: "", owner: "", group: "", uid: 0, gid: 0, readable: false, writable: false, executable: false, children: [] },
+          next_cursor: response.next_cursor,
+          has_more: response.has_more ?? false,
+        };
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to list directory";
-        setState({ isLoading: false, error: message });
+        setState(prev => ({ ...prev, isLoading: false, error: message }));
         throw error;
       }
     },
@@ -234,6 +354,8 @@ export function useFileSystem({ instanceId, timeout = 30000 }: UseFileSystemOpti
     isConnected,
     isLoading: state.isLoading,
     error: state.error,
+    pendingCount: state.pendingCount,
+    queueLength: requestQueueRef.current.length,
     readFile,
     writeFile,
     createItem,

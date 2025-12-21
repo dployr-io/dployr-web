@@ -5,6 +5,7 @@ import type { Log, LogLevel, LogStreamMode, LogTimeRange } from "@/types";
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useInstanceStream, type StreamMessage } from "@/hooks/use-instance-stream";
 import { parseLogEntries, filterLogs, isNearBottom, sortLogsByTimestamp, mergeSortedLogs } from "@/lib/log-utils";
+import { ulid } from "ulid";
 
 interface UseLogsOptions {
   instanceId?: string;
@@ -85,8 +86,11 @@ export function useLogs({
   const sendSubscribe = useCallback((startOffset: number) => {
     if (!path || !isConnected) return false;
 
+    const requestId = ulid();
+
     const payload: any = {
       kind: "log_subscribe",
+      requestId,
       path,
       startOffset,
       duration,
@@ -132,6 +136,30 @@ export function useLogs({
       flushLogs();
     }
   }, [subscriberId, unsubscribe, flushLogs, path, isConnected, sendJson]);
+
+  // Clear logs and resubscribe when duration filter changes
+  useEffect(() => {
+    if (!isStreaming) return;
+    
+    // Clear existing logs when switching time windows
+    setLogs([]);
+    logBufferRef.current = [];
+    setLastOffset(0);
+    lastOffsetRef.current = 0;
+    
+    // Unsubscribe from current stream
+    if (path && isConnected && hasSubscribedRef.current) {
+      sendJson({
+        kind: "log_unsubscribe",
+        path,
+      });
+      hasSubscribedRef.current = false;
+    }
+    
+    // Resubscribe with new duration
+    const startOffset = duration === "live" ? 0 : 0;
+    sendSubscribe(startOffset);
+  }, [duration, path, isConnected, isStreaming, sendJson, sendSubscribe]);
 
   // Auto-resubscribe when connection becomes available while streaming
   useEffect(() => {
