@@ -230,7 +230,7 @@ export interface FsSnapshot {
 }
 
 // Filesystem Task Types
-export type FsTaskType = "file_read" | "file_write" | "file_create" | "file_delete" | "file_tree";
+export type FsTaskType = "file_read" | "file_write" | "file_create" | "file_delete" | "file_tree" | "file_watch" | "file_unwatch";
 
 export interface FsTaskRequest {
   kind: FsTaskType;
@@ -247,6 +247,20 @@ export interface FsTaskRequest {
   cursor?: string;
   mode?: string;
 }
+
+// File watching types
+export type FileUpdateEventType = "created" | "modified" | "deleted" | "renamed";
+
+export interface FileUpdateEvent {
+  type: FileUpdateEventType;
+  path: string;
+  oldPath?: string; // For rename events
+  timestamp: number;
+  size?: number;
+  isDirectory?: boolean;
+}
+
+export type FileWatchCallback = (event: FileUpdateEvent) => void;
 
 // Proxy Status
 export interface ProxyStatus {

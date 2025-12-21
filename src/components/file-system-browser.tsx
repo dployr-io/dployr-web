@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +34,10 @@ import {
   X,
   Loader2,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import { formatBytes } from "./instance-metrics";
-import { useFileSystem } from "@/hooks/use-file-system";
+import { useFileSystemMap } from "@/hooks/use-file-system-map";
 
 interface FileSystemBrowserProps {
   instanceId: string;
@@ -53,13 +54,15 @@ interface FileOperation {
   error?: string;
 }
 
-export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: FileSystemBrowserProps) {
+export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrowserProps) {
   const [selectedNode, setSelectedNode] = useState<FsNode | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [fileContent, setFileContent] = useState<string>("");
   const [editedContent, setEditedContent] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
   const [operation, setOperation] = useState<FileOperation | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<FsNode[]>([]);
   
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -68,8 +71,27 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
   const [newItemName, setNewItemName] = useState("");
   const [targetPath, setTargetPath] = useState("");
 
-  // Use WebSocket-based file system operations
-  const fileSystem = useFileSystem({ instanceId });
+  // Use WebSocket-based file system with map and watching
+  const {
+    map,
+    rootNode,
+    mapLoading,
+    isWatching,
+    updateCount,
+    loadTree,
+    reloadSubtree,
+    query,
+    readFile: fsReadFile,
+    writeFile: fsWriteFile,
+    createItem: fsCreateItem,
+    deleteItem: fsDeleteItem,
+  } = useFileSystemMap({
+    instanceId,
+    rootPath: "/",
+    initialDepth: 2,
+    autoWatch: false, 
+    watchRecursive: true,
+  });
 
   const toggleExpand = useCallback((path: string) => {
     setExpandedPaths(prev => {
@@ -83,6 +105,24 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
     });
   }, []);
 
+  // Search functionality
+  useEffect(() => {
+    if (!map || !searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      if (query) {
+        const results = query.searchByName(searchQuery);
+        setSearchResults(results.slice(0, 50)); // Limit to 50 results
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchResults([]);
+    }
+  }, [map, searchQuery]);
+
   const readFile = useCallback(async (node: FsNode) => {
     if (!node.readable) return;
     
@@ -90,7 +130,7 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
     setSelectedNode(node);
     
     try {
-      const result = await fileSystem.readFile(node.path);
+      const result = await fsReadFile(node.path);
       setFileContent(result.content);
       setEditedContent(result.content);
       setOperation(null);
@@ -98,7 +138,7 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
       const message = error?.message || "Failed to read file";
       setOperation({ type: "read", path: node.path, loading: false, error: message });
     }
-  }, [fileSystem]);
+  }, [fsReadFile]);
 
   const writeFile = useCallback(async () => {
     if (!selectedNode || !selectedNode.writable) return;
@@ -106,16 +146,15 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
     setOperation({ type: "write", path: selectedNode.path, loading: true });
     
     try {
-      await fileSystem.writeFile(selectedNode.path, editedContent, { encoding: "utf8" });
+      await fsWriteFile(selectedNode.path, editedContent, { encoding: "utf8" });
       setFileContent(editedContent);
       setIsEditing(false);
       setOperation(null);
-      onRefresh?.();
     } catch (error: any) {
       const message = error?.message || "Failed to write file";
       setOperation({ type: "write", path: selectedNode.path, loading: false, error: message });
     }
-  }, [fileSystem, selectedNode, editedContent, onRefresh]);
+  }, [fsWriteFile, selectedNode, editedContent]);
 
   const createItem = useCallback(async () => {
     if (!newItemName.trim()) return;
@@ -124,16 +163,16 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
     setOperation({ type: "create", path: fullPath, loading: true });
     
     try {
-      await fileSystem.createItem(fullPath, createType);
+      await fsCreateItem(fullPath, createType);
       setShowCreateDialog(false);
       setNewItemName("");
       setOperation(null);
-      onRefresh?.();
+      // File watching will auto-update the tree
     } catch (error: any) {
       const message = error?.message || "Failed to create item";
       setOperation({ type: "create", path: fullPath, loading: false, error: message });
     }
-  }, [fileSystem, targetPath, newItemName, createType, onRefresh]);
+  }, [fsCreateItem, targetPath, newItemName, createType]);
 
   const deleteItem = useCallback(async () => {
     if (!selectedNode) return;
@@ -142,17 +181,16 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
     
     try {
       const recursive = selectedNode.type === "dir";
-      await fileSystem.deleteItem(selectedNode.path, recursive);
+      await fsDeleteItem(selectedNode.path, recursive);
       setShowDeleteDialog(false);
       setSelectedNode(null);
       setFileContent("");
       setOperation(null);
-      onRefresh?.();
     } catch (error: any) {
       const message = error?.message || "Failed to delete item";
       setOperation({ type: "delete", path: selectedNode.path, loading: false, error: message });
     }
-  }, [fileSystem, selectedNode, onRefresh]);
+  }, [fsDeleteItem, selectedNode]);
 
   const handleContextAction = useCallback((action: string, node: FsNode) => {
     switch (action) {
@@ -186,7 +224,10 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
     return node.writable;
   }, []);
 
-  if (!fs) {
+  // Use map data if available, fallback to fs snapshot
+  const displayRoots = rootNode ? [rootNode] : (fs?.roots || []);
+
+  if (displayRoots.length === 0 && !mapLoading) {
     return (
       <div className={cn("flex items-center justify-center h-64 text-muted-foreground", className)}>
         No filesystem data available
@@ -198,29 +239,106 @@ export function FileSystemBrowser({ instanceId, fs, className, onRefresh }: File
     <div className={cn("flex h-full", className)}>
       {/* File Tree */}
       <div className="w-72 border-r flex flex-col">
-        <div className="p-3 border-b flex items-center justify-between">
-          <span className="text-sm font-medium">Files</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onRefresh}>
-            <RefreshCw className="h-3.5 w-3.5" />
-          </Button>
+        <div className="p-3 border-b space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Files</span>
+            <div className="flex items-center gap-1">
+              {isWatching && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0.5">
+                  Live
+                </Badge>
+              )}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7" 
+                onClick={() => loadTree("/", 2)}
+                disabled={mapLoading}
+              >
+                {mapLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </div>
+          </div>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-7 pl-7 text-xs"
+            />
+          </div>
         </div>
         <ScrollArea className="flex-1">
-          <div className="p-2">
-            {fs.roots.map((root, idx) => (
-              <FileTreeNode
-                key={`${root.path}-${idx}`}
-                node={root}
-                depth={0}
-                expandedPaths={expandedPaths}
-                selectedPath={selectedNode?.path}
-                onToggle={toggleExpand}
-                onSelect={setSelectedNode}
-                onContextAction={handleContextAction}
-                getParentWritable={getParentWritable}
-              />
-            ))}
-          </div>
+          {searchQuery && searchResults.length > 0 ? (
+            <div className="p-2 space-y-1">
+              <div className="text-xs text-muted-foreground px-2 py-1">
+                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+              </div>
+              {searchResults.map((node, idx) => (
+                <div
+                  key={`${node.path}-${idx}`}
+                  className={cn(
+                    "flex items-center gap-2 py-1 px-2 rounded-md cursor-pointer text-sm",
+                    selectedNode?.path === node.path ? "bg-accent" : "hover:bg-muted/50"
+                  )}
+                  onClick={() => {
+                    setSelectedNode(node);
+                    if (node.type === "file") {
+                      readFile(node);
+                    }
+                  }}
+                >
+                  {node.type === "dir" ? (
+                    <Folder className="h-4 w-4 text-yellow-500 shrink-0" />
+                  ) : (
+                    <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="truncate" title={node.path}>{node.path}</span>
+                </div>
+              ))}
+            </div>
+          ) : searchQuery ? (
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              No results found
+            </div>
+          ) : (
+            <div className="p-2">
+              {displayRoots.map((root, idx) => (
+                <FileTreeNode
+                  key={`${root.path}-${idx}`}
+                  node={root}
+                  depth={0}
+                  expandedPaths={expandedPaths}
+                  selectedPath={selectedNode?.path}
+                  onToggle={toggleExpand}
+                  onSelect={setSelectedNode}
+                  onContextAction={handleContextAction}
+                  getParentWritable={getParentWritable}
+                  onExpand={async (path) => {
+                    // Load deeper when expanding
+                    if (query && !query.getChildren(path).length) {
+                      await reloadSubtree(path, 3);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </ScrollArea>
+        {/* Status bar */}
+        {map && (
+          <div className="p-2 border-t text-[10px] text-muted-foreground space-y-0.5">
+            <div>Files: {map.byType.get("file")?.size || 0}</div>
+            <div>Dirs: {map.byType.get("dir")?.size || 0}</div>
+            {updateCount > 0 && <div>Updates: {updateCount}</div>}
+          </div>
+        )}
       </div>
 
       {/* Content Panel */}
@@ -432,6 +550,7 @@ interface FileTreeNodeProps {
   onSelect: (node: FsNode) => void;
   onContextAction: (action: string, node: FsNode) => void;
   getParentWritable: (node: FsNode) => boolean;
+  onExpand?: (path: string) => Promise<void>;
 }
 
 function FileTreeNode({
@@ -443,6 +562,7 @@ function FileTreeNode({
   onSelect,
   onContextAction,
   getParentWritable,
+  onExpand,
 }: FileTreeNodeProps) {
   const isExpanded = expandedPaths.has(node.path);
   const isSelected = selectedPath === node.path;
@@ -474,17 +594,23 @@ function FileTreeNode({
               !node.readable && "opacity-50"
             )}
             style={{ paddingLeft: `${depth * 16 + 8}px` }}
-            onClick={() => {
+            onClick={async () => {
               onSelect(node);
               if (isDir) {
+                if (!isExpanded && onExpand) {
+                  await onExpand(node.path);
+                }
                 onToggle(node.path);
               }
             }}
           >
             {isDir ? (
               <button
-                onClick={(e: React.MouseEvent) => {
+                onClick={async (e: React.MouseEvent) => {
                   e.stopPropagation();
+                  if (!isExpanded && onExpand) {
+                    await onExpand(node.path);
+                  }
                   onToggle(node.path);
                 }}
                 className="p-0.5 hover:bg-muted rounded"
@@ -577,6 +703,7 @@ function FileTreeNode({
               onSelect={onSelect}
               onContextAction={onContextAction}
               getParentWritable={() => node.writable}
+              onExpand={onExpand}
             />
           ))}
         </div>

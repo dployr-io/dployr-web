@@ -3,13 +3,20 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useInstanceStream, type StreamMessage } from "./use-instance-stream";
-import type { FsTaskRequest, FsNode } from "@/types";
+import type { FsTaskRequest, FsNode, FileUpdateEvent, FileWatchCallback } from "@/types";
 import { ulid } from "ulid";
 
 interface FileSystemState {
   isLoading: boolean;
   error: string | null;
   pendingCount: number;
+  activeWatches: number;
+}
+
+interface FileWatchSubscription {
+  path: string;
+  callback: FileWatchCallback;
+  recursive: boolean;
 }
 
 interface UseFileSystemOptions {
@@ -57,7 +64,10 @@ export function useFileSystem({
     isLoading: false,
     error: null,
     pendingCount: 0,
+    activeWatches: 0,
   });
+
+  const fileWatchesRef = useRef<Map<string, FileWatchSubscription>>(new Map());
 
   const processQueue = useCallback(() => {
     if (requestQueueRef.current.length > 0 && pendingRequestsRef.current.size < maxPending) {
@@ -75,6 +85,8 @@ export function useFileSystem({
       "file_create_response",
       "file_delete_response",
       "file_tree_response",
+      "file_watch_response",
+      "file_unwatch_response",
     ];
 
     if (responseKinds.includes(message.kind)) {
@@ -129,6 +141,24 @@ export function useFileSystem({
         processQueue();
       }
     }
+
+    // Handle file update broadcasts
+    if (message.kind === "file_update") {
+      const event = message.event as FileUpdateEvent;
+      
+      // Find matching watch subscriptions and invoke callbacks
+      fileWatchesRef.current.forEach((watch) => {
+        // Check if the event path matches the watched path
+        if (event.path === watch.path || 
+            (watch.recursive && event.path.startsWith(watch.path + "/"))) {
+          try {
+            watch.callback(event);
+          } catch (error) {
+            console.error(`[FileSystem] Error in watch callback for ${watch.path}:`, error);
+          }
+        }
+      });
+    }
   }, [maxRetries, processQueue]);
 
   useEffect(() => {
@@ -140,8 +170,19 @@ export function useFileSystem({
         pending.reject(new Error("Component unmounted"));
       });
       pendingRequestsRef.current.clear();
+      
+      // Unwatch all files on unmount
+      fileWatchesRef.current.forEach((watch) => {
+        sendJson({
+          kind: "file_unwatch",
+          requestId: ulid(),
+          instanceId,
+          path: watch.path,
+        });
+      });
+      fileWatchesRef.current.clear();
     };
-  }, [subscriberId, subscribe, unsubscribe, handleMessage]);
+  }, [subscriberId, subscribe, unsubscribe, handleMessage, instanceId, sendJson]);
 
   const sendTaskInternal = useCallback(
     (
@@ -350,16 +391,82 @@ export function useFileSystem({
     [sendTask]
   );
 
+  const watchFile = useCallback(
+    async (
+      path: string,
+      callback: FileWatchCallback,
+      options?: { recursive?: boolean }
+    ): Promise<void> => {
+      // Check if already watching this path
+      if (fileWatchesRef.current.has(path)) {
+        console.warn(`[FileSystem] Already watching ${path}`);
+        return;
+      }
+
+      try {
+        await sendTask({
+          kind: "file_watch",
+          path,
+          recursive: options?.recursive ?? false,
+        });
+
+        // Store the watch subscription
+        fileWatchesRef.current.set(path, {
+          path,
+          callback,
+          recursive: options?.recursive ?? false,
+        });
+
+        setState(prev => ({ ...prev, activeWatches: fileWatchesRef.current.size }));
+        console.log(`[FileSystem] Watching ${path} (recursive: ${options?.recursive ?? false})`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to watch file";
+        console.error(`[FileSystem] Failed to watch ${path}:`, message);
+        throw error;
+      }
+    },
+    [sendTask]
+  );
+
+  const unwatchFile = useCallback(
+    async (path: string): Promise<void> => {
+      const watch = fileWatchesRef.current.get(path);
+      if (!watch) {
+        console.warn(`[FileSystem] Not watching ${path}`);
+        return;
+      }
+
+      try {
+        await sendTask({
+          kind: "file_unwatch",
+          path,
+        });
+
+        fileWatchesRef.current.delete(path);
+        setState(prev => ({ ...prev, activeWatches: fileWatchesRef.current.size }));
+        console.log(`[FileSystem] Stopped watching ${path}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to unwatch file";
+        console.error(`[FileSystem] Failed to unwatch ${path}:`, message);
+        throw error;
+      }
+    },
+    [sendTask]
+  );
+
   return {
     isConnected,
     isLoading: state.isLoading,
     error: state.error,
     pendingCount: state.pendingCount,
     queueLength: requestQueueRef.current.length,
+    activeWatches: state.activeWatches,
     readFile,
     writeFile,
     createItem,
     deleteItem,
     listDirectory,
+    watchFile,
+    unwatchFile,
   };
 }
