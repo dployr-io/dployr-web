@@ -159,7 +159,7 @@ export function useLogs({
     // Resubscribe with new duration
     const startOffset = duration === "live" ? 0 : 0;
     sendSubscribe(startOffset);
-  }, [duration, path, isConnected, isStreaming, sendJson, sendSubscribe]);
+  }, [duration, path, isConnected, sendSubscribe]);
 
   // Auto-resubscribe when connection becomes available while streaming
   useEffect(() => {

@@ -7,6 +7,7 @@ import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useClusterId } from "@/hooks/use-cluster-id";
+import { useInstanceOperations } from "@/hooks/use-instance-operations";
 
 export function useInstances() {
   const queryClient = useQueryClient();
@@ -15,6 +16,7 @@ export function useInstances() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const clusterId = useClusterId();
+  const instanceOps = useInstanceOperations();
 
   const { data, isLoading: isLoadingInstances } = useQuery<PaginatedData<Instance>>({
     queryKey: ["instances", clusterId, currentPage, itemsPerPage],
@@ -172,27 +174,15 @@ export function useInstances() {
 
   const rotateInstanceToken = useMutation({
     mutationFn: async ({ id, token }: { id: string; token: string }): Promise<void> => {
-      await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}/tokens/rotate`,
-        { token },
-        {
-          withCredentials: true,
-        },
-      );
+      await instanceOps.rotateToken(id, token);
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage =
-        typeof errorData === "string"
-          ? errorData
-          : errorData?.message || error?.message || "An error occurred while rotating bootstrap token.";
-
-      const helpLink = error?.response?.data?.error.helpLink;
+      const errorMessage = error?.message || "An error occurred while rotating bootstrap token.";
 
       setError({
         appError: {
           message: errorMessage,
-          helpLink,
+          helpLink: "",
         },
       });
     },
@@ -230,90 +220,57 @@ export function useInstances() {
   });
 
   const installVersion = useMutation({
-    mutationFn: async ({ id, version }: { id: string; version?: string }): Promise<ApiSuccessResponse<any>> => {
-      const response = await axios.post<ApiSuccessResponse<any>>(
-        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}/system/install`,
-        version ? { version } : {},
-        {
-          params: { clusterId },
-          withCredentials: true,
-        },
-      );
-      return response.data;
+    mutationFn: async ({ id, version }: { id: string; version?: string }): Promise<any> => {
+      if (!clusterId) {
+        throw new Error("Cluster ID is required");
+      }
+      return await instanceOps.installVersion(id, clusterId, version);
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage =
-        typeof errorData === "string"
-          ? errorData
-          : errorData?.message || error?.message || "An error occurred while installing version.";
-
-      const helpLink = error?.response?.data?.error.helpLink;
+      const errorMessage = error?.message || "An error occurred while installing version.";
 
       setError({
         appError: {
           message: errorMessage,
-          helpLink,
+          helpLink: "",
         },
       });
     },
   });
 
   const restartInstance = useMutation({
-    mutationFn: async ({ id, force }: { id: string; force?: boolean }): Promise<ApiSuccessResponse<any>> => {
-      const response = await axios.post<ApiSuccessResponse<any>>(
-        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}/system/restart`,
-        force ? { force } : {},
-        {
-          params: { clusterId },
-          withCredentials: true,
-        },
-      );
-      return response.data;
+    mutationFn: async ({ id, force }: { id: string; force?: boolean }): Promise<any> => {
+      if (!clusterId) {
+        throw new Error("Cluster ID is required");
+      }
+      return await instanceOps.restartInstance(id, clusterId, force);
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage =
-        typeof errorData === "string"
-          ? errorData
-          : errorData?.message || error?.message || "An error occurred while restarting instance.";
-
-      const helpLink = error?.response?.data?.error.helpLink;
+      const errorMessage = error?.message || "An error occurred while restarting instance.";
 
       setError({
         appError: {
           message: errorMessage,
-          helpLink,
+          helpLink: "",
         },
       });
     },
   });
 
   const rebootInstance = useMutation({
-    mutationFn: async ({ id, force }: { id: string; force?: boolean }): Promise<ApiSuccessResponse<any>> => {
-      const response = await axios.post<ApiSuccessResponse<any>>(
-        `${import.meta.env.VITE_BASE_URL}/v1/instances/${id}/system/reboot`,
-        force ? { force } : {},
-        {
-          params: { clusterId },
-          withCredentials: true,
-        },
-      );
-      return response.data;
+    mutationFn: async ({ id, force }: { id: string; force?: boolean }): Promise<any> => {
+      if (!clusterId) {
+        throw new Error("Cluster ID is required");
+      }
+      return await instanceOps.rebootInstance(id, clusterId, force);
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage =
-        typeof errorData === "string"
-          ? errorData
-          : errorData?.message || error?.message || "An error occurred while rebooting instance.";
-
-      const helpLink = error?.response?.data?.error.helpLink;
+      const errorMessage = error?.message || "An error occurred while rebooting instance.";
 
       setError({
         appError: {
           message: errorMessage,
-          helpLink,
+          helpLink: "",
         },
       });
     },
