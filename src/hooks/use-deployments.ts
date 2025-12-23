@@ -34,17 +34,23 @@ export function useDeployments() {
   });
 
   const deployments = useMemo(() => {
-    return instanceQueries.flatMap(query => {
+    return instanceQueries.flatMap((query, index) => {
       const data = query.data as InstanceStream | null | undefined;
       const update = data?.update as any;
       const deployments = update?.deployments as Deployment[] | undefined;
-      return deployments || [];
+      const instanceId = instanceIds[index];
+      
+      return (deployments || []).map(deployment => ({
+        ...deployment,
+        _instanceId: instanceId,
+      }));
     });
-  }, [instanceQueries]);
+  }, [instanceQueries, instanceIds]);
 
   const isLoading = !isConnected && deployments.length === 0;
 
   const selectedDeployment = id ? deployments?.find(deployment => deployment.id === id) || null : null;
+  const selectedInstanceId = selectedDeployment ? (selectedDeployment as any)._instanceId : undefined;
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
@@ -66,6 +72,7 @@ export function useDeployments() {
 
   return {
     selectedDeployment,
+    selectedInstanceId,
     deployments,
     paginatedDeployments,
     currentPage,

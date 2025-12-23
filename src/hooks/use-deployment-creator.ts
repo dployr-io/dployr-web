@@ -16,6 +16,7 @@ import {
   getDefaultTemplate,
   type SchemaError,
 } from "@/lib/blueprint-schema";
+import { ulid } from "ulid";
 
 /**
  * Hook for managing deployment creation state and navigation.
@@ -193,6 +194,7 @@ export function useDeploymentCreator() {
       kind: "deploy",
       instanceId,
       payload,
+      requestId: ulid(),
     });
 
     if (!sent) {

@@ -4,11 +4,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, Deployment } from "@/types";
+import type { BreadcrumbItem, BlueprintFormat } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
 import { toJson, toYaml } from "@/lib/utils";
-import { useServiceForm } from "@/hooks/use-service-form";
 import { useLogs } from "@/hooks/use-instance-logs";
 import { useUrlState } from "@/hooks/use-url-state";
 import type { LogLevel } from "@/types";
@@ -25,27 +24,26 @@ export const Route = createFileRoute("/clusters/$clusterId/deployments/$id")({
   component: ViewDeployment,
 });
 
-const ViewProjectBreadcrumbs = (deployment?: Deployment) => {
-  const breadcrumbs: BreadcrumbItem[] = [
+const viewDeploymentBreadcrumbs = (clusterId?: string, deploymentId?: string, deploymentName?: string): BreadcrumbItem[] => {
+  const base = clusterId ? `/clusters/${clusterId}/deployments` : "/deployments";
+
+  return [
     {
       title: "Deployments",
-      href: "/deployments",
+      href: base,
     },
     {
-      title: deployment?.config?.name || "",
-      href: `/deployments/${deployment?.id || ""}`,
+      title: deploymentName || "",
+      href: deploymentId ? `${base}/${deploymentId}` : base,
     },
   ];
-
-  return breadcrumbs;
 };
 
 function ViewDeployment() {
-  const { selectedDeployment: deployment, isLoading } = useDeployments();
-  const config = deployment?.config;
-  const breadcrumbs = ViewProjectBreadcrumbs(deployment!);
-  const { blueprintFormat, setBlueprintFormat } = useServiceForm();
   const { clusterId } = Route.useParams();
+  const { selectedDeployment: deployment, selectedInstanceId, isLoading } = useDeployments();
+  const config = deployment?.config;
+  const breadcrumbs = viewDeploymentBreadcrumbs(clusterId, deployment?.id, deployment?.config?.name);
 
   const { useDeploymentTabsState } = useUrlState();
   const [{ tab, logRange, logLevel, duration }, setTabState] = useDeploymentTabsState();
@@ -55,6 +53,7 @@ function ViewDeployment() {
   const logDuration = (duration || logRange || "live") as LogTimeRange;
   
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("yaml");
   const logMode = isAtBottom ? "tail" : "historical";
   const {
     logs,
@@ -66,11 +65,15 @@ function ViewDeployment() {
     startStreaming,
     stopStreaming,
   } = useLogs({
+    instanceId: selectedInstanceId,
     path: deployment?.id || "",
     initialMode: logMode,
     duration: logDuration,
     selectedLevel: selectedLogLevel,
   });
+
+  const yamlConfig = config ? toYaml(config) : "";
+  const jsonConfig = config ? toJson(config) : "";
 
   const handleScrollPositionChange = useCallback(
     (atBottom: boolean) => {
@@ -79,6 +82,11 @@ function ViewDeployment() {
     [setIsAtBottom]
   );
 
+  const handleBlueprintCopy = useCallback(() => {
+    const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
+    navigator.clipboard.writeText(content);
+  }, [blueprintFormat, yamlConfig, jsonConfig]);
+
   useEffect(() => {
     if (currentTab === "logs" && deployment?.id) {
       startStreaming();
@@ -86,17 +94,6 @@ function ViewDeployment() {
       stopStreaming();
     }
   }, [currentTab, deployment?.id, startStreaming, stopStreaming]);
-
-  const yamlConfig = config ? toYaml(config) : "";
-  const jsonConfig = config ? toJson(config) : "";
-  const handleBlueprintCopy = async () => {
-    try {
-      if (!deployment || !config) return;
-      await navigator.clipboard.writeText(blueprintFormat === "yaml" ? yamlConfig : jsonConfig);
-    } catch {
-      return;
-    }
-  };
 
   if (isLoading) {
     return (

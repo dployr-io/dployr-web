@@ -264,48 +264,53 @@ function Deployments() {
                       <TableBody>
                         {!isDeploymentsLoading
                           ? paginatedDeployments.map(deployment => (
-                              <Link key={deployment.id} to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="contents">
-                                <TableRow className="h-16 cursor-pointer">
+                              <TableRow key={deployment.id} className="h-16 cursor-pointer">
                                 <TableCell className="h-16 w-60 overflow-hidden align-middle font-medium">
-                                  <span className="block truncate">{String(deployment.config?.name || "-")}</span>
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block truncate">
+                                    {String(deployment.config?.name || "-")}
+                                  </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
-                                  {deployment.status === "completed" || deployment.status === "failed" ? (
-                                    deployment.updated_at && deployment.created_at ? (
-                                      <span className="inline-block">
-                                        {(() => {
-                                          const ms = new Date(deployment.updated_at).getTime() - new Date(deployment.created_at).getTime();
-                                          const seconds = Math.floor(ms / 1000);
-                                          const minutes = Math.floor(seconds / 60);
-                                          const hours = Math.floor(minutes / 60);
-                                          const days = Math.floor(hours / 24);
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block">
+                                    {deployment.status === "completed" || deployment.status === "failed" ? (
+                                      deployment.updated_at && deployment.created_at ? (
+                                        <span className="inline-block">
+                                          {(() => {
+                                            const ms = new Date(deployment.updated_at).getTime() - new Date(deployment.created_at).getTime();
+                                            const seconds = Math.floor(ms / 1000);
+                                            const minutes = Math.floor(seconds / 60);
+                                            const hours = Math.floor(minutes / 60);
+                                            const days = Math.floor(hours / 24);
 
-                                          if (days > 0) return `${days} day${days !== 1 ? "s" : ""}`;
-                                          if (hours > 0) return `${hours} hour${hours !== 1 ? "s" : ""}`;
-                                          if (minutes > 0) return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
-                                          return `${seconds} second${seconds !== 1 ? "s" : ""}`;
-                                        })()}
-                                      </span>
+                                            if (days > 0) return `${days} day${days !== 1 ? "s" : ""}`;
+                                            if (hours > 0) return `${hours} hour${hours !== 1 ? "s" : ""}`;
+                                            if (minutes > 0) return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
+                                            return `${seconds} second${seconds !== 1 ? "s" : ""}`;
+                                          })()}
+                                        </span>
+                                      ) : (
+                                        <>-</>
+                                      )
                                     ) : (
-                                      <>-</>
-                                    )
-                                  ) : (
-                                    <>
-                                      <TimeAgo date={deployment.created_at} formatter={formatWithoutSuffix} />
-                                    </>
-                                  )}
+                                      <>
+                                        <TimeAgo date={deployment.created_at} formatter={formatWithoutSuffix} />
+                                      </>
+                                    )}
+                                  </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] gap-2 align-middle">
-                                  <StatusBadge status={deployment.status} />
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block">
+                                    <StatusBadge status={deployment.status} />
+                                  </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
-                                  <div className="flex items-center gap-2">
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex items-center gap-2">
                                     {getRuntimeIcon(deployment.config?.runtime?.type || "custom")}
                                     <span>{String(deployment.config?.runtime?.type || "-")}</span>
-                                  </div>
+                                  </Link>
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[320px] overflow-hidden align-middle">
-                                  <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex min-w-0 items-center gap-2 text-muted-foreground">
                                     {!deployment.config?.remote?.url ? (
                                       <div className="max-w-[320px] overflow-hidden align-middle">
                                         <Skeleton className="h-4 w-40" />
@@ -316,13 +321,14 @@ function Deployments() {
                                         <span className="truncate">{deployment.config?.remote ? deployment.config.remote.url?.replace(/^https?:\/\//, "") || "-" : "-"}</span>
                                       </>
                                     )}
-                                  </div>
+                                  </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[200px] overflow-hidden text-right align-middle">
-                                  <span className="block truncate text-right font-mono text-sm text-muted-foreground">{String(deployment.config?.run_cmd || "-")}</span>
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block truncate text-right font-mono text-sm text-muted-foreground">
+                                    {String(deployment.config?.run_cmd || "-")}
+                                  </Link>
                                 </TableCell>
-                                </TableRow>
-                              </Link>
+                              </TableRow>
                             ))
                           : Array.from({ length: 3 }).map((_, idx) => (
                               <TableRow key={`skeleton-${idx}`} className="h-16">

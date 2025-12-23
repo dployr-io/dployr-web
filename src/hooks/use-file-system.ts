@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { useInstanceStream, type StreamMessage } from "./use-instance-stream";
+import { useInstanceStream } from "./use-instance-stream";
 import type { FsTaskRequest, FsNode, FileUpdateEvent, FileWatchCallback } from "@/types";
 import { ulid } from "ulid";
 
@@ -78,7 +78,7 @@ export function useFileSystem({
     }
   }, [maxPending]);
 
-  const handleMessage = useCallback((message: StreamMessage) => {
+  const handleMessage = useCallback((message: any) => {
     const responseKinds = [
       "file_read_response",
       "file_write_response",

@@ -4,6 +4,7 @@
 import { useCallback } from "react";
 import { useInstanceStream } from "./use-instance-stream";
 import { useUrlState } from "./use-url-state";
+import { ulid } from "ulid";
 
 const DEPLOYMENT_ERRORS = {
   MISSING_PARAMS: "Instance ID is required for deployment.",
@@ -58,6 +59,7 @@ export function useDeployment() {
         kind: "deploy",
         instanceId: instanceName,
         payload,
+        requestId: ulid(),
       });
 
       if (!sent) {

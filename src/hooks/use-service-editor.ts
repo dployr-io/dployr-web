@@ -82,22 +82,12 @@ export function useServiceEditor(service: Service | null, clusterId: string) {
       return;
     }
 
-    const sent = sendJson({
+    sendJson({
       kind: "service_remove",
-      serviceId: service.name,
+      name: service.name,
       requestId: ulid(),
     });
-
-    if (sent) {
-      navigate({ to: "/clusters/$clusterId/services", params: { clusterId } });
-    } else {
-      setAppError({
-        appError: {
-          message: "Failed to send service removal request",
-          helpLink: "",
-        },
-      });
-    }
+    
   }, [service, wsConnected, sendJson, setAppError, navigate, clusterId]);
 
   const handleAddSecret = useCallback(() => {

@@ -14,6 +14,7 @@ const SERVICE_REMOVE_ERRORS = {
 interface ServiceRemoveResult {
   success: boolean;
   error?: string;
+  name?: string;
 }
 
 /**
@@ -21,11 +22,12 @@ interface ServiceRemoveResult {
  */
 export function useServiceRemove() {
   const { sendJson, isConnected: wsConnected } = useInstanceStream();
-  const { useAppError } = useUrlState();
+  const { useAppError, useAppNotification } = useUrlState();
   const [, setAppError] = useAppError();
+  const [, setAppNotification] = useAppNotification();
 
   const removeService = useCallback(
-    (serviceId: string, requestId: string): ServiceRemoveResult => {
+    (name: string, requestId: string): ServiceRemoveResult => {
       // Validate WebSocket connection
       if (!wsConnected) {
         setAppError({
@@ -38,7 +40,7 @@ export function useServiceRemove() {
       }
 
       // Validate required parameters
-      if (!serviceId || !requestId) {
+      if (!name || !requestId) {
         setAppError({
           appError: {
             message: "Service ID, and Request ID are required for service removal.",
@@ -51,7 +53,7 @@ export function useServiceRemove() {
       // Send service removal request
       const sent = sendJson({
         kind: "service_remove",
-        serviceId,
+        name,
         requestId,
       });
 
@@ -65,9 +67,16 @@ export function useServiceRemove() {
         return { success: false, error: SERVICE_REMOVE_ERRORS.SEND_FAILED };
       }
 
-      return { success: true };
+      setAppNotification({
+        appNotification: {
+          message: `Service ${name} sent for removal`,
+          link: "",
+        },
+      });
+
+      return { success: true, name };
     },
-    [wsConnected, sendJson, setAppError]
+    [wsConnected, sendJson, setAppError, setAppNotification]
   );
 
   return {

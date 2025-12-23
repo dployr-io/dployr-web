@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, Runtime, Service } from "@/types";
@@ -54,6 +54,7 @@ function ViewService() {
   const { useServiceTabsState } = useUrlState();
   const [{ tab }, setTabState] = useServiceTabsState();
   const currentTab = (tab || "overview") as "overview" | "logs" | "env" | "settings";
+  const navigate = useNavigate();
 
   const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useServiceEnv(service);
 
@@ -235,11 +236,16 @@ function ViewService() {
                     <Card>
                       <CardHeader>
                         <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle className="text-red-600">Remove Service</CardTitle>
+                          <div className="flex flex-col gap-2">
+                            <CardTitle>Remove Service</CardTitle>
                             <CardDescription>This will remove the service from the instance. This action cannot be undone.</CardDescription>
                           </div>
-                          <Button size="sm" variant="outline" onClick={() => handleRemoveService(service?.id || "", ulid())}>
+                          <Button size="sm" variant="destructive" onClick={() => {
+                            const result = handleRemoveService(service?.name || "", ulid());
+                            if (result.success) {
+                              navigate({ to: "/clusters/$clusterId/services", params: { clusterId } });
+                            }
+                          }}>
                             <StopCircle className="h-4 w-4" />
                             Stop & Remove
                           </Button>

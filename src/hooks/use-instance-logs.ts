@@ -3,7 +3,7 @@
 
 import type { Log, LogLevel, LogStreamMode, LogTimeRange } from "@/types";
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
-import { useInstanceStream, type StreamMessage } from "@/hooks/use-instance-stream";
+import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { parseLogEntries, filterLogs, isNearBottom, sortLogsByTimestamp, mergeSortedLogs } from "@/lib/log-utils";
 import { ulid } from "ulid";
 
@@ -47,7 +47,7 @@ export function useLogs({
     }
   }, []);
 
-  const handleMessage = useCallback((message: StreamMessage) => {
+  const handleMessage = useCallback((message: any) => {
     try {
       if (message.kind === "log_subscribed") {
         setCurrentStreamId(message.streamId as string);
@@ -86,11 +86,9 @@ export function useLogs({
   const sendSubscribe = useCallback((startOffset: number) => {
     if (!path || !isConnected) return false;
 
-    const requestId = ulid();
-
     const payload: any = {
       kind: "log_subscribe",
-      requestId,
+      requestId: ulid(),
       path,
       startOffset,
       duration,
@@ -124,6 +122,7 @@ export function useLogs({
       sendJson({
         kind: "log_unsubscribe",
         path,
+        requestId: ulid(),
       });
     }
     
@@ -152,6 +151,7 @@ export function useLogs({
       sendJson({
         kind: "log_unsubscribe",
         path,
+        requestId: ulid(),
       });
       hasSubscribedRef.current = false;
     }

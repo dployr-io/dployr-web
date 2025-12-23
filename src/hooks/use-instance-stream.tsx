@@ -6,6 +6,7 @@ import { useClusterId } from "./use-cluster-id";
 import { useQueryClient } from "@tanstack/react-query";
 import type { InstanceStream } from "@/types";
 import { persistCacheToStorage, addMemoryProfileEntry, persistMemoryProfiles } from "@/lib/query-cache-persistence";
+import { useUrlState } from "./use-url-state";
 
 export type StreamConnectionState = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -36,6 +37,8 @@ interface InstanceStreamProviderProps {
 export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStreamProviderProps) {
   const clusterId = useClusterId();
   const queryClient = useQueryClient();
+  const { useAppError } = useUrlState();
+  const [, setAppError] = useAppError();
   
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -126,6 +129,18 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
     socket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data as string);
+
+        if (message.kind === "error") {
+          console.error('[WebSocket] Error message received:', message);
+          const errorMsg = message.message || 'An error occurred';
+          const errorCode = message.code ? `[${message.code}] ` : '';
+          setAppError({
+            appError: {
+              message: `${errorCode}${errorMsg}`,
+              helpLink: "",
+            },
+          });
+        }
         
         if (message.kind === "update") {
           const data = message as InstanceStream;

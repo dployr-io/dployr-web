@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback, useEffect, useId, useRef } from "react";
-import { useInstanceStream, type StreamMessage } from "./use-instance-stream";
+import { useInstanceStream } from "./use-instance-stream";
 import { ulid } from "ulid";
 
 interface PendingOperation {
@@ -24,7 +24,7 @@ export function useInstanceOperations({ timeout = 25000 }: UseInstanceOperations
   const { isConnected, sendJson, subscribe, unsubscribe } = useInstanceStream();
   const pendingOperationsRef = useRef<Map<string, PendingOperation>>(new Map());
 
-  const handleMessage = useCallback((message: StreamMessage) => {
+  const handleMessage = useCallback((message: any) => {
     const responseKinds = [
       "instance_system_install_response",
       "instance_system_reboot_response",
