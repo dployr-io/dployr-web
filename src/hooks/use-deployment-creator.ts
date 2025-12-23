@@ -145,7 +145,7 @@ export function useDeploymentCreator() {
   }, [currentDraft, toBlueprint, blueprintFormat]);
 
   // Deploy handler
-  const handleDeploy = useCallback((instanceId: string) => {
+  const handleDeploy = useCallback((instanceName: string) => {
     const result = validate();
     if (!result.isValid) {
       setValidationErrors(result.errors);
@@ -192,7 +192,7 @@ export function useDeploymentCreator() {
 
     const sent = sendJson({
       kind: "deploy",
-      instanceId,
+      instanceName,
       payload,
       requestId: ulid(),
     });

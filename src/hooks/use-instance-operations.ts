@@ -125,10 +125,10 @@ export function useInstanceOperations({ timeout = 25000 }: UseInstanceOperations
   );
 
   const installVersion = useCallback(
-    async (instanceId: string, clusterId: string, version?: string): Promise<{ taskId: string; status: string; message: string }> => {
+    async (instanceName: string, clusterId: string, version?: string): Promise<{ taskId: string; status: string; message: string }> => {
       const request: Record<string, any> = {
         kind: "instance_system_install",
-        instanceId,
+        instanceName,
         clusterId,
       };
 
@@ -142,10 +142,10 @@ export function useInstanceOperations({ timeout = 25000 }: UseInstanceOperations
   );
 
   const rebootInstance = useCallback(
-    async (instanceId: string, clusterId: string, force?: boolean): Promise<{ taskId: string; status: string; message: string }> => {
+    async (instanceName: string, clusterId: string, force?: boolean): Promise<{ taskId: string; status: string; message: string }> => {
       const request: Record<string, any> = {
         kind: "instance_system_reboot",
-        instanceId,
+        instanceName,
         clusterId,
       };
 
@@ -159,10 +159,10 @@ export function useInstanceOperations({ timeout = 25000 }: UseInstanceOperations
   );
 
   const restartInstance = useCallback(
-    async (instanceId: string, clusterId: string, force?: boolean): Promise<{ taskId: string; status: string; message: string }> => {
+    async (instanceName: string, clusterId: string, force?: boolean): Promise<{ taskId: string; status: string; message: string }> => {
       const request: Record<string, any> = {
         kind: "instance_system_restart",
-        instanceId,
+        instanceName,
         clusterId,
       };
 
@@ -176,10 +176,10 @@ export function useInstanceOperations({ timeout = 25000 }: UseInstanceOperations
   );
 
   const rotateToken = useCallback(
-    async (instanceId: string, token: string): Promise<{ status: string; message: string }> => {
+    async (instanceName: string, token: string): Promise<{ status: string; message: string }> => {
       return sendOperation({
         kind: "instance_token_rotate",
-        instanceId,
+        instanceName,
         token,
       });
     },

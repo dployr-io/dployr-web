@@ -179,8 +179,8 @@ function Deployments() {
                       <SelectContent>
                         <SelectItem value="all">All Instances</SelectItem>
                         {instances.map(instance => (
-                          <SelectItem key={instance.id} value={instance.id}>
-                            {instance.tag || instance.id}
+                          <SelectItem key={instance.tag} value={instance.tag}>
+                            {instance.tag}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -489,7 +489,14 @@ function Deployments() {
                       showFormatSelector
                     />
                     <div className="flex justify-end">
-                      <Button onClick={() => selectedInstanceId && handleDeploy(selectedInstanceId)} disabled={schemaErrors.length > 0 || !selectedInstanceId} size="lg">
+                      <Button onClick={() => {
+                        if (selectedInstanceId && selectedInstanceId !== "all") {
+                          const instance = instances?.find(i => i.id === selectedInstanceId);
+                          if (instance?.tag) {
+                            handleDeploy(instance.tag);
+                          }
+                        }
+                      }} disabled={schemaErrors.length > 0 || !selectedInstanceId || selectedInstanceId === "all"} size="lg">
                         <Rocket className="h-4 w-4" />
                         Deploy
                       </Button>

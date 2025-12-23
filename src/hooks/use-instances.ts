@@ -173,8 +173,8 @@ export function useInstances() {
   });
 
   const rotateInstanceToken = useMutation({
-    mutationFn: async ({ id, token }: { id: string; token: string }): Promise<void> => {
-      await instanceOps.rotateToken(id, token);
+    mutationFn: async ({ name, token }: { name: string; token: string }): Promise<void> => {
+      await instanceOps.rotateToken(name, token);
     },
     onError: (error: any) => {
       const errorMessage = error?.message || "An error occurred while rotating bootstrap token.";
@@ -220,11 +220,11 @@ export function useInstances() {
   });
 
   const installVersion = useMutation({
-    mutationFn: async ({ id, version }: { id: string; version?: string }): Promise<any> => {
+    mutationFn: async ({ name, version }: { name: string; version?: string }): Promise<any> => {
       if (!clusterId) {
         throw new Error("Cluster ID is required");
       }
-      return await instanceOps.installVersion(id, clusterId, version);
+      return await instanceOps.installVersion(name, clusterId, version);
     },
     onError: (error: any) => {
       const errorMessage = error?.message || "An error occurred while installing version.";
@@ -239,11 +239,11 @@ export function useInstances() {
   });
 
   const restartInstance = useMutation({
-    mutationFn: async ({ id, force }: { id: string; force?: boolean }): Promise<any> => {
+    mutationFn: async ({ name, force }: { name: string; force?: boolean }): Promise<any> => {
       if (!clusterId) {
         throw new Error("Cluster ID is required");
       }
-      return await instanceOps.restartInstance(id, clusterId, force);
+      return await instanceOps.restartInstance(name, clusterId, force);
     },
     onError: (error: any) => {
       const errorMessage = error?.message || "An error occurred while restarting instance.";
@@ -258,11 +258,11 @@ export function useInstances() {
   });
 
   const rebootInstance = useMutation({
-    mutationFn: async ({ id, force }: { id: string; force?: boolean }): Promise<any> => {
+    mutationFn: async ({ name, force }: { name: string; force?: boolean }): Promise<any> => {
       if (!clusterId) {
         throw new Error("Cluster ID is required");
       }
-      return await instanceOps.rebootInstance(id, clusterId, force);
+      return await instanceOps.rebootInstance(name, clusterId, force);
     },
     onError: (error: any) => {
       const errorMessage = error?.message || "An error occurred while rebooting instance.";

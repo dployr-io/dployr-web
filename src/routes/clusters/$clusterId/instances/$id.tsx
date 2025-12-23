@@ -281,7 +281,7 @@ function ViewInstance() {
   };
 
   const handleRotateSubmit = async () => {
-    if (!instanceId) return;
+    if (!instance?.tag) return;
     const token = rotateValue.trim();
     if (!token) {
       setRotateError("Bootstrap token is required");
@@ -291,7 +291,7 @@ function ViewInstance() {
     setIsRotating(true);
     setRotateError("");
     try {
-      await rotateInstanceToken.mutateAsync({ id: instanceId, token });
+      await rotateInstanceToken.mutateAsync({ name: instance.tag, token });
       setBootstrapToken(null);
       setRotateOpen(false);
       setRotatedToken(token);
@@ -305,10 +305,10 @@ function ViewInstance() {
   };
 
   const handleInstallVersion = async (version?: string) => {
-    if (!instanceId) return;
+    if (!instance?.tag) return;
     setIsInstalling(true);
     try {
-      await installVersion.mutateAsync({ id: instanceId, version });
+      await installVersion.mutateAsync({ name: instance.tag, version });
     } finally {
       setIsInstalling(false);
     }
@@ -327,10 +327,10 @@ function ViewInstance() {
   };
 
   const handleRestartSubmit = async () => {
-    if (!instanceId) return;
+    if (!instance?.tag) return;
     setIsRestarting(true);
     try {
-      await restartInstance.mutateAsync({ id: instanceId, force: forceRestart });
+      await restartInstance.mutateAsync({ name: instance.tag, force: forceRestart });
     } finally {
       setIsRestarting(false);
       setRestartOpen(false);
@@ -338,10 +338,10 @@ function ViewInstance() {
   };
 
   const handleRebootSubmit = async () => {
-    if (!instanceId) return;
+    if (!instance?.tag) return;
     setIsRestarting(true);
     try {
-      await rebootInstance.mutateAsync({ id: instanceId, force: forceReboot });
+      await rebootInstance.mutateAsync({ name: instance.tag, force: forceReboot });
     } finally {
       setIsRestarting(false);
       setRebootOpen(false);
