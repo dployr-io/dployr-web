@@ -1,0 +1,161 @@
+/* CodeEditor.css - Additional styles for CodeMirror editor */
+
+/* Ensure the editor fills its container */
+.codemirror-wrapper .cm-editor {
+  height: 100%;
+  min-height: inherit;
+}
+
+.codemirror-wrapper .cm-scroller {
+  overflow: auto;
+  min-height: inherit;
+}
+
+/* Custom scrollbar styling to match VS Code */
+.codemirror-wrapper .cm-scroller::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.codemirror-wrapper .cm-scroller::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.codemirror-wrapper .cm-scroller::-webkit-scrollbar-thumb {
+  background: #424242;
+  border: 3px solid #1e1e1e;
+  border-radius: 7px;
+}
+
+.codemirror-wrapper .cm-scroller::-webkit-scrollbar-thumb:hover {
+  background: #4f4f4f;
+}
+
+.codemirror-wrapper .cm-scroller::-webkit-scrollbar-corner {
+  background: #1e1e1e;
+}
+
+/* Line number gutter width adjustment */
+.codemirror-wrapper .cm-gutters {
+  padding-right: 4px;
+}
+
+/* Active line highlighting */
+.codemirror-wrapper .cm-activeLine {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+.codemirror-wrapper .cm-activeLineGutter {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Selection styling */
+.codemirror-wrapper .cm-selectionBackground {
+  background-color: #264f78 !important;
+}
+
+/* Focused selection */
+.codemirror-wrapper .cm-focused .cm-selectionBackground {
+  background-color: #264f78 !important;
+}
+
+/* Matching bracket highlight */
+.codemirror-wrapper .cm-matchingBracket {
+  background-color: rgba(0, 100, 0, 0.3) !important;
+  outline: 1px solid #888;
+}
+
+/* Search highlight */
+.codemirror-wrapper .cm-searchMatch {
+  background-color: #613214;
+  outline: 1px solid #f0a225;
+}
+
+.codemirror-wrapper .cm-searchMatch-selected {
+  background-color: #515c6a;
+}
+
+/* Fold marker */
+.codemirror-wrapper .cm-foldGutter .cm-gutterElement {
+  cursor: pointer;
+  color: #c5c5c5;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.codemirror-wrapper .cm-foldGutter .cm-gutterElement:hover {
+  color: #e8e8e8;
+}
+
+/* Lint markers */
+.codemirror-wrapper .cm-lint-marker-error {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23f14c4c'/%3E%3C/svg%3E");
+}
+
+.codemirror-wrapper .cm-lint-marker-warning {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M8 2L14 14H2L8 2Z' fill='%23cca700'/%3E%3C/svg%3E");
+}
+
+/* Tooltip styling */
+.codemirror-wrapper .cm-tooltip {
+  background-color: #252526;
+  border: 1px solid #454545;
+  border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.36);
+}
+
+.codemirror-wrapper .cm-tooltip-autocomplete {
+  max-height: 300px;
+}
+
+.codemirror-wrapper .cm-tooltip-autocomplete ul li {
+  padding: 4px 8px;
+}
+
+.codemirror-wrapper .cm-tooltip-autocomplete ul li[aria-selected] {
+  background-color: #094771;
+}
+
+/* Panel styling (search, etc.) */
+.codemirror-wrapper .cm-panels {
+  background-color: #252526;
+  border-color: #3c3c3c;
+}
+
+.codemirror-wrapper .cm-panel input {
+  background-color: #3c3c3c;
+  border: 1px solid #3c3c3c;
+  color: #cccccc;
+  border-radius: 2px;
+  padding: 2px 4px;
+}
+
+.codemirror-wrapper .cm-panel input:focus {
+  border-color: #007fd4;
+  outline: none;
+}
+
+.codemirror-wrapper .cm-panel button {
+  background-color: #0e639c;
+  color: white;
+  border: none;
+  border-radius: 2px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.codemirror-wrapper .cm-panel button:hover {
+  background-color: #1177bb;
+}
+
+/* Cursor styling */
+.codemirror-wrapper .cm-cursor {
+  border-left-width: 2px;
+  border-left-color: #aeafad;
+}
+
+/* Placeholder text */
+.codemirror-wrapper .cm-placeholder {
+  color: #6a737d;
+  font-style: italic
+}
