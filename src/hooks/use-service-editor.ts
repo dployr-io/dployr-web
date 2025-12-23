@@ -3,13 +3,18 @@
 
 import { useState, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import type { Service } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { ulid } from "ulid";
+import type { Service, InstanceStream } from "@/types";
 import { useDeployment, DEPLOYMENT_ERRORS } from "./use-deployment";
 import { useUrlState } from "./use-url-state";
+import { useInstanceStream } from "./use-instance-stream";
 
-export function useServiceEditor(service: Service | null, instanceId: string, clusterId: string) {
+export function useServiceEditor(service: Service | null, clusterId: string) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { deploy } = useDeployment();
+  const { sendJson, isConnected: wsConnected } = useInstanceStream();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
 
@@ -64,6 +69,37 @@ export function useServiceEditor(service: Service | null, instanceId: string, cl
     }
   }, [handleSaveSecret, handleCancelSecret]);
 
+  const handleStopRemove = useCallback(() => {
+    if (!service) return;
+
+    if (!wsConnected) {
+      setAppError({
+        appError: {
+          message: "WebSocket is not connected",
+          helpLink: "",
+        },
+      });
+      return;
+    }
+
+    const sent = sendJson({
+      kind: "service_remove",
+      serviceId: service.name,
+      requestId: ulid(),
+    });
+
+    if (sent) {
+      navigate({ to: "/clusters/$clusterId/services", params: { clusterId } });
+    } else {
+      setAppError({
+        appError: {
+          message: "Failed to send service removal request",
+          helpLink: "",
+        },
+      });
+    }
+  }, [service, wsConnected, sendJson, setAppError, navigate, clusterId]);
+
   const handleAddSecret = useCallback(() => {
     const key = `SECRET_${Object.keys(secrets).length + 1}`;
     setSecrets(prev => ({
@@ -109,13 +145,32 @@ export function useServiceEditor(service: Service | null, instanceId: string, cl
       secrets: Object.keys(secrets).length > 0 ? secrets : undefined,
     };
 
+    // Find the instance that contains this service
+    const allCachedData = queryClient.getQueriesData<InstanceStream>({ queryKey: ['instance-status'] });
+    const targetInstance = allCachedData.find(([, data]) => {
+      const services = data?.update?.services;
+      return services?.some(s => s.id === service.id || s.name === service.name);
+    });
+    
+    const instanceId = targetInstance?.[1]?.update?.instance_id;
+    
+    if (!instanceId) {
+      setAppError({
+        appError: {
+          message: "Could not find the instance for this service.",
+          helpLink: "",
+        },
+      });
+      return;
+    }
+
     const result = deploy(instanceId, payload);
 
     if (result.success) {
       setIsEditMode(false);
       navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
     }
-  }, [service, editedName, editedDescription, secrets, instanceId, clusterId, deploy, setAppError, navigate]);
+  }, [service, editedName, editedDescription, secrets, clusterId, deploy, setAppError, navigate, queryClient]);
 
   return {
     isEditMode,
@@ -136,5 +191,6 @@ export function useServiceEditor(service: Service | null, instanceId: string, cl
     handleKeyboardPressSecret,
     handleAddSecret,
     handleRemoveSecret,
+    handleStopRemove,
   };
 }

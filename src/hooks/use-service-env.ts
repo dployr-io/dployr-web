@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState, useCallback } from "react";
-import type { Service } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
+import type { Service, InstanceStream } from "@/types";
 import { useDeployment, DEPLOYMENT_ERRORS } from "./use-deployment";
 import { useUrlState } from "./use-url-state";
 
-export function useServiceEnv(service: Service | null, instanceId: string) {
+export function useServiceEnv(service: Service | null) {
+  const queryClient = useQueryClient();
   const { deploy } = useDeployment();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
@@ -43,13 +45,32 @@ export function useServiceEnv(service: Service | null, instanceId: string) {
       env_vars: updatedEnvVars,
     };
 
+    // Find the instance that contains this service
+    const allCachedData = queryClient.getQueriesData<InstanceStream>({ queryKey: ['instance-status'] });
+    const targetInstance = allCachedData.find(([, data]) => {
+      const services = data?.update?.services;
+      return services?.some(s => s.id === service.id || s.name === service.name);
+    });
+    
+    const instanceId = targetInstance?.[1]?.update?.instance_id;
+    
+    if (!instanceId) {
+      setAppError({
+        appError: {
+          message: "Could not find the instance for this service.",
+          helpLink: "",
+        },
+      });
+      return;
+    }
+
     const result = deploy(instanceId, payload);
 
     if (result.success) {
       setEditingKey(null);
       setEditValue("");
     }
-  }, [service, config, editValue, instanceId, deploy, setAppError]);
+  }, [service, config, editValue, deploy, setAppError, queryClient]);
 
   const handleCancel = useCallback(() => {
     setEditingKey(null);

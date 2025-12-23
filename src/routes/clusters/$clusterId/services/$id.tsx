@@ -7,7 +7,7 @@ import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, Runtime, Service } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, Check, ChevronLeft, CirclePlus, Edit2, FileX2, Globe, Loader2, Plus, Save, Trash2, X } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, CirclePlus, Edit2, FileX2, Globe, Loader2, Save, StopCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
@@ -22,10 +22,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useClusters } from "@/hooks/use-clusters";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
-import { useInstances } from "@/hooks/use-instances";
+import { useServiceRemove } from "@/hooks/use-service-remove";
+import { ulid } from "ulid";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
@@ -50,34 +50,27 @@ function ViewService() {
   const { selectedService: service, isLoading } = useServices();
   const { handleStartCreate } = useDeploymentCreator();
   const { clusterId, userCluster } = useClusters();
-  const { instances } = useInstances();
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
   const { useServiceTabsState } = useUrlState();
   const [{ tab }, setTabState] = useServiceTabsState();
   const currentTab = (tab || "overview") as "overview" | "logs" | "env" | "settings";
 
-  const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useServiceEnv(service, instances[0]?.id || "");
+  const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useServiceEnv(service);
 
   const {
     isEditMode,
     editedName,
     editedDescription,
-    secrets,
-    editingSecretKey,
-    editSecretValue,
     setEditedName,
     setEditedDescription,
-    setEditSecretValue,
     handleStartEdit,
     handleCancelEdit,
     handleSave: handleSaveEdit,
-    handleEditSecret,
-    handleSaveSecret,
-    handleCancelSecret,
-    handleKeyboardPressSecret,
-    handleAddSecret,
-    handleRemoveSecret,
-  } = useServiceEditor(service, instances[0]?.id || "", clusterId || "");
+  } = useServiceEditor(service, clusterId || "");
+
+  const {
+    handleRemoveService,
+  } = useServiceRemove();
 
   if (isLoading) {
     return (
@@ -243,73 +236,16 @@ function ViewService() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle>Secrets</CardTitle>
-                            <CardDescription>Manage sensitive environment variables</CardDescription>
+                            <CardTitle className="text-red-600">Remove Service</CardTitle>
+                            <CardDescription>This will remove the service from the instance. This action cannot be undone.</CardDescription>
                           </div>
-                          <Button size="sm" variant="outline" onClick={handleAddSecret}>
-                            <Plus className="h-4 w-4" />
-                            Add Secret
+                          <Button size="sm" variant="outline" onClick={() => handleRemoveService(service?.id || "", ulid())}>
+                            <StopCircle className="h-4 w-4" />
+                            Stop & Remove
                           </Button>
                         </div>
                       </CardHeader>
-                      <CardContent>
-                        {Object.keys(secrets).length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No secrets configured</p>
-                        ) : (
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-[200px]">Key</TableHead>
-                                <TableHead>Value</TableHead>
-                                <TableHead className="w-[150px] text-right">Actions</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {Object.entries(secrets).map(([key, value]) => (
-                                <TableRow key={key}>
-                                  <TableCell className="font-medium font-mono text-sm">{key}</TableCell>
-                                  <TableCell>
-                                    {editingSecretKey === key ? (
-                                      <Input
-                                        type="password"
-                                        value={editSecretValue}
-                                        onChange={e => setEditSecretValue(e.target.value)}
-                                        onKeyDown={e => handleKeyboardPressSecret(e, key)}
-                                        placeholder="Enter secret value"
-                                        className="h-8 w-full"
-                                        autoFocus
-                                      />
-                                    ) : (
-                                      <span className="text-sm text-muted-foreground">{value ? "••••••••" : "Not set"}</span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {editingSecretKey === key ? (
-                                      <div className="flex justify-end gap-2">
-                                        <Button size="sm" onClick={() => handleSaveSecret(key)} className="h-8 px-3">
-                                          <Check className="h-4 w-4" />
-                                        </Button>
-                                        <Button size="sm" variant="outline" onClick={handleCancelSecret} className="h-8 px-3">
-                                          <X className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex justify-end gap-2">
-                                        <Button size="sm" variant="outline" onClick={() => handleEditSecret(key)} className="h-8 px-3">
-                                          <Edit2 className="h-4 w-4" />
-                                        </Button>
-                                        <Button size="sm" variant="destructive" onClick={() => handleRemoveSecret(key)} className="h-8 px-3">
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        )}
-                      </CardContent>
+               
                     </Card>
                   </>
                 )}

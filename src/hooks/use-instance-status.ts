@@ -23,10 +23,9 @@ export function useInstanceStatus(instanceId?: string) {
   // Data comes from WebSocket via setQueryData at the provider level
   const { data: status } = useQuery<InstanceStream | null>({
     queryKey: ["instance-status", instanceId],
-    queryFn: async () => null,
-    enabled: false,
-    initialData: () => queryClient.getQueryData<InstanceStream>(["instance-status", instanceId]) ?? null,
-    staleTime: Infinity,
+    queryFn: () => queryClient.getQueryData<InstanceStream>(["instance-status", instanceId]) ?? null,
+    enabled: !!instanceId,
+    staleTime: 0, 
     gcTime: 1000 * 60 * 30,
     refetchOnMount: false,
     refetchOnWindowFocus: false,

@@ -321,8 +321,10 @@ export interface InstanceStreamUpdateV1 {
 
 
 export interface InstanceStream {
+  id?: string;
+  ts?: string;
   kind: string;
-  timestamp: number;
+  timestamp?: number;
   update: InstanceStreamUpdateV1;
 }
 

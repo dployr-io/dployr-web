@@ -18,7 +18,7 @@ import { FaGitlab } from "react-icons/fa";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstances } from "@/hooks/use-instances";
-import { useInstanceStatus } from "@/hooks/use-instance-status";
+import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { useRemotes } from "@/hooks/use-remotes";
 import { ProtectedRoute } from "@/components/protected-route";
 import { formatWithoutSuffix } from "@/lib/utils";
@@ -54,7 +54,7 @@ function useAggregatedDeployments(instances: Instance[], selectedInstanceId: str
     }
 
     return instances.flatMap(instance => {
-      const cached = queryClient.getQueryData<InstanceStream>(["instance-status", instance.id]);
+      const cached = queryClient.getQueryData<InstanceStream>(["instance-status", instance.tag]);
       return (cached?.update as any)?.deployments || [];
     });
   }, [isAllInstances, selectedInstanceId, instances, queryClient]);
@@ -65,9 +65,9 @@ function Deployments() {
   const { remotes, isLoading: isRemotesLoading } = useRemotes();
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>("all");
   const { clusterId } = Route.useParams();
+  const { isConnected } = useInstanceStream();
 
   const deployments = useAggregatedDeployments(instances, selectedInstanceId);
-  const { isConnected } = useInstanceStatus(instances?.[0]?.id);
   const isDeploymentsLoading = !isConnected && deployments.length === 0;
 
   // Pagination

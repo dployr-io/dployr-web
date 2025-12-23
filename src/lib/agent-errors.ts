@@ -41,7 +41,7 @@ export function getErrorMessage(code: string): string {
     NOT_FOUND: "Resource not found",
     RATE_LIMITED: "Too many requests, please try again",
     TOO_MANY_PENDING: "Too many pending requests",
-    AGENT_DISCONNECTED: "Instance is not available, please try again",
+    AGENT_DISCONNECTED: "Instance is not available, please refresh browser and try again",
     AGENT_TIMEOUT: "Request timed out",
     INTERNAL_ERROR: "Server error occurred",
   };

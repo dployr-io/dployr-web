@@ -5,11 +5,11 @@ import { useCallback } from "react";
 import { useInstanceStream } from "./use-instance-stream";
 import { useUrlState } from "./use-url-state";
 
-export const DEPLOYMENT_ERRORS = {
-  NOT_CONNECTED: "Not connected to deployment service. Please try again.",
-  SEND_FAILED: "Failed to send deployment request. Please try again.",
-  BLUEPRINT_NOT_FOUND: "Service blueprint not found. Unable to update service.",
-  INVALID_PAYLOAD: "Invalid deployment payload. Please check your inputs.",
+const DEPLOYMENT_ERRORS = {
+  MISSING_PARAMS: "Instance ID is required for deployment.",
+  NOT_CONNECTED: "WebSocket is not connected",
+  SEND_FAILED: "Failed to send deployment request",
+  BLUEPRINT_NOT_FOUND: "Service blueprint not found",
 } as const;
 
 interface DeploymentPayload {
@@ -30,7 +30,7 @@ export function useDeployment() {
   const [, setAppError] = useAppError();
 
   const deploy = useCallback(
-    (instanceId: string, payload: DeploymentPayload): DeploymentResult => {
+    (instanceName: string, payload: DeploymentPayload): DeploymentResult => {
       // Validate WebSocket connection
       if (!wsConnected) {
         setAppError({
@@ -42,21 +42,21 @@ export function useDeployment() {
         return { success: false, error: DEPLOYMENT_ERRORS.NOT_CONNECTED };
       }
 
-      // Validate instance ID
-      if (!instanceId) {
+      // Validate instance Name
+      if (!instanceName) {
         setAppError({
           appError: {
-            message: "Instance ID is required for deployment.",
+            message: DEPLOYMENT_ERRORS.MISSING_PARAMS,
             helpLink: "",
           },
         });
-        return { success: false, error: "Instance ID is required" };
+        return { success: false, error: DEPLOYMENT_ERRORS.MISSING_PARAMS };
       }
 
       // Send deployment request
       const sent = sendJson({
         kind: "deploy",
-        instanceId,
+        instanceId: instanceName,
         payload,
       });
 
@@ -78,6 +78,7 @@ export function useDeployment() {
   return {
     deploy,
     isConnected: wsConnected,
-    DEPLOYMENT_ERRORS,
   };
 }
+
+export { DEPLOYMENT_ERRORS };

@@ -65,7 +65,7 @@ function ViewInstance() {
   const [{ tab, logRange, logLevel, duration }, setTabState] = useInstanceTabsState();
   const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
-  const { status, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instanceId);
+  const { status, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instance?.tag);
   const currentVersion = status?.update?.build_info?.version;
   const { compatibility } = useVersion({ currentVersion });
   const breadcrumbs = viewInstanceBreadcrumbs(clusterId, instanceId, instance?.tag);

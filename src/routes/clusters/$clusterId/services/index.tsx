@@ -4,7 +4,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, InstanceStream, InstanceStreamUpdateV1, Service } from "@/types";
+import type { BreadcrumbItem, Service } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRightIcon, BoxesIcon, ChevronLeft, ChevronRight, CirclePlus, Globe } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,7 +14,6 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
 import { Skeleton } from "@/components/ui/skeleton";
 import TimeAgo from "react-timeago";
-import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { useClusters } from "@/hooks/use-clusters";
@@ -41,36 +40,22 @@ function Services() {
   const { services, paginatedServices, currentPage, totalPages, startIndex, endIndex, isLoading, goToPage, goToPreviousPage, goToNextPage } = useServices();
   const { handleStartCreate } = useDeploymentCreator();
   const { clusterId, userCluster } = useClusters();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { instances } = useInstances();
 
-  // Get all instance statuses and map services to their instances
+  // Map services to their instances using the _instanceId field from useServices
   const servicesWithInstances = useMemo(() => {
-    const status = queryClient.getQueriesData<InstanceStream>({ queryKey: ["instance-status"] });
-    const serviceInstanceMap = new Map<string, { instanceId: string; instanceTag: string; status: string }>();
-
-    status.forEach(([, data]) => {
-      if (!data?.update) return;
-      const update = data.update as InstanceStreamUpdateV1;
-      const instanceId = update.instance_id;
-
-      if (update.services) {
-        update.services.forEach((svc: Service) => {
-          serviceInstanceMap.set(svc.id, {
-            instanceId,
-            instanceTag: instances.find(i => i.id === instanceId)?.tag || "",
-            status: svc.status || update.status,
-          });
-        });
-      }
+    return paginatedServices.map(service => {
+      const instanceId = (service as any)._instanceId;
+      const instanceTag = instances.find(i => i.tag === instanceId)?.tag || instanceId;
+      
+      return {
+        ...service,
+        instanceId,
+        instanceTag,
+      } as ServiceWithInstance;
     });
-
-    return paginatedServices.map(service => ({
-      ...service,
-      ...serviceInstanceMap.get(service.id),
-    })) as ServiceWithInstance[];
-  }, [paginatedServices, queryClient, instances]);
+  }, [paginatedServices, instances]);
 
   return (
     <ProtectedRoute>

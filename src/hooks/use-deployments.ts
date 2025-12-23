@@ -4,7 +4,7 @@
 import type { Deployment, InstanceStream } from "@/types";
 import { useMemo, useState } from "react";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQueries } from "@tanstack/react-query";
 
 export function useDeployments() {
   const queryClient = useQueryClient();
@@ -13,15 +13,34 @@ export function useDeployments() {
   const pathSegments = window.location.pathname.split("/");
   const id = pathSegments[pathSegments.indexOf("deployments") + 1];
 
-  const allCachedData = queryClient.getQueriesData<InstanceStream>({ queryKey: ['instance-status'] });
+  const instanceIds = useMemo(() => {
+    const cachedQueries = queryClient.getQueryCache().findAll({ queryKey: ['instance-status'] });
+    return cachedQueries
+      .map(query => {
+        const key = query.queryKey as readonly [string, string];
+        return key[1];
+      })
+      .filter((id): id is string => Boolean(id));
+  }, [queryClient]);
+
+  const instanceQueries = useQueries({
+    queries: instanceIds.map(instanceId => ({
+      queryKey: ['instance-status', instanceId],
+      queryFn: async () => null,
+      enabled: false,
+      staleTime: 0,
+      gcTime: 1000 * 60 * 30,
+    })),
+  });
 
   const deployments = useMemo(() => {
-    return allCachedData.flatMap(([, data]) => {
+    return instanceQueries.flatMap(query => {
+      const data = query.data as InstanceStream | null | undefined;
       const update = data?.update as any;
       const deployments = update?.deployments as Deployment[] | undefined;
       return deployments || [];
     });
-  }, [allCachedData]);
+  }, [instanceQueries]);
 
   const isLoading = !isConnected && deployments.length === 0;
 

@@ -6,16 +6,10 @@ import { useClusterId } from "./use-cluster-id";
 import { useQueryClient } from "@tanstack/react-query";
 import type { InstanceStream } from "@/types";
 import { persistCacheToStorage, addMemoryProfileEntry, persistMemoryProfiles } from "@/lib/query-cache-persistence";
-import type { InstanceStreamUpdateV1 } from "@/types";
 
 export type StreamConnectionState = "idle" | "connecting" | "open" | "closed" | "error";
 
-export interface StreamMessage {
-  kind: string;
-  [key: string]: unknown;
-}
-
-type MessageHandler = (message: StreamMessage) => void;
+type MessageHandler = (message: InstanceStream) => void;
 
 interface InstanceStreamContextValue {
   isConnected: boolean;
@@ -131,19 +125,18 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
 
     socket.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data as string) as StreamMessage;
+        const message = JSON.parse(event.data as string);
         
         if (message.kind === "update") {
-          const data = message as unknown as InstanceStream;
-          const update = data?.update as InstanceStreamUpdateV1;
-          const instanceId = update?.instance_id;
+          const data = message as InstanceStream;
+          const instanceId = data.update?.instance_id;
           
           if (instanceId) {
             queryClient.setQueryData<InstanceStream>(["instance-status", instanceId], data);
             
             // Add memory profile entry if v1 schema with top metrics
-            if (update?.schema === "v1" && update?.top?.memory) {
-              addMemoryProfileEntry(instanceId, update);
+            if (data.update?.schema === "v1" && data.update?.top?.memory) {
+              addMemoryProfileEntry(instanceId, data.update);
             }
             
             // Debounce cache persistence

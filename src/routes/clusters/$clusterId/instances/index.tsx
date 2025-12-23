@@ -57,9 +57,9 @@ function Instances() {
   const queryClient = useQueryClient();
   useInstanceStream(); // Ensure stream is active
   
-  // Get instance status data from cache
-  const getInstanceStatus = (instanceId: string): InstanceStreamUpdateV1 | null => {
-    const data = queryClient.getQueryData<InstanceStream>(["instance-status", instanceId]);
+  // Get instance status data from cache using instance tag
+  const getInstanceStatus = (instanceTag: string): InstanceStreamUpdateV1 | null => {
+    const data = queryClient.getQueryData<InstanceStream>(["instance-status", instanceTag]);
     if (data?.update?.schema === "v1") {
       return data.update as InstanceStreamUpdateV1;
     }
@@ -188,7 +188,7 @@ function Instances() {
                       </TableRow>
                     ))
                   : paginatedInstances.map((instance: Instance) => {
-                      const status = getInstanceStatus(instance.id);
+                      const status = getInstanceStatus(instance.tag);
                       const servicesCount = status?.services?.length ?? 0;
                       const hasFs = !!status?.fs;
                       const disks = status?.debug?.system?.disks;
