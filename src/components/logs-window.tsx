@@ -5,14 +5,13 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import type { Log, LogLevel } from "@/types";
+import type { Log, LogLevel, LogTimeRange } from "@/types";
 import { formatMetadata, getLabelColor } from "@/lib/format-metadata";
 import { ArrowDown, ChevronDown, ChevronRight, Pause } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { LogTimeSelector, type LogTimeRange, getTimeRangeMs } from "@/components/log-time-selector";
-export type { LogTimeRange };
+import { LogTimeSelector, getTimeRangeMs } from "@/components/log-time-selector";
 export { getTimeRangeMs };
 
 interface LogFilterOption<TValue extends string = string> {
@@ -41,6 +40,7 @@ interface Props<TFilterValue extends string = string> {
   timeRange?: LogTimeRange;
   onTimeRangeChange?: (range: LogTimeRange) => void;
   isStreaming?: boolean;
+  showTimeFilter?: boolean;
 }
 
 const getLevelColor = (level: Log["level"]) => {
@@ -138,6 +138,7 @@ export function LogsWindow<TFilterValue extends string = string>({
   timeRange = "live",
   onTimeRangeChange,
   isStreaming,
+  showTimeFilter = true,
 }: Props<TFilterValue>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [followMode, setFollowMode] = useState(true);
@@ -187,7 +188,7 @@ export function LogsWindow<TFilterValue extends string = string>({
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-sidebar-border">
       <div className="flex shrink-0 gap-2 bg-neutral-50 p-2 dark:bg-neutral-900">
         {/* Time Range Selector */}
-        {onTimeRangeChange && (
+        {onTimeRangeChange && showTimeFilter && (
           <LogTimeSelector
             value={timeRange}
             onChange={onTimeRangeChange}

@@ -10,21 +10,48 @@ import { useVersion } from "@/hooks/use-version";
 const normalizeVersionValue = (version?: string | null) => (version ?? "").replace(/^v/i, "");
 
 const compareVersions = (a: string, b: string) => {
-  const partsA = normalizeVersionValue(a)
-    .split(".")
-    .map(part => parseInt(part, 10) || 0);
-  const partsB = normalizeVersionValue(b)
-    .split(".")
-    .map(part => parseInt(part, 10) || 0);
-  const maxLength = Math.max(partsA.length, partsB.length, 3);
+  const normalizedA = normalizeVersionValue(a);
+  const normalizedB = normalizeVersionValue(b);
 
-  while (partsA.length < maxLength) partsA.push(0);
-  while (partsB.length < maxLength) partsB.push(0);
+  const splitVersion = (version: string) => {
+    const [mainVersion, preRelease] = version.split("-");
+    const mainParts = mainVersion.split(".").map(part => parseInt(part, 10) || 0);
+    return { mainParts, preRelease };
+  };
+
+  const versionA = splitVersion(normalizedA);
+  const versionB = splitVersion(normalizedB);
+
+  const maxLength = Math.max(versionA.mainParts.length, versionB.mainParts.length, 3);
+  while (versionA.mainParts.length < maxLength) versionA.mainParts.push(0);
+  while (versionB.mainParts.length < maxLength) versionB.mainParts.push(0);
 
   for (let i = 0; i < maxLength; i++) {
-    const diff = partsA[i] - partsB[i];
-    if (diff !== 0) {
-      return diff;
+    const diff = versionA.mainParts[i] - versionB.mainParts[i];
+    if (diff !== 0) return diff;
+  }
+
+  if (!versionA.preRelease && !versionB.preRelease) return 0;
+  if (!versionA.preRelease) return 1;
+  if (!versionB.preRelease) return -1;
+
+  const prePartsA = versionA.preRelease.split(".");
+  const prePartsB = versionB.preRelease.split(".");
+  const preMaxLength = Math.max(prePartsA.length, prePartsB.length);
+
+  for (let i = 0; i < preMaxLength; i++) {
+    const partA = prePartsA[i] || "";
+    const partB = prePartsB[i] || "";
+    
+    const numA = parseInt(partA, 10);
+    const numB = parseInt(partB, 10);
+    
+    if (!isNaN(numA) && !isNaN(numB)) {
+      const diff = numA - numB;
+      if (diff !== 0) return diff;
+    } else {
+      const diff = partA.localeCompare(partB);
+      if (diff !== 0) return diff;
     }
   }
 
@@ -63,7 +90,11 @@ export function VersionSelector({ currentVersion, latestVersion, upgradeLevel, o
     return compareVersions(version, versionsData.oldestSupportedVersion) < 0;
   };
 
-  const visibleVersions = versionsData ? versionsData.versions.filter(version => showUnsupported || !isVersionDeprecated(version)) : [];
+  const visibleVersions = versionsData 
+    ? versionsData.versions
+        .filter(version => showUnsupported || !isVersionDeprecated(version))
+        .sort((a, b) => compareVersions(b, a))
+    : [];
   const hasDeprecatedVersions = versionsData ? versionsData.versions.some(isVersionDeprecated) : false;
 
   const handleInstall = async () => {

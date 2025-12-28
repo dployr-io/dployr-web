@@ -10,8 +10,7 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { toJson, toYaml } from "@/lib/utils";
 import { useLogs } from "@/hooks/use-instance-logs";
 import { useUrlState } from "@/hooks/use-url-state";
-import type { LogLevel } from "@/types";
-import type { LogTimeRange } from "@/components/logs-window";
+import type { LogLevel, LogTimeRange } from "@/types";
 import { useCallback, useEffect, useState } from "react";
 import { LogsWindow } from "@/components/logs-window";
 import { BlueprintSection } from "@/components/blueprint";
@@ -41,7 +40,7 @@ const viewDeploymentBreadcrumbs = (clusterId?: string, deploymentId?: string, de
 
 function ViewDeployment() {
   const { clusterId } = Route.useParams();
-  const { selectedDeployment: deployment, selectedInstanceId, isLoading } = useDeployments();
+  const { selectedDeployment: deployment, selectedInstanceName, isLoading } = useDeployments();
   const config = deployment?.config;
   const breadcrumbs = viewDeploymentBreadcrumbs(clusterId, deployment?.id, deployment?.config?.name);
 
@@ -65,7 +64,7 @@ function ViewDeployment() {
     startStreaming,
     stopStreaming,
   } = useLogs({
-    instanceId: selectedInstanceId,
+    instanceName: selectedInstanceName,
     path: deployment?.id || "",
     initialMode: logMode,
     duration: logDuration,
@@ -186,6 +185,7 @@ function ViewDeployment() {
                       setTabState({ logRange: range, duration: range });
                     }}
                     isStreaming={isStreaming}
+                    showTimeFilter={false}
                   />
                 </TabsContent>
                 <TabsContent value="blueprint">

@@ -92,8 +92,8 @@ function Instances() {
   const handleCopyInstallCommand = async () => {
     if (!createdInstanceData) return;
     const command = selectedPlatform === "linux"
-      ? `curl -sSL https://raw.githubusercontent.com/dployr-io/dployr/master/install.sh | bash -s -- --token "${createdInstanceData.token}"`
-      : `iwr "https://raw.githubusercontent.com/dployr-io/dployr/master/install.ps1" -OutFile install.ps1\n.\\install.ps1 -Token "${createdInstanceData.token}"`;
+      ? `curl -sSL https://raw.githubusercontent.com/dployr-io/dployr/master/install.sh | bash -s -- --token "${createdInstanceData.token}" --instance "${createdInstanceData.tag}"`
+      : `iwr "https://raw.githubusercontent.com/dployr-io/dployr/master/install.ps1" -OutFile install.ps1\n.\\install.ps1 -Token "${createdInstanceData.token}" -Instance "${createdInstanceData.tag}"`;
     try {
       await navigator.clipboard.writeText(command);
       setCopied(true);
@@ -431,11 +431,11 @@ function Instances() {
                   <div className="w-full overflow-x-auto rounded-md border bg-muted p-4">
                     <pre className="font-mono text-sm whitespace-pre-wrap break-all">
                       {selectedPlatform === "linux" ? (
-                        <code>curl -sSL https://raw.githubusercontent.com/dployr-io/dployr/master/install.sh | bash -s -- --token "{createdInstanceData?.token}"</code>
+                        <code>curl -sSL https://raw.githubusercontent.com/dployr-io/dployr/master/install.sh | bash -s -- --token "{createdInstanceData?.token}" --instance "{createdInstanceData?.tag}"</code>
                       ) : (
                         <code>
                           iwr "https://raw.githubusercontent.com/dployr-io/dployr/master/install.ps1" -OutFile install.ps1{"\n"}
-                          .\install.ps1 -Token "{createdInstanceData?.token}"
+                          .\install.ps1 -Token "{createdInstanceData?.token}" -Instance "{createdInstanceData?.tag}"
                         </code>
                       )}
                     </pre>

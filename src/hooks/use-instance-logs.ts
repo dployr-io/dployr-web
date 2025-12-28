@@ -8,7 +8,7 @@ import { parseLogEntries, filterLogs, isNearBottom, sortLogsByTimestamp, mergeSo
 import { ulid } from "ulid";
 
 interface UseLogsOptions {
-  instanceId?: string;
+  instanceName?: string;
   path: string;  // Can be LogType ("app" | "install") or deployment ID
   initialMode?: LogStreamMode;
   duration?: LogTimeRange;
@@ -16,7 +16,7 @@ interface UseLogsOptions {
 }
 
 export function useLogs({
-  instanceId,
+  instanceName,
   path,
   initialMode,
   duration = "live",
@@ -94,14 +94,14 @@ export function useLogs({
       duration,
     };
 
-    if (instanceId) {
-      payload.instanceId = instanceId;
+    if (instanceName) {
+      payload.instanceName = instanceName;
     }
 
     sendJson(payload);
     hasSubscribedRef.current = true;
     return true;
-  }, [instanceId, path, isConnected, duration, sendJson]);
+  }, [instanceName, path, isConnected, duration, sendJson]);
 
   // Start streaming logs on-demand
   const startStreaming = useCallback((fromOffset?: number) => {

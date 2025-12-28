@@ -13,19 +13,19 @@ export function useDeployments() {
   const pathSegments = window.location.pathname.split("/");
   const id = pathSegments[pathSegments.indexOf("deployments") + 1];
 
-  const instanceIds = useMemo(() => {
+  const instanceNames = useMemo(() => {
     const cachedQueries = queryClient.getQueryCache().findAll({ queryKey: ['instance-status'] });
     return cachedQueries
       .map(query => {
         const key = query.queryKey as readonly [string, string];
         return key[1];
       })
-      .filter((id): id is string => Boolean(id));
+      .filter((name): name is string => Boolean(name));
   }, [queryClient]);
 
   const instanceQueries = useQueries({
-    queries: instanceIds.map(instanceId => ({
-      queryKey: ['instance-status', instanceId],
+    queries: instanceNames.map(instanceName => ({
+      queryKey: ['instance-status', instanceName],
       queryFn: async () => null,
       enabled: false,
       staleTime: 0,
@@ -38,19 +38,19 @@ export function useDeployments() {
       const data = query.data as InstanceStream | null | undefined;
       const update = data?.update as any;
       const deployments = update?.deployments as Deployment[] | undefined;
-      const instanceId = instanceIds[index];
+      const instanceName = instanceNames[index];
       
       return (deployments || []).map(deployment => ({
         ...deployment,
-        _instanceId: instanceId,
+        _instanceName: instanceName,
       }));
     });
-  }, [instanceQueries, instanceIds]);
+  }, [instanceQueries, instanceNames]);
 
   const isLoading = !isConnected && deployments.length === 0;
 
   const selectedDeployment = id ? deployments?.find(deployment => deployment.id === id) || null : null;
-  const selectedInstanceId = selectedDeployment ? (selectedDeployment as any)._instanceId : undefined;
+  const selectedInstanceName = selectedDeployment ? (selectedDeployment as any)._instanceName : undefined;
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
@@ -72,7 +72,7 @@ export function useDeployments() {
 
   return {
     selectedDeployment,
-    selectedInstanceId,
+    selectedInstanceName,
     deployments,
     paginatedDeployments,
     currentPage,

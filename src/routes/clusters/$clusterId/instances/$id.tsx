@@ -4,7 +4,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, LogType, LogStreamMode, LogLevel } from "@/types";
+import type { BreadcrumbItem, LogType, LogStreamMode, LogLevel, LogTimeRange } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Cog, Copy, Cpu, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useCallback, useEffect, useState } from "react";
-import { LogsWindow, type LogTimeRange } from "@/components/logs-window";
+import { LogsWindow } from "@/components/logs-window";
 import { VersionSelector } from "@/components/version-selector";
 import { useDns } from "@/hooks/use-dns";
 import { Input } from "@/components/ui/input";
@@ -115,7 +115,7 @@ function ViewInstance() {
   const selectedLogLevel = (logLevel || "ALL") as "ALL" | LogLevel;
   const logDuration = (duration || logRange || "live") as LogTimeRange;
   const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, startStreaming, stopStreaming } = useLogs({
-    instanceId,
+    instanceName: instance?.tag,
     path: logType || "app",
     initialMode: logMode,
     duration: logDuration,
