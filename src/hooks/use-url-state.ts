@@ -198,6 +198,12 @@ export function useUrlState() {
         });
     }
 
+    function useDeploymentsUrlState() {
+        return useQueryStates({
+            instance: parseAsString.withDefault("all"),
+        });
+    }
+
     function useDeploymentTabsState() {
         return useQueryStates({
             tab: parseAsStringLiteral([
@@ -363,6 +369,7 @@ export function useUrlState() {
         useInstancesDialog,
         useInstanceTabsState,
         useDeploymentsTabsState,
+        useDeploymentsUrlState,
         useDeploymentTabsState,
         useServiceTabsState,
         useAuthError,

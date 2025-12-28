@@ -1,9 +1,10 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUrlState } from "@/hooks/use-url-state";
 import type { Deployment, Instance, InstanceStream } from "@/types";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
@@ -62,11 +63,56 @@ function useAggregatedDeployments(instances: Instance[], selectedInstanceId: str
 }
 
 function Deployments() {
+  const router = useRouter();
   const { instances } = useInstances();
   const { remotes, isLoading: isRemotesLoading } = useRemotes();
-  const [selectedInstanceId, setSelectedInstanceId] = useState<string>("all");
+  const { useDeploymentsUrlState } = useUrlState();
+  const [{ instance: selectedInstanceId }, setInstanceFilter] = useDeploymentsUrlState();
   const { clusterId } = Route.useParams();
   const { isConnected } = useInstanceStream();
+
+  // Use the deployment creator hook for all creation state and handlers
+  const {
+    isCreating,
+    showExitDialog,
+    setShowExitDialog,
+    showDrafts,
+    setShowDrafts,
+    validationErrors,
+    currentTab,
+    setTab,
+    currentDraft,
+    drafts,
+    blueprintContent,
+    blueprintFormat,
+    schemaErrors,
+    allActiveDomains,
+    isLoadingAllDomains,
+    handleStartCreate,
+    handleSaveAndExit,
+    handleDiscardAndExit,
+    handleLoadDraft,
+    handleDeleteDraft,
+    handleDeploy,
+    setField,
+    updateDraft,
+    handleBlueprintChange,
+    handleFormatChange,
+    formatBlueprint,
+    resetBlueprint,
+  } = useDeploymentCreator();
+
+  // Track previous isCreating state to detect when deployment widget gets disabled
+  const prevIsCreatingRef = useRef(isCreating);
+  
+  useEffect(() => {
+    if (prevIsCreatingRef.current === true && isCreating === false) {
+      if (selectedInstanceId && selectedInstanceId !== 'all') {
+        setInstanceFilter({ instance: 'all' });
+      }
+    }
+    prevIsCreatingRef.current = isCreating;
+  }, [isCreating, selectedInstanceId, setInstanceFilter]);
 
   const deployments = useAggregatedDeployments(instances, selectedInstanceId);
   const isDeploymentsLoading = !isConnected && deployments.length === 0;
@@ -129,37 +175,6 @@ function Deployments() {
   const goToPreviousPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
   const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
 
-  // Use the deployment creator hook for all creation state and handlers
-  const {
-    isCreating,
-    showExitDialog,
-    setShowExitDialog,
-    showDrafts,
-    setShowDrafts,
-    validationErrors,
-    currentTab,
-    setTab,
-    currentDraft,
-    drafts,
-    blueprintContent,
-    blueprintFormat,
-    schemaErrors,
-    allActiveDomains,
-    isLoadingAllDomains,
-    handleStartCreate,
-    handleSaveAndExit,
-    handleDiscardAndExit,
-    handleLoadDraft,
-    handleDeleteDraft,
-    handleDeploy,
-    setField,
-    updateDraft,
-    handleBlueprintChange,
-    handleFormatChange,
-    formatBlueprint,
-    resetBlueprint,
-  } = useDeploymentCreator();
-
   return (
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
@@ -173,7 +188,7 @@ function Deployments() {
                     <p className="text-sm font-normal text-muted-foreground">Manage your deployments here</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
+                    <Select value={selectedInstanceId} onValueChange={(value) => setInstanceFilter({ instance: value })}>
                       <SelectTrigger className="w-[200px]">
                         <SelectValue placeholder="Select instance" />
                       </SelectTrigger>
@@ -412,7 +427,7 @@ function Deployments() {
                       <TabsTrigger value="blueprint-editor">Blueprint Editor</TabsTrigger>
                     </TabsList>
 
-                    <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
+                    <Button size="sm" variant="ghost" onClick={() => router.history.back()} className="h-8 px-3 text-muted-foreground">
                       <ChevronLeft /> Back
                     </Button>
                   </div>
@@ -423,7 +438,7 @@ function Deployments() {
                         <Label htmlFor="instance">
                           Target Instance <span className="text-destructive">*</span>
                         </Label>
-                        <Select value={selectedInstanceId} onValueChange={setSelectedInstanceId}>
+                        <Select value={selectedInstanceId} onValueChange={(value) => setInstanceFilter({ instance: value })}>
                           <SelectTrigger id="instance">
                             <SelectValue placeholder="Select an instance" />
                           </SelectTrigger>

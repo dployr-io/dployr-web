@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, Runtime, Service } from "@/types";
@@ -47,6 +47,7 @@ const viewServiceBreadcrumbs = (service: Service | null, clusterId?: string): Br
 };
 
 function ViewService() {
+  const router = useRouter();
   const { selectedService: service, isLoading } = useServices();
   const { handleStartCreate } = useDeploymentCreator();
   const { clusterId, userCluster } = useClusters();
@@ -121,7 +122,7 @@ function ViewService() {
               </EmptyHeader>
               <EmptyContent>
                 <div className="flex justify-center gap-2">
-                  <Button onClick={() => window.history.back()}>
+                  <Button onClick={() => router.history.back()}>
                     <ChevronLeft /> Back
                   </Button>
                   <Button variant="link" asChild className="text-muted-foreground" size="sm">
@@ -151,7 +152,7 @@ function ViewService() {
                 </TabsList>
 
                 <div className="flex gap-3">
-                  <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
+                  <Button size="sm" variant="ghost" onClick={() => router.history.back()} className="h-8 px-3 text-muted-foreground">
                     <ChevronLeft /> Back
                   </Button>
 

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState, useCallback } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ulid } from "ulid";
 import type { Service, InstanceStream } from "@/types";
@@ -11,7 +10,6 @@ import { useUrlState } from "./use-url-state";
 import { useInstanceStream } from "./use-instance-stream";
 
 export function useServiceEditor(service: Service | null, clusterId: string) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { deploy } = useDeployment();
   const { sendJson, isConnected: wsConnected } = useInstanceStream();
@@ -88,7 +86,7 @@ export function useServiceEditor(service: Service | null, clusterId: string) {
       requestId: ulid(),
     });
     
-  }, [service, wsConnected, sendJson, setAppError, navigate, clusterId]);
+  }, [service, wsConnected, sendJson, setAppError]);
 
   const handleAddSecret = useCallback(() => {
     const key = `SECRET_${Object.keys(secrets).length + 1}`;
@@ -142,9 +140,9 @@ export function useServiceEditor(service: Service | null, clusterId: string) {
       return services?.some(s => s.id === service.id || s.name === service.name);
     });
     
-    const instanceId = targetInstance?.[1]?.update?.instance_id;
+    const instanceName = targetInstance?.[0]?.[1] as string;
     
-    if (!instanceId) {
+    if (!instanceName) {
       setAppError({
         appError: {
           message: "Could not find the instance for this service.",
@@ -154,13 +152,12 @@ export function useServiceEditor(service: Service | null, clusterId: string) {
       return;
     }
 
-    const result = deploy(instanceId, payload);
+    const result = deploy(instanceName, payload);
 
     if (result.success) {
       setIsEditMode(false);
-      navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
     }
-  }, [service, editedName, editedDescription, secrets, clusterId, deploy, setAppError, navigate, queryClient]);
+  }, [service, editedName, editedDescription, secrets, clusterId, deploy, setAppError, queryClient]);
 
   return {
     isEditMode,

@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, BlueprintFormat } from "@/types";
@@ -39,6 +39,7 @@ const viewDeploymentBreadcrumbs = (clusterId?: string, deploymentId?: string, de
 };
 
 function ViewDeployment() {
+  const router = useRouter();
   const { clusterId } = Route.useParams();
   const { selectedDeployment: deployment, selectedInstanceName, isLoading } = useDeployments();
   const config = deployment?.config;
@@ -138,7 +139,7 @@ function ViewDeployment() {
             </EmptyHeader>
             <EmptyContent>
               <div className="flex justify-center gap-2">
-                <Button onClick={() => window.history.back()}>
+                <Button onClick={() => router.history.back()}>
                   <ChevronLeft /> Back
                 </Button>
                 <Button variant="link" asChild className="text-muted-foreground" size="sm">
@@ -166,7 +167,7 @@ function ViewDeployment() {
                     <TabsTrigger value="logs">Logs</TabsTrigger>
                     <TabsTrigger value="blueprint">Blueprint</TabsTrigger>
                   </TabsList>
-                  <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
+                  <Button size="sm" variant="ghost" onClick={() => router.history.back()} className="h-8 px-3 text-muted-foreground">
                     <ChevronLeft /> Back
                   </Button>
                 </div>

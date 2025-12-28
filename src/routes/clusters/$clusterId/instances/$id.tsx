@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, LogType, LogStreamMode, LogLevel, LogTimeRange } from "@/types";
@@ -60,6 +60,7 @@ const viewInstanceBreadcrumbs = (clusterId?: string, instanceId?: string, instan
 };
 
 function ViewInstance() {
+  const router = useRouter();
   const { id: instanceId, clusterId } = Route.useParams();
   const { useInstanceTabsState } = useUrlState();
   const [{ tab, logRange, logLevel, duration }, setTabState] = useInstanceTabsState();
@@ -222,7 +223,7 @@ function ViewInstance() {
               </EmptyHeader>
               <EmptyContent>
                 <div className="flex justify-center gap-2">
-                  <Button onClick={() => window.history.back()}>
+                  <Button onClick={() => router.history.back()}>
                     <ChevronLeft /> Back
                   </Button>
                   <Button variant="link" asChild className="text-muted-foreground" size="sm">
@@ -364,7 +365,7 @@ function ViewInstance() {
                   {canViewAdvanced && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
                 </TabsList>
 
-                <Button size="sm" variant="ghost" onClick={() => window.history.back()} className="h-8 px-3 text-muted-foreground">
+                <Button size="sm" variant="ghost" onClick={() => router.history.back()} className="h-8 px-3 text-muted-foreground">
                   <ChevronLeft /> Back
                 </Button>
               </div>

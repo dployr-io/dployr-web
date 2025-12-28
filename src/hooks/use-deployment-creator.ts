@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback, useEffect, useState, useRef } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import type { BlueprintFormat } from "@/types";
 import { useDeploymentDraft } from "./use-deployment-draft";
 import { useDns } from "./use-dns";
@@ -23,7 +22,6 @@ import { ulid } from "ulid";
  * Can be used from any page to start the deployment creation flow.
  */
 export function useDeploymentCreator() {
-  const navigate = useNavigate();
   const clusterId = useClusterId();
   const { useDeploymentsTabsState, useAppError } = useUrlState();
   const [{ tab }, setTab] = useDeploymentsTabsState();
@@ -244,10 +242,7 @@ export function useDeploymentCreator() {
     createDraft();
     setIsCreating(true);
     setShowDrafts(false);
-    if (clusterId) {
-      navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
-    }
-  }, [createDraft, clusterId, navigate]);
+  }, [createDraft]);
 
   // Load draft and continue editing
   const handleLoadDraft = useCallback(
