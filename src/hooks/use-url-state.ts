@@ -201,6 +201,7 @@ export function useUrlState() {
     function useDeploymentsUrlState() {
         return useQueryStates({
             instance: parseAsString.withDefault("all"),
+            new: parseAsBoolean.withDefault(false),
         });
     }
 

@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, Service } from "@/types";
@@ -11,7 +11,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
 import { ProtectedRoute } from "@/components/protected-route";
-import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
 import { Skeleton } from "@/components/ui/skeleton";
 import TimeAgo from "react-timeago";
 import { useMemo } from "react";
@@ -38,9 +37,8 @@ interface ServiceWithInstance extends Service {
 
 function Services() {
   const { services, paginatedServices, currentPage, totalPages, startIndex, endIndex, isLoading, goToPage, goToPreviousPage, goToNextPage } = useServices();
-  const { handleStartCreate } = useDeploymentCreator();
   const { clusterId, userCluster } = useClusters();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { instances } = useInstances();
 
   // Map services to their instances using the _instanceId field from useServices
@@ -68,7 +66,7 @@ function Services() {
                 <p className="text-sm font-normal text-muted-foreground">Manage your services here</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button className="flex items-center gap-2" onClick={handleStartCreate}>
+                <Button className="flex items-center gap-2" onClick={() => router.navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId }, search: { new: true } })}>
                   <CirclePlus className="h-4 w-4" />
                   Deploy Service
                 </Button>
@@ -87,7 +85,7 @@ function Services() {
                   </EmptyHeader>
                   <EmptyContent>
                     <div className="flex justify-center gap-2">
-                      <Button onClick={handleStartCreate}>
+                      <Button onClick={() => router.navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId }, search: { new: true } })}>
                         <CirclePlus className="h-4 w-4" />
                         Deploy Service
                       </Button>
@@ -120,7 +118,7 @@ function Services() {
                             <TableRow 
                               key={service.id} 
                               className="h-16 cursor-pointer"
-                              onClick={() => navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.id } })}
+                              onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.id } })}
                             >
                               <TableCell className="h-16 max-w-[200px] align-middle font-medium">
                                 <div className="flex flex-col gap-0.5">

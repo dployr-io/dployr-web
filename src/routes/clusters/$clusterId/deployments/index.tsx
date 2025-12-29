@@ -1,8 +1,8 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useUrlState } from "@/hooks/use-url-state";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
@@ -45,16 +45,16 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Deployments() {
-  const router = useRouter();
   const { instances } = useInstances();
   const { remotes, isLoading: isRemotesLoading } = useRemotes();
   const { useDeploymentsUrlState } = useUrlState();
-  const [{ instance: selectedInstanceId }, setInstanceFilter] = useDeploymentsUrlState();
+  const [{ instance: selectedInstanceId, new: isCreatingFromUrl }, setInstanceFilter] = useDeploymentsUrlState();
   const { clusterId } = Route.useParams();
   const { isConnected } = useInstanceStream();
 
   const {
     isCreating,
+    setIsCreating,
     lastDeployedInstance,
     showExitDialog,
     setShowExitDialog,
@@ -71,6 +71,7 @@ function Deployments() {
     allActiveDomains,
     isLoadingAllDomains,
     handleStartCreate,
+    handleBack,
     handleSaveAndExit,
     handleDiscardAndExit,
     handleLoadDraft,
@@ -85,6 +86,23 @@ function Deployments() {
   } = useDeploymentCreator();
 
   const { deployments: allDeployments, refetchDeploymentList } = useDeployments(lastDeployedInstance);
+
+  // Sync URL 'new' parameter to isCreating state
+  useEffect(() => {
+    if (isCreatingFromUrl && !isCreating) {
+      handleStartCreate();
+    } else if (!isCreatingFromUrl && isCreating) {
+      setIsCreating(false);
+    }
+  }, [isCreatingFromUrl, isCreating, handleStartCreate, setIsCreating]);
+
+  // Wrapper for back button that clears URL state
+  const handleBackClick = useCallback(() => {
+    handleBack();
+    if (isCreatingFromUrl) {
+      setInstanceFilter({ new: false });
+    }
+  }, [handleBack, isCreatingFromUrl, setInstanceFilter]);
 
   // Track previous isCreating state to detect when deployment widget gets disabled
   const prevIsCreatingRef = useRef(isCreating);
@@ -199,7 +217,7 @@ function Deployments() {
                         Drafts ({drafts.length})
                       </Button>
                     )}
-                    <Button onClick={handleStartCreate}>
+                    <Button onClick={() => setInstanceFilter({ new: true })}>
                       <CirclePlus className="h-4 w-4" />
                       Deploy Service
                     </Button>
@@ -244,7 +262,7 @@ function Deployments() {
                     </EmptyHeader>
                     <EmptyContent>
                       <div className="flex gap-2">
-                        <Button onClick={handleStartCreate}>
+                        <Button onClick={() => setInstanceFilter({ new: true })}>
                           <CirclePlus className="h-4 w-4" />
                           Deploy Service
                         </Button>
@@ -426,7 +444,7 @@ function Deployments() {
                       <TabsTrigger value="blueprint-editor">Blueprint Editor</TabsTrigger>
                     </TabsList>
 
-                    <Button size="sm" variant="ghost" onClick={() => router.history.back()} className="h-8 px-3 text-muted-foreground">
+                    <Button size="sm" variant="ghost" onClick={handleBackClick} className="h-8 px-3 text-muted-foreground">
                       <ChevronLeft /> Back
                     </Button>
                   </div>
