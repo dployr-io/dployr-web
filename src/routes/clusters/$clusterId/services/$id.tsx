@@ -4,7 +4,7 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, Runtime, Service } from "@/types";
+import type { BreadcrumbItem, BlueprintFormat, Runtime, Service } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
 import { ArrowUpRightIcon, ChevronLeft, CirclePlus, Edit2, FileX2, Globe, Loader2, Save, StopCircle, X } from "lucide-react";
@@ -26,6 +26,9 @@ import { useClusters } from "@/hooks/use-clusters";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { useServiceRemove } from "@/hooks/use-service-remove";
 import { ulid } from "ulid";
+import { BlueprintSection } from "@/components/blueprint";
+import { toJson, toYaml } from "@/lib/utils";
+import { useCallback, useMemo, useState } from "react";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
@@ -56,6 +59,7 @@ function ViewService() {
   const [{ tab }, setTabState] = useServiceTabsState();
   const currentTab = (tab || "overview") as "overview" | "logs" | "env" | "settings";
   const navigate = useNavigate();
+  const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("yaml");
 
   const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useServiceEnv(service);
 
@@ -73,6 +77,21 @@ function ViewService() {
   const {
     handleRemoveService,
   } = useServiceRemove();
+
+  const yamlConfig = useMemo(() => {
+    if (!service?.blueprint) return "";
+    return toYaml(service.blueprint);
+  }, [service?.blueprint]);
+
+  const jsonConfig = useMemo(() => {
+    if (!service?.blueprint) return "";
+    return toJson(service.blueprint);
+  }, [service?.blueprint]);
+
+  const handleBlueprintCopy = useCallback(() => {
+    const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
+    navigator.clipboard.writeText(content);
+  }, [blueprintFormat, yamlConfig, jsonConfig]);
 
   if (isLoading) {
     return (
@@ -149,6 +168,7 @@ function ViewService() {
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="env">Environment</TabsTrigger>
+                  <TabsTrigger value="blueprint">Blueprint</TabsTrigger>
                 </TabsList>
 
                 <div className="flex gap-3">
@@ -269,6 +289,24 @@ function ViewService() {
                   handleKeyboardPress={handleKeyboardPress}
                   handleCancel={handleCancel}
                 />
+              </TabsContent>
+
+              <TabsContent value="blueprint" className="mt-4">
+                {service?.blueprint ? (
+                  <BlueprintSection
+                    name={service.name}
+                    blueprintFormat={blueprintFormat}
+                    yamlConfig={yamlConfig}
+                    jsonConfig={jsonConfig}
+                    setBlueprintFormat={setBlueprintFormat}
+                    handleBlueprintCopy={handleBlueprintCopy}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center p-8 gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <p className="text-muted-foreground">Loading blueprint...</p>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>
