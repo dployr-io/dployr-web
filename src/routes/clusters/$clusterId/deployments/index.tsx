@@ -3,9 +3,7 @@
 
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useUrlState } from "@/hooks/use-url-state";
-import type { Deployment, Instance, InstanceStream } from "@/types";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
@@ -20,6 +18,7 @@ import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstances } from "@/hooks/use-instances";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
+import { useDeployments } from "@/hooks/use-deployments";
 import { useRemotes } from "@/hooks/use-remotes";
 import { ProtectedRoute } from "@/components/protected-route";
 import { formatWithoutSuffix } from "@/lib/utils";
@@ -45,23 +44,6 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-function useAggregatedDeployments(instances: Instance[], selectedInstanceId: string): Deployment[] {
-  const queryClient = useQueryClient();
-  const isAllInstances = selectedInstanceId === "all";
-
-  return useMemo(() => {
-    if (!isAllInstances) {
-      const cached = queryClient.getQueryData<InstanceStream>(["instance-status", selectedInstanceId]);
-      return (cached?.update as any)?.deployments || [];
-    }
-
-    return instances.flatMap(instance => {
-      const cached = queryClient.getQueryData<InstanceStream>(["instance-status", instance.tag]);
-      return (cached?.update as any)?.deployments || [];
-    });
-  }, [isAllInstances, selectedInstanceId, instances, queryClient]);
-}
-
 function Deployments() {
   const router = useRouter();
   const { instances } = useInstances();
@@ -71,9 +53,9 @@ function Deployments() {
   const { clusterId } = Route.useParams();
   const { isConnected } = useInstanceStream();
 
-  // Use the deployment creator hook for all creation state and handlers
   const {
     isCreating,
+    lastDeployedInstance,
     showExitDialog,
     setShowExitDialog,
     showDrafts,
@@ -102,6 +84,8 @@ function Deployments() {
     resetBlueprint,
   } = useDeploymentCreator();
 
+  const { deployments: allDeployments, refetchDeploymentList } = useDeployments(lastDeployedInstance);
+
   // Track previous isCreating state to detect when deployment widget gets disabled
   const prevIsCreatingRef = useRef(isCreating);
   
@@ -110,11 +94,19 @@ function Deployments() {
       if (selectedInstanceId && selectedInstanceId !== 'all') {
         setInstanceFilter({ instance: 'all' });
       }
+      if (lastDeployedInstance) {
+        refetchDeploymentList();
+      }
     }
     prevIsCreatingRef.current = isCreating;
-  }, [isCreating, selectedInstanceId, setInstanceFilter]);
+  }, [isCreating, selectedInstanceId, setInstanceFilter, refetchDeploymentList, lastDeployedInstance]);
 
-  const deployments = useAggregatedDeployments(instances, selectedInstanceId);
+  // Filter deployments by selected instance
+  const deployments = useMemo(() => {
+    if (selectedInstanceId === "all") return allDeployments;
+    return allDeployments.filter(d => (d as any)._instanceName === selectedInstanceId);
+  }, [allDeployments, selectedInstanceId]);
+  
   const isDeploymentsLoading = !isConnected && deployments.length === 0;
 
   // Pagination
@@ -270,6 +262,7 @@ function Deployments() {
                       <TableHeader className="gap-2 rounded-t-xl bg-neutral-50 p-2 dark:bg-neutral-900">
                         <TableRow className="h-14">
                           <TableHead className="h-14 w-60 align-middle">Name</TableHead>
+                          <TableHead className="h-14 align-middle">Deployed</TableHead>
                           <TableHead className="h-14 align-middle">Duration</TableHead>
                           <TableHead className="h-14 align-middle">Status</TableHead>
                           <TableHead className="h-14 align-middle">Runtime</TableHead>
@@ -285,6 +278,9 @@ function Deployments() {
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block truncate">
                                     {String(deployment.config?.name || "-")}
                                   </Link>
+                                </TableCell>
+                                <TableCell className="h-16 w-[120px] align-middle whitespace-nowrap">
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }}><TimeAgo date={deployment.created_at} /></Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block">
@@ -350,6 +346,9 @@ function Deployments() {
                               <TableRow key={`skeleton-${idx}`} className="h-16">
                                 <TableCell className="h-16 max-w-60 overflow-hidden align-middle font-medium">
                                   <Skeleton className="h-4 w-32" />
+                                </TableCell>
+                                <TableCell className="h-16 align-middle">
+                                  <Skeleton className="h-4 w-24" />
                                 </TableCell>
                                 <TableCell className="h-16 align-middle">
                                   <Skeleton className="h-4 w-16" />

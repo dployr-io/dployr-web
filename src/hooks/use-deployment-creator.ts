@@ -53,6 +53,7 @@ export function useDeploymentCreator() {
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showDrafts, setShowDrafts] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [lastDeployedInstance, setLastDeployedInstance] = useState<string | null>(null);
 
   const [blueprintContent, setBlueprintContent] = useState("");
   const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("json");
@@ -206,6 +207,7 @@ export function useDeploymentCreator() {
     }
 
     // Clean up draft after successful deploy initiation
+    setLastDeployedInstance(instanceName);
     discardDraft();
     setIsCreating(false);
   }, [validate, currentDraft, clusterId, discardDraft, wsConnected, sendJson, setAppError]);
@@ -234,6 +236,7 @@ export function useDeploymentCreator() {
     discardDraft();
     setShowExitDialog(false);
     setIsCreating(false);
+    setLastDeployedInstance(null);
     lastSyncedDraftRef.current = null;
   }, [discardDraft]);
 
@@ -328,6 +331,7 @@ export function useDeploymentCreator() {
     // State
     isCreating,
     setIsCreating,
+    lastDeployedInstance,
     showExitDialog,
     setShowExitDialog,
     showDrafts,

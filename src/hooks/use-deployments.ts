@@ -2,16 +2,74 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Deployment, InstanceStream } from "@/types";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
-import { useQueryClient, useQueries } from "@tanstack/react-query";
+import { useQueryClient, useQueries, useQuery } from "@tanstack/react-query";
+import { useClusterId } from "@/hooks/use-cluster-id";
+import { ulid } from "ulid";
 
-export function useDeployments() {
+export function useDeployments(instanceName?: string | null) {
   const queryClient = useQueryClient();
-  const { isConnected, error: streamError } = useInstanceStream();
+  const clusterId = useClusterId();
+  const { isConnected, sendJson, subscribe, unsubscribe, error: streamError } = useInstanceStream();
+  const subscriberId = useRef(`deployments-${Math.random().toString(36).substring(2, 9)}`).current;
 
   const pathSegments = window.location.pathname.split("/");
   const id = pathSegments[pathSegments.indexOf("deployments") + 1];
+
+  const { data: deploymentListData = [] } = useQuery<Deployment[]>({
+    queryKey: ["deployments", clusterId, instanceName],
+    queryFn: async () => {
+      if (!isConnected) {
+        return [];
+      }
+
+      if (!instanceName) {
+        console.error("No instance name provided");
+        return [];
+      }
+
+      return new Promise<Deployment[]>((resolve) => {
+        const requestId = ulid();
+        const timeoutId = setTimeout(() => {
+          unsubscribe(subscriberId);
+          resolve([]);
+        }, 10000);
+
+        const handler = (message: any) => {
+          
+          if (message.kind === "task_response" && message.requestId === requestId) {
+            clearTimeout(timeoutId);
+            unsubscribe(subscriberId);
+            
+            if (message.success && message.data && Array.isArray(message.data)) {
+              const deployments = message.data.map((item: any) => ({
+                id: item.id,
+                config: item.config,
+                status: item.status,
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+              }));
+              resolve(deployments);
+            } else {
+              resolve([]);
+            }
+          }
+        };
+
+        subscribe(subscriberId, handler);
+        
+        sendJson({
+          kind: "deployment_list",
+          requestId,
+          instanceName: instanceName,
+        });
+      });
+    },
+    enabled: !!clusterId && isConnected && !!instanceName,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+  });
 
   const instanceNames = useMemo(() => {
     const cachedQueries = queryClient.getQueryCache().findAll({ queryKey: ['instance-status'] });
@@ -33,8 +91,9 @@ export function useDeployments() {
     })),
   });
 
+  // Merge data
   const deployments = useMemo(() => {
-    return instanceQueries.flatMap((query, index) => {
+    const instanceDeployments = instanceQueries.flatMap((query, index) => {
       const data = query.data as InstanceStream | null | undefined;
       const update = data?.update as any;
       const deployments = update?.deployments as Deployment[] | undefined;
@@ -45,7 +104,23 @@ export function useDeployments() {
         _instanceName: instanceName,
       }));
     });
-  }, [instanceQueries, instanceNames]);
+
+    const deploymentMap = new Map<string, Deployment>();
+
+    instanceDeployments.forEach(deployment => {
+      deploymentMap.set(deployment.id, deployment);
+    });
+    
+    deploymentListData.forEach(deployment => {
+      const merged = {
+        ...deployment,
+        _instanceName: instanceName,
+      };
+      deploymentMap.set(deployment.id, merged as Deployment);
+    });
+
+    return Array.from(deploymentMap.values());
+  }, [instanceQueries, instanceNames, deploymentListData]);
 
   const isLoading = !isConnected && deployments.length === 0;
 
@@ -70,6 +145,12 @@ export function useDeployments() {
     setCurrentPage(prev => Math.min(totalPages, prev + 1));
   };
 
+  const refetchDeploymentList = useCallback(() => {
+    return queryClient.invalidateQueries({ 
+      queryKey: ["deployments", clusterId, instanceName] 
+    });
+  }, [queryClient, clusterId, instanceName]);
+
   return {
     selectedDeployment,
     selectedInstanceName,
@@ -86,5 +167,6 @@ export function useDeployments() {
     goToPage,
     goToNextPage,
     goToPreviousPage,
+    refetchDeploymentList,
   };
 }
