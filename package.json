@@ -1,5 +1,5 @@
 {
-    "name": "dployr",
+    "name": "dployr-web",
     "author": {
         "name": "Emmanuel Madehin",
         "email": "hello@dployr.io",
@@ -17,7 +17,6 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "build:ssr": "vite build && vite build --ssr",
         "dev": "vite",
         "test": "vitest",
         "coverage": "vitest run --coverage",

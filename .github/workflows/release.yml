@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   release:
@@ -122,4 +123,14 @@ jobs:
         with:
           webhook-url: ${{ secrets.WEBHOOK_URL }}
           raw-data: release-update.json
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          secrets: |
+            VITE_APP_VERSION
+        env:
+          VITE_APP_VERSION: ${{ github.ref_name }}
 
