@@ -34,6 +34,9 @@ jobs:
 
       - name: Build dployr-web
         run: pnpm run build
+        env:
+          VITE_APP_VERSION: ${{ github.ref_name }}
+          VITE_BASE_URL: https://base.dployr.io
 
       - name: Pack static bundle
         run: |
@@ -129,7 +132,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=dployr-web --commit-dirty=true
+          command: pages deploy dist --project-name=dployr-web --branch=main --commit-dirty=true
         env:
-          VITE_APP_VERSION: ${{ github.ref_name }}
-          VITE_BASE_URL: https://base.dployr.io
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
