@@ -22,6 +22,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  publicDir: 'public',
   server: {
     allowedHosts: ['app.dployr.io', 'app.dployr.dev'],
     cors: {
