@@ -1,3 +1,8 @@
+## [0.1.17] - 2025-12-31
+
+### 🚀 Features
+
+- *(navigation)* Update footer and sidebar links to point to actual documentation and legal pages
 ## [0.1.16] - 2025-12-31
 
 ### 🚀 Features
