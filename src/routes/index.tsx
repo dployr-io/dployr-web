@@ -223,13 +223,16 @@ function App() {
       </div>
       <div className="hidden h-14.5 lg:block"></div>
       <footer className="flex gap-4 text-muted-foreground">
-        <a className="cursor-pointer" href="https://dployr.io">
-          <p className="text-xs">Terms of use</p>
+        <a className="cursor-pointer" href="https://dployr.io/legal/terms-of-service.html">
+          <p className="text-xs">Terms of service</p>
         </a>
-        <a className="cursor-pointer" href="https://dployr.io">
+        <a className="cursor-pointer" href="https://dployr.io/legal/privacy-policy.html">
+          <p className="text-xs">Privacy policy</p>
+        </a>
+        <a className="cursor-pointer" href="https://dployr.io/docs/quickstart.html">
           <p className="text-xs">Docs</p>
         </a>
-        <a className="cursor-pointer" href="https://dployr.io">
+        <a className="cursor-pointer" href="https://dployr.io/changelog.html">
           <p className="text-xs">Changelogs</p>
         </a>
       </footer>
