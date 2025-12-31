@@ -1,3 +1,18 @@
+## [0.1.21] - 2025-12-31
+
+### 🚀 Features
+
+- *(assets)* Add public directory with static assets and configuration files
+## [0.1.20] - 2025-12-31
+
+### 🚀 Features
+
+- *(config)* Add assets directory configuration for Cloudflare Pages
+## [0.1.18] - 2025-12-31
+
+### 🎨 Styling
+
+- *(fix)* Typo "Changelogs" to "Changelog"
 ## [0.1.17] - 2025-12-31
 
 ### 🚀 Features
