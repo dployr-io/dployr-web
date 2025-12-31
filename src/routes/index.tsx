@@ -233,7 +233,7 @@ function App() {
           <p className="text-xs">Docs</p>
         </a>
         <a className="cursor-pointer" href="https://dployr.io/changelog.html">
-          <p className="text-xs">Changelogs</p>
+          <p className="text-xs">Changelog</p>
         </a>
       </footer>
     </div>
