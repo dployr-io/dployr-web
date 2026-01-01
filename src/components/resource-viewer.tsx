@@ -23,25 +23,29 @@ export function ProcessViewer({ processes, className }: ProcessViewerProps) {
         <span className="w-14 flex items-center justify-end gap-1"><MemoryStick className="h-3 w-3" /></span>
       </div>
       <div>
-        {processes.slice(0, 8).map((proc: ProcessInfo) => (
-          <div key={proc.pid} className="flex items-center px-4 py-1.5 text-xs hover:bg-muted/30 transition-colors">
-            <span className="w-14 font-mono text-muted-foreground">{proc.pid}</span>
-            <span className="w-20 truncate text-muted-foreground">{proc.user}</span>
-            <span className="flex-1 truncate font-mono font-medium">{proc.command}</span>
-            <span className={cn(
-              "w-14 text-right font-mono tabular-nums",
-              proc.cpu_percent >= 50 ? "text-red-400" : proc.cpu_percent >= 10 ? "text-amber-400" : "text-muted-foreground"
-            )}>
-              {proc.cpu_percent.toFixed(1)}%
-            </span>
-            <span className={cn(
-              "w-14 text-right font-mono tabular-nums",
-              proc.mem_percent >= 50 ? "text-red-400" : proc.mem_percent >= 10 ? "text-amber-400" : "text-muted-foreground"
-            )}>
-              {proc.mem_percent.toFixed(1)}%
-            </span>
-          </div>
-        ))}
+        {processes.slice(0, 8).map((proc: ProcessInfo) => {
+          const cpuPercent = proc.cpu_percent ?? 0;
+          const memPercent = proc.mem_percent ?? 0;
+          return (
+            <div key={proc.pid} className="flex items-center px-4 py-1.5 text-xs hover:bg-muted/30 transition-colors">
+              <span className="w-14 font-mono text-muted-foreground">{proc.pid}</span>
+              <span className="w-20 truncate text-muted-foreground">{proc.user}</span>
+              <span className="flex-1 truncate font-mono font-medium">{proc.command}</span>
+              <span className={cn(
+                "w-14 text-right font-mono tabular-nums",
+                cpuPercent >= 50 ? "text-red-400" : cpuPercent >= 10 ? "text-amber-400" : "text-muted-foreground"
+              )}>
+                {cpuPercent.toFixed(1)}%
+              </span>
+              <span className={cn(
+                "w-14 text-right font-mono tabular-nums",
+                memPercent >= 50 ? "text-red-400" : memPercent >= 10 ? "text-amber-400" : "text-muted-foreground"
+              )}>
+                {memPercent.toFixed(1)}%
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
