@@ -1,3 +1,8 @@
+## [0.1.26] - 2026-01-01
+
+### 🐛 Bug Fixes
+
+- *(resource-viewer)* Add null safety for CPU and memory percentages in process display
 ## [0.1.24] - 2025-12-31
 
 ### 🚀 Features
