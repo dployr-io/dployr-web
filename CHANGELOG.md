@@ -1,3 +1,18 @@
+## [0.1.24] - 2025-12-31
+
+### 🚀 Features
+
+- *(settings)* Update footer links
+## [0.1.23] - 2025-12-31
+
+### 🚀 Features
+
+- *(ci)* Move Cloudflare Pages deployment before Discord notification and add job dependency
+## [0.1.22] - 2025-12-31
+
+### 🚀 Features
+
+- *(config)* Move public directory configuration from wrangler.toml to vite.config.ts
 ## [0.1.21] - 2025-12-31
 
 ### 🚀 Features
