@@ -4,7 +4,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -28,6 +27,7 @@ interface ProxyAddDialogProps {
     template?: string;
   }) => Promise<void>;
   isSubmitting?: boolean;
+  services?: Array<{ id: string; name: string; port: number }>;
 }
 
 const templates = [
@@ -42,6 +42,7 @@ export function ProxyAddDialog({
   onOpenChange,
   onSubmit,
   isSubmitting = false,
+  services = [],
 }: ProxyAddDialogProps) {
   const [serviceName, setServiceName] = useState("");
   const [domain, setDomain] = useState("");
@@ -54,9 +55,7 @@ export function ProxyAddDialog({
     const newErrors: Record<string, string> = {};
 
     if (!serviceName.trim()) {
-      newErrors.serviceName = "Service name is required";
-    } else if (!/^[a-z0-9-]+$/.test(serviceName)) {
-      newErrors.serviceName = "Only lowercase letters, numbers, and hyphens allowed";
+      newErrors.serviceName = "Service is required";
     }
 
     if (!domain.trim()) {
@@ -136,16 +135,30 @@ export function ProxyAddDialog({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Service Name */}
+            {/* Service Selection */}
             <Field>
-              <FieldLabel htmlFor="serviceName">Service Name</FieldLabel>
-              <Input
-                id="serviceName"
-                value={serviceName}
-                onChange={(e) => setServiceName(e.target.value.toLowerCase())}
-                placeholder="my-api"
-                disabled={isSubmitting}
-              />
+              <FieldLabel htmlFor="serviceName">Service</FieldLabel>
+              <Select value={serviceName} onValueChange={setServiceName} disabled={isSubmitting}>
+                <SelectTrigger id="serviceName">
+                  <SelectValue placeholder="Select a service" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map((service) => (
+                    <SelectItem key={service.id} value={service.name}>
+                      <div className="flex items-center gap-2">
+                        <Server className="h-4 w-4" />
+                        <span>{service.name}</span>
+                        <span className="text-xs text-muted-foreground">:{service.port}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {services.length === 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  No services available
+                </p>
+              )}
               {errors.serviceName && <FieldError>{errors.serviceName}</FieldError>}
             </Field>
 

@@ -200,6 +200,14 @@ function GraphPage() {
     return (update?.services || []) as Service[];
   }, [currentInstance?.tag, queryClient]);
 
+  const _services = useMemo(() => {
+    return services.map((service) => ({
+      id: service.id,
+      name: service.name,
+      port: service.port,
+    }));
+  }, [services]);
+
   // Handle error display
   useEffect(() => {
     if (proxyError) {
@@ -371,6 +379,7 @@ function GraphPage() {
           onOpenChange={setAddDialogOpen}
           onSubmit={handleAddService}
           isSubmitting={isAddingService}
+          services={_services}
         />
 
         {/* Restart Confirmation Dialog */}

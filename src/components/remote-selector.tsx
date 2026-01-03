@@ -86,7 +86,7 @@ export function RemoteSelector({ value, remotes, isLoading, error, disabled, onC
   const isCustomUrl = inputValue && !remotes.some(r => r.url === inputValue);
 
   return (
-    <div className="grid gap-3">
+    <div className="grid gap-2">
       <Label htmlFor="remote">
         Remote Repository <span className="text-destructive">*</span>
       </Label>
