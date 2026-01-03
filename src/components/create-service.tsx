@@ -101,15 +101,15 @@ export function CreateServiceForm({
 }: Props) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="grid gap-3">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2">
           <Label htmlFor="source">
             Source <span className="text-destructive">*</span>
           </Label>
           <Select value={source} onValueChange={onSourceValueChanged}>
             <SelectTrigger id="source" disabled={processing}>
               <SelectValue>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   <span>{source === "image" ? "Docker Image" : source === "remote" ? "Remote Repository" : source}</span>
                 </div>
               </SelectValue>
@@ -132,11 +132,11 @@ export function CreateServiceForm({
           </Select>
         </div>
 
-        {source === "remote" && <RemoteSelector value={remote || null} remotes={remotes} isLoading={isRemotesLoading} error={remoteError} disabled={processing} onChange={remote => setField("remote", remote)} />}
+        {source === "remote" && <div className="grid gap-2"><RemoteSelector value={remote || null} remotes={remotes} isLoading={isRemotesLoading} error={remoteError} disabled={processing} onChange={remote => setField("remote", remote)} /></div>}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="grid gap-3 md:col-span-1">
+        <div className="grid gap-2 md:col-span-1">
           <Label htmlFor="name">
             Name <span className="text-destructive">*</span>
           </Label>
@@ -144,7 +144,7 @@ export function CreateServiceForm({
           {(nameError || errors.name) && <div className="text-sm text-destructive">{nameError || errors.name}</div>}
         </div>
 
-        <div className="grid gap-3 md:col-span-1">
+        <div className="grid gap-2 md:col-span-1">
           <Label htmlFor="runtime">
             Runtime <span className="text-destructive">*</span>
           </Label>
@@ -177,12 +177,12 @@ export function CreateServiceForm({
           {(runtimeError || errors.runtime) && <div className="text-sm text-destructive">{runtimeError || errors.runtime}</div>}
         </div>
 
-        <div className="grid gap-3 md:col-span-1">
+        <div className="grid gap-2 md:col-span-1">
           <Label htmlFor="version">Version</Label>
           <Input id="version" name="version" placeholder="1.0.0" value={version || ""} onChange={e => setField("version", e.target.value)} disabled={processing} />
         </div>
 
-        <div className="grid gap-3 md:col-span-3">
+        <div className="grid gap-2 md:col-span-3">
           <Label htmlFor="description">Description</Label>
           <Input
             id="description"
@@ -194,13 +194,13 @@ export function CreateServiceForm({
           />
         </div>
 
-        <div className="grid gap-3 md:col-span-1">
+        <div className="grid gap-2 md:col-span-1">
           <Label htmlFor="port">Port{runtime !== "static" && <span className="text-destructive">*</span>}</Label>
           <Input id="port" name="port" placeholder="3000" value={port || ""} onChange={e => setField("port", Number(e.target.value))} disabled={processing} />
           {(portError || errors.port) && <div className="text-sm text-destructive">{portError || errors.port}</div>}
         </div>
 
-        <div className="grid gap-3 md:col-span-2">
+        <div className="grid gap-2 md:col-span-2">
           <Label htmlFor="domain">Domain</Label>
           <Select value={domain || ""} onValueChange={(value: string) => setField("domain", value)} disabled={processing || isLoadingDomains || availableDomains.length === 0}>
             <SelectTrigger id="domain">
@@ -221,7 +221,7 @@ export function CreateServiceForm({
         </div>
 
         {source === "image" && (
-          <div className="grid gap-3 md:col-span-3">
+          <div className="grid gap-2 md:col-span-3">
             <Label htmlFor="image">
               Docker Image <span className="text-destructive">*</span>
             </Label>
@@ -231,7 +231,7 @@ export function CreateServiceForm({
         )}
 
         {source === "remote" && (
-          <div className="grid gap-3 md:col-span-1">
+          <div className="grid gap-2 md:col-span-1">
             <Label htmlFor="build_cmd">Build Command</Label>
             <Input id="build_cmd" name="build_cmd" placeholder="npm run build" value={buildCmd || ""} onChange={e => setField("buildCmd", e.target.value)} disabled={processing} />
             {(buildCmdError || errors.build_cmd) && <div className="text-sm text-destructive">{buildCmdError || errors.build_cmd}</div>}
@@ -239,7 +239,7 @@ export function CreateServiceForm({
         )}
 
         {source === "remote" && (
-          <div className="grid gap-3 md:col-span-2">
+          <div className="grid gap-2 md:col-span-2">
             <Label htmlFor="run_cmd">
               {runtime === "static" ? "Build Command" : "Run Command"} {runtime !== "static" && <span className="text-destructive">*</span>}
             </Label>
@@ -249,7 +249,7 @@ export function CreateServiceForm({
         )}
 
         {source === "remote" && (
-          <div className={`grid gap-3 ${source === "remote" && runtime === "static" ? "md:col-span-2" : "md:col-span-3"}`}>
+          <div className={`grid gap-2 ${source === "remote" && runtime === "static" ? "md:col-span-2" : "md:col-span-3"}`}>
             <Label htmlFor="working_dir">
               Working Directory <span className="text-xs text-muted-foreground">(Defaults to root)</span>
             </Label>
@@ -259,7 +259,7 @@ export function CreateServiceForm({
         )}
 
         {source === "remote" && runtime === "static" && (
-          <div className="grid gap-3 md:col-span-1">
+          <div className="grid gap-2 md:col-span-1">
             <Label htmlFor="static_dir">Static Directory</Label>
             <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
             {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
@@ -267,7 +267,7 @@ export function CreateServiceForm({
         )}
 
         {/* Environment Variables & Secrets */}
-        <div className="grid gap-3 md:col-span-3">
+        <div className="grid gap-2 md:col-span-3">
           <div className="flex items-center justify-between">
             <Label>Environment Variables & Secrets</Label>
             <a
