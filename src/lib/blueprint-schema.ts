@@ -3,6 +3,8 @@
 
 import type { Blueprint, BlueprintFormat, ServiceSource, Runtime } from "@/types";
 import { runtimes } from "@/types/runtimes";
+import * as YAML from "js-yaml";
+import * as TOML from "smol-toml";
 
 /**
  * Schema validation error with location info for editor highlighting
@@ -27,149 +29,49 @@ export interface ValidationResult {
 /**
  * Parse content based on format
  */
-export function parseContent(content: string, format: BlueprintFormat): { data: unknown; error?: string } {
+export function parseContent(content: string, format: BlueprintFormat): { success: boolean; data?: unknown; error?: string } {
+  if (!content.trim()) {
+    return { success: false, error: "Content is empty" };
+  }
+
   try {
     switch (format) {
       case "json":
-        return { data: JSON.parse(content) };
+        return { success: true, data: JSON.parse(content) };
       case "yaml":
         return parseYaml(content);
       case "toml":
         return parseToml(content);
       default:
-        return { data: null, error: `Unsupported format: ${format}` };
+        return { success: false, error: `Unsupported format: ${format}` };
     }
   } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : "Parse error" };
+    return { success: false, error: e instanceof Error ? e.message : "Parse error" };
   }
 }
 
 /**
- * Simple YAML parser (handles common cases)
+ * Parse YAML using js-yaml library
  */
-function parseYaml(content: string): { data: unknown; error?: string } {
+function parseYaml(content: string): { success: boolean; data?: unknown; error?: string } {
   try {
-    const lines = content.split("\n");
-    const result: Record<string, unknown> = {};
-    const stack: { obj: Record<string, unknown>; indent: number }[] = [{ obj: result, indent: -1 }];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmed = line.trim();
-
-      // Skip empty lines and comments
-      if (!trimmed || trimmed.startsWith("#")) continue;
-
-      const indent = line.search(/\S/);
-      const colonIdx = trimmed.indexOf(":");
-
-      if (colonIdx === -1) continue;
-
-      const key = trimmed.slice(0, colonIdx).trim();
-      let value = trimmed.slice(colonIdx + 1).trim();
-
-      // Pop stack to find correct parent
-      while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
-        stack.pop();
-      }
-
-      const parent = stack[stack.length - 1].obj;
-
-      if (value === "" || value === "|" || value === ">") {
-        // Nested object or multiline
-        const nested: Record<string, unknown> = {};
-        parent[key] = nested;
-        stack.push({ obj: nested, indent });
-      } else {
-        // Parse value
-        parent[key] = parseYamlValue(value);
-      }
-    }
-
-    return { data: result };
+    const data = YAML.load(content);
+    return { success: true, data };
   } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : "YAML parse error" };
+    return { success: false, error: e instanceof Error ? e.message : "Invalid YAML" };
   }
-}
-
-function parseYamlValue(value: string): unknown {
-  // Remove quotes
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-    return value.slice(1, -1);
-  }
-  // Boolean
-  if (value === "true") return true;
-  if (value === "false") return false;
-  // Null
-  if (value === "null" || value === "~") return null;
-  // Number
-  if (/^-?\d+(\.\d+)?$/.test(value)) return parseFloat(value);
-  // String
-  return value;
 }
 
 /**
- * Simple TOML parser (handles common cases)
+ * Parse TOML using smol-toml library
  */
-function parseToml(content: string): { data: unknown; error?: string } {
+function parseToml(content: string): { success: boolean; data?: unknown; error?: string } {
   try {
-    const lines = content.split("\n");
-    const result: Record<string, unknown> = {};
-    let currentSection: Record<string, unknown> = result;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      // Skip empty lines and comments
-      if (!line || line.startsWith("#")) continue;
-
-      // Section header [section]
-      if (line.startsWith("[") && line.endsWith("]")) {
-        const sectionName = line.slice(1, -1);
-        const parts = sectionName.split(".");
-        currentSection = result;
-        for (const part of parts) {
-          if (!currentSection[part]) {
-            currentSection[part] = {};
-          }
-          currentSection = currentSection[part] as Record<string, unknown>;
-        }
-        continue;
-      }
-
-      // Key = value
-      const eqIdx = line.indexOf("=");
-      if (eqIdx === -1) continue;
-
-      const key = line.slice(0, eqIdx).trim();
-      const value = line.slice(eqIdx + 1).trim();
-      currentSection[key] = parseTomlValue(value);
-    }
-
-    return { data: result };
+    const data = TOML.parse(content);
+    return { success: true, data };
   } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : "TOML parse error" };
+    return { success: false, error: e instanceof Error ? e.message : "Invalid TOML" };
   }
-}
-
-function parseTomlValue(value: string): unknown {
-  // String (quoted)
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-    return value.slice(1, -1);
-  }
-  // Boolean
-  if (value === "true") return true;
-  if (value === "false") return false;
-  // Number
-  if (/^-?\d+(\.\d+)?$/.test(value)) return parseFloat(value);
-  // Array
-  if (value.startsWith("[") && value.endsWith("]")) {
-    const inner = value.slice(1, -1).trim();
-    if (!inner) return [];
-    return inner.split(",").map(v => parseTomlValue(v.trim()));
-  }
-  // String without quotes
-  return value;
 }
 
 /**
@@ -180,103 +82,14 @@ export function stringifyContent(data: unknown, format: BlueprintFormat): string
     case "json":
       return JSON.stringify(data, null, 2);
     case "yaml":
-      return toYaml(data);
+      return YAML.dump(data, { indent: 2, lineWidth: -1, noRefs: true });
     case "toml":
-      return toToml(data);
+      return TOML.stringify(data as Record<string, unknown>);
     default:
       return JSON.stringify(data, null, 2);
   }
 }
 
-function toYaml(data: unknown, indent = 0): string {
-  const prefix = "  ".repeat(indent);
-
-  if (data === null || data === undefined) return "null";
-  if (typeof data === "boolean") return data ? "true" : "false";
-  if (typeof data === "number") return String(data);
-  if (typeof data === "string") {
-    // Empty string
-    if (data === "") return '""';
-    // Quote strings with special chars or that look like other types
-    if (/[:\[\]{}#&*!|>'"%@`,\n]/.test(data) || /^(true|false|null|\d)/.test(data)) {
-      return `"${data.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-    }
-    return data;
-  }
-
-  if (Array.isArray(data)) {
-    if (data.length === 0) return "[]";
-    return data.map(item => `${prefix}- ${toYaml(item, indent + 1).trimStart()}`).join("\n");
-  }
-
-  if (typeof data === "object") {
-    const entries = Object.entries(data as Record<string, unknown>);
-    if (entries.length === 0) return "{}";
-    return entries
-      .map(([key, value]) => {
-        // For nested objects with content, put on new line
-        if (typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).length > 0) {
-          return `${prefix}${key}:\n${toYaml(value, indent + 1)}`;
-        }
-        // For empty objects, arrays, or primitives, keep inline
-        return `${prefix}${key}: ${toYaml(value, 0)}`;
-      })
-      .join("\n");
-  }
-
-  return String(data);
-}
-
-function toToml(data: unknown, section = ""): string {
-  if (typeof data !== "object" || data === null) return "";
-
-  const lines: string[] = [];
-  const nested: [string, unknown][] = [];
-
-  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
-    // Skip empty objects in TOML (they don't have a good representation)
-    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-      if (Object.keys(value).length > 0) {
-        nested.push([key, value]);
-      }
-      // Empty objects are omitted in TOML
-    } else {
-      lines.push(`${key} = ${toTomlValue(value)}`);
-    }
-  }
-
-  // Add section header if needed
-  let result = "";
-  if (section && lines.length > 0) {
-    result = `[${section}]\n`;
-  }
-  result += lines.join("\n");
-
-  // Process nested sections
-  for (const [key, value] of nested) {
-    const newSection = section ? `${section}.${key}` : key;
-    const nestedContent = toToml(value, newSection);
-    if (nestedContent) {
-      result += (result ? "\n\n" : "") + nestedContent;
-    }
-  }
-
-  return result;
-}
-
-function toTomlValue(value: unknown): string {
-  if (value === null || value === undefined) return '""';
-  if (typeof value === "boolean") return value ? "true" : "false";
-  if (typeof value === "number") return String(value);
-  if (typeof value === "string") {
-    // Escape backslashes first, then quotes
-    return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-  }
-  if (Array.isArray(value)) {
-    return `[${value.map(toTomlValue).join(", ")}]`;
-  }
-  return '""';
-}
 
 /**
  * Validate blueprint schema
@@ -388,14 +201,19 @@ export function validateContent(content: string, format: BlueprintFormat): Valid
 /**
  * Format content (parse and re-stringify with proper formatting)
  */
-export function formatContent(content: string, format: BlueprintFormat): { formatted: string; error?: string } {
-  const { data, error } = parseContent(content, format);
+export function formatContent(content: string, format: BlueprintFormat): { success: boolean; formatted?: string; error?: string } {
+  const parsed = parseContent(content, format);
 
-  if (error) {
-    return { formatted: content, error };
+  if (!parsed.success) {
+    return { success: false, error: parsed.error || "Parse error" };
   }
 
-  return { formatted: stringifyContent(data, format) };
+  try {
+    const formatted = stringifyContent(parsed.data, format);
+    return { success: true, formatted };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Format error" };
+  }
 }
 
 /**
@@ -404,16 +222,20 @@ export function formatContent(content: string, format: BlueprintFormat): { forma
 export function convertFormat(content: string, fromFormat: BlueprintFormat, toFormat: BlueprintFormat): { content: string; error?: string } {
   if (fromFormat === toFormat) {
     const result = formatContent(content, fromFormat);
-    return { content: result.formatted, error: result.error };
+    return { content: result.formatted || content, error: result.error };
   }
 
-  const { data, error } = parseContent(content, fromFormat);
+  const parsed = parseContent(content, fromFormat);
 
-  if (error) {
-    return { content, error };
+  if (!parsed.success) {
+    return { content, error: parsed.error };
   }
 
-  return { content: stringifyContent(data, toFormat) };
+  try {
+    return { content: stringifyContent(parsed.data, toFormat) };
+  } catch (e) {
+    return { content, error: e instanceof Error ? e.message : "Conversion error" };
+  }
 }
 
 /**
@@ -437,23 +259,22 @@ export function getFileExtension(format: BlueprintFormat): string {
  */
 export function getDefaultTemplate(format: BlueprintFormat): string {
   const template = {
-    name: "my-service",
-    description: "My deployment",
+    name: "",
+    description: "",
     source: "remote",
     runtime: {
       type: "nodejs",
-      version: "20",
+      version: "22",
     },
-    run_cmd: "npm start",
-    build_cmd: "npm run build",
-    port: 3000,
-    working_dir: "",
+    port: 3001,
+    run_cmd: "",
+    build_cmd: "",
+    working_dir: "/app",
+    env_vars: {},
     remote: {
       url: "",
       branch: "main",
     },
-    env_vars: {},
-    domain: "",
   };
 
   return stringifyContent(template, format);

@@ -70,7 +70,15 @@ export function useProxyOperations(instanceTag?: string, options: UseProxyOperat
   }, [instanceTag, instanceTags, instanceQueries]);
 
   const isLoading = !isConnected && !apps;
-  const status: "running" | "stopped" | "error" | "unknown" = apps ? "running" : "unknown";
+  const status = useMemo(() => {
+    if (!instanceTag) return "unknown";
+    const queryIndex = instanceTags.indexOf(instanceTag);
+    if (queryIndex === -1) return "unknown";
+    const query = instanceQueries[queryIndex];
+    const data = query?.data as InstanceStream | null | undefined;
+    const update = data?.update as any;
+    return update?.proxy?.status || "unknown";
+  }, [instanceTag, instanceTags, instanceQueries]);
 
   // Restart proxy
   const restart = useCallback(

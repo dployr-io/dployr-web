@@ -67,29 +67,48 @@ export function useDeploymentCreator() {
   }, [isCreating, currentDraft, createDraft]);
 
   useEffect(() => {
-    if (currentDraft && currentTab === "blueprint-editor") {
-      if (lastSyncedDraftRef.current !== currentDraft.id) {
-        const jsonContent = toBlueprint();
-        if (blueprintFormat === "json") {
-          setBlueprintContent(jsonContent);
-        } else {
-          const { content } = convertFormat(jsonContent, "json", blueprintFormat);
-          setBlueprintContent(content);
-        }
-        lastSyncedDraftRef.current = currentDraft.id;
+    if (currentDraft && currentTab === "blueprint-editor" && !blueprintContent.trim()) {
+      const jsonContent = toBlueprint();
+      if (blueprintFormat === "json") {
+        setBlueprintContent(jsonContent);
+      } else {
+        const { content } = convertFormat(jsonContent, "json", blueprintFormat);
+        setBlueprintContent(content);
       }
     }
-  }, [currentDraft?.id, currentTab, toBlueprint, blueprintFormat]);
+  }, [currentDraft, currentTab, blueprintFormat, toBlueprint, blueprintContent]);
 
-  // Validate content when it changes
   useEffect(() => {
     if (blueprintContent.trim()) {
       const result = validateContent(blueprintContent, blueprintFormat);
-      setSchemaErrors(result.errors);
+      setSchemaErrors(result.isValid ? [] : result.errors);
     } else {
       setSchemaErrors([]);
     }
   }, [blueprintContent, blueprintFormat]);
+
+  const syncBlueprintFromDraft = useCallback(() => {
+    if (!currentDraft) return;
+    const jsonContent = toBlueprint();
+    if (blueprintFormat === "json") {
+      setBlueprintContent(jsonContent);
+    } else {
+      const { content } = convertFormat(jsonContent, "json", blueprintFormat);
+      setBlueprintContent(content);
+    }
+  }, [currentDraft, toBlueprint, blueprintFormat]);
+
+  const syncDraftFromBlueprint = useCallback(() => {
+    if (!blueprintContent.trim()) return;
+    try {
+      const { content: jsonContent, error } = convertFormat(blueprintContent, blueprintFormat, "json");
+      if (!error) {
+        fromBlueprint(jsonContent);
+      }
+    } catch {
+      // Invalid content, keep current draft
+    }
+  }, [blueprintContent, blueprintFormat, fromBlueprint]);
 
   // Handle blueprint changes - sync back to draft
   const handleBlueprintChange = useCallback(
@@ -124,27 +143,38 @@ export function useDeploymentCreator() {
 
   // Format blueprint
   const formatBlueprint = useCallback(() => {
-    const { formatted, error } = formatContent(blueprintContent, blueprintFormat);
-    if (!error) {
-      setBlueprintContent(formatted);
+    const result = formatContent(blueprintContent, blueprintFormat);
+    if (result.success && result.formatted) {
+      setBlueprintContent(result.formatted);
     }
   }, [blueprintContent, blueprintFormat]);
 
-  // Reset blueprint to current draft
+  // Reset blueprint to default template
   const resetBlueprint = useCallback(() => {
+    const defaultContent = getDefaultTemplate(blueprintFormat);
+    setBlueprintContent(defaultContent);
+    // Also reset the draft to default values
     if (currentDraft) {
-      const jsonContent = toBlueprint();
-      if (blueprintFormat === "json") {
-        setBlueprintContent(jsonContent);
-      } else {
-        const { content } = convertFormat(jsonContent, "json", blueprintFormat);
-        setBlueprintContent(content);
-      }
+      fromBlueprint(JSON.stringify({
+        name: "",
+        description: "",
+        source: "remote",
+        runtime: { type: "nodejs", version: "22" },
+        port: 3000,
+        run_cmd: "",
+        build_cmd: "",
+        working_dir: "/app",
+        env_vars: {},
+        remote: { url: "", branch: "main" },
+      }));
     }
-  }, [currentDraft, toBlueprint, blueprintFormat]);
+  }, [blueprintFormat, currentDraft, fromBlueprint]);
 
-  // Deploy handler
   const handleDeploy = useCallback((instanceName: string) => {
+    if (currentTab === "blueprint-editor") {
+      syncDraftFromBlueprint();
+    }
+
     const result = validate();
     if (!result.isValid) {
       setValidationErrors(result.errors);
@@ -210,6 +240,7 @@ export function useDeploymentCreator() {
     setLastDeployedInstance(instanceName);
     discardDraft();
     setIsCreating(false);
+    lastSyncedDraftRef.current = null;
   }, [validate, currentDraft, clusterId, discardDraft, wsConnected, sendJson, setAppError]);
 
   // Handle back button
@@ -370,5 +401,7 @@ export function useDeploymentCreator() {
     handleFormatChange,
     formatBlueprint,
     resetBlueprint,
+    syncBlueprintFromDraft,
+    syncDraftFromBlueprint,
   };
 }

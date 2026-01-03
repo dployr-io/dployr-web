@@ -51,6 +51,8 @@ function Deployments() {
   const [{ instance: selectedInstanceId, new: isCreatingFromUrl }, setInstanceFilter] = useDeploymentsUrlState();
   const { clusterId } = Route.useParams();
   const { isConnected } = useInstanceStream();
+  const [blueprintInstanceId, setBlueprintInstanceId] = useState<string>("");
+  const [quickDeployInstanceId, setQuickDeployInstanceId] = useState<string>("");
 
   const {
     isCreating,
@@ -83,6 +85,8 @@ function Deployments() {
     handleFormatChange,
     formatBlueprint,
     resetBlueprint,
+    syncBlueprintFromDraft,
+    syncDraftFromBlueprint,
   } = useDeploymentCreator();
 
   const { deployments: allDeployments, refetchDeploymentList } = useDeployments(lastDeployedInstance);
@@ -437,7 +441,15 @@ function Deployments() {
               </>
             ) : (
               <>
-                <Tabs value={currentTab} onValueChange={value => setTab({ tab: value as "quick" | "blueprint-editor" })} className="flex min-h-0 flex-1 flex-col w-full">
+                <Tabs value={currentTab} onValueChange={(value) => {
+                  const newTab = value as "quick" | "blueprint-editor";
+                  if (newTab === "blueprint-editor" && currentTab === "quick") {
+                    syncBlueprintFromDraft();
+                  } else if (newTab === "quick" && currentTab === "blueprint-editor") {
+                    syncDraftFromBlueprint();
+                  }
+                  setTab({ tab: newTab });
+                }} className="flex min-h-0 flex-1 flex-col w-full">
                   <div className="flex items-center justify-between">
                     <TabsList className="flex justify-between w-auto">
                       <TabsTrigger value="quick">Quick Deploy</TabsTrigger>
@@ -455,7 +467,7 @@ function Deployments() {
                         <Label htmlFor="instance">
                           Target Instance <span className="text-destructive">*</span>
                         </Label>
-                        <Select value={selectedInstanceId} onValueChange={(value) => setInstanceFilter({ instance: value })}>
+                        <Select value={quickDeployInstanceId} onValueChange={setQuickDeployInstanceId}>
                           <SelectTrigger id="instance">
                             <SelectValue placeholder="Select an instance" />
                           </SelectTrigger>
@@ -500,7 +512,7 @@ function Deployments() {
                         isLoadingDomains={isLoadingAllDomains}
                         envVars={currentDraft?.env_vars || {}}
                         secrets={currentDraft?.secrets || {}}
-                        instanceId={selectedInstanceId}
+                        instanceId={quickDeployInstanceId}
                         setField={setField}
                         onSourceValueChanged={value => updateDraft("source", value)}
                         onRuntimeValueChanged={value => updateDraft("runtime", value)}
@@ -520,16 +532,30 @@ function Deployments() {
                       onFormatChange={handleFormatChange}
                       errors={schemaErrors}
                       showFormatSelector
+                      instanceSelector={
+                        <Select value={blueprintInstanceId} onValueChange={(value) => setBlueprintInstanceId(value)}>
+                          <SelectTrigger className="h-6 w-[140px] bg-transparent border-neutral-600 text-xs text-neutral-300">
+                            <SelectValue placeholder="Select instance" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {instances.map(instance => (
+                              <SelectItem key={instance.id} value={instance.id}>
+                                {instance.tag || instance.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      }
                     />
                     <div className="flex justify-end">
                       <Button onClick={() => {
-                        if (selectedInstanceId && selectedInstanceId !== "all") {
-                          const instance = instances?.find(i => i.id === selectedInstanceId);
+                        if (blueprintInstanceId) {
+                          const instance = instances?.find(i => i.id === blueprintInstanceId);
                           if (instance?.tag) {
                             handleDeploy(instance.tag);
                           }
                         }
-                      }} disabled={schemaErrors.length > 0 || !selectedInstanceId || selectedInstanceId === "all"} size="lg">
+                      }} disabled={schemaErrors.length > 0 || !blueprintInstanceId} size="lg">
                         <Rocket className="h-4 w-4" />
                         Deploy
                       </Button>
