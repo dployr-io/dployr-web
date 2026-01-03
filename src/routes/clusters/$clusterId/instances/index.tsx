@@ -116,7 +116,6 @@ function Instances() {
             <Dialog open={isNewInstanceOpen} onOpenChange={open => setInstancesDialog({ new: open })}>
               <DialogTrigger asChild>
                 <Button>
-                  <CirclePlus className="h-4 w-4" />
                   New Instance
                 </Button>
               </DialogTrigger>

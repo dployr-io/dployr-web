@@ -109,7 +109,6 @@ function ViewService() {
               <EmptyContent>
                 <div className="flex justify-center gap-2">
                   <Button onClick={handleStartCreate}>
-                    <CirclePlus className="h-4 w-4" />
                     Deploy Service
                   </Button>
                   <Button variant="link" asChild className="text-muted-foreground" size="sm">

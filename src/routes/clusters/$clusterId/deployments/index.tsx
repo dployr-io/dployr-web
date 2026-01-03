@@ -222,7 +222,6 @@ function Deployments() {
                       </Button>
                     )}
                     <Button onClick={() => setInstanceFilter({ new: true })}>
-                      <CirclePlus className="h-4 w-4" />
                       Deploy Service
                     </Button>
                   </div>
@@ -267,7 +266,6 @@ function Deployments() {
                     <EmptyContent>
                       <div className="flex gap-2">
                         <Button onClick={() => setInstanceFilter({ new: true })}>
-                          <CirclePlus className="h-4 w-4" />
                           Deploy Service
                         </Button>
                         <Button variant="link" asChild className="text-muted-foreground" size="sm">

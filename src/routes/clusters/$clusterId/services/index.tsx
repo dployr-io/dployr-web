@@ -67,7 +67,6 @@ function Services() {
               </div>
               <div className="flex items-center gap-2">
                 <Button className="flex items-center gap-2" onClick={() => router.navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId }, search: { new: true } })}>
-                  <CirclePlus className="h-4 w-4" />
                   Deploy Service
                 </Button>
               </div>
@@ -86,7 +85,6 @@ function Services() {
                   <EmptyContent>
                     <div className="flex justify-center gap-2">
                       <Button onClick={() => router.navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId }, search: { new: true } })}>
-                        <CirclePlus className="h-4 w-4" />
                         Deploy Service
                       </Button>
                       <Button variant="link" asChild className="text-muted-foreground" size="sm">

@@ -321,8 +321,7 @@ function GraphPage() {
               </Select>
 
               <Button onClick={() => setAddDialogOpen(true)} disabled={!selectedInstance}>
-                <CirclePlus className="h-4 w-4 mr-2" />
-                Add Route
+                New Proxy Route
               </Button>
             </div>
           </div>

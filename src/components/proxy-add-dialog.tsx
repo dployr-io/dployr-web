@@ -244,8 +244,8 @@ export function ProxyAddDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isSubmitting ? "Adding..." : "Add Route"}
+              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isSubmitting ? "Adding..." : "New Proxy Route"}
             </Button>
           </DialogFooter>
         </form>
