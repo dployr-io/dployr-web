@@ -1,3 +1,13 @@
+## [0.1.27] - 2026-01-03
+
+### 🚀 Features
+
+- *(hooks)* Add standardized WebSocket operation hook with request/response handling
+- *(proxy)* Implement graph page with visualizer components
+
+### 🚜 Refactor
+
+- *(hooks)* Remove unused use-projects hook
 ## [0.1.26] - 2026-01-01
 
 ### 🐛 Bug Fixes
