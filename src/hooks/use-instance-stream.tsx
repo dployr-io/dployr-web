@@ -178,7 +178,6 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
 
     socket.onerror = () => {
       setIsConnected(false);
-      setError("WebSocket error occurred");
       setState("error");
     };
 

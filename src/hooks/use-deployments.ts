@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Deployment, InstanceStream } from "@/types";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useWebSocketOperation } from "@/hooks/use-websocket-operation";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { useQueryClient, useQueries, useQuery } from "@tanstack/react-query";
 import { useClusterId } from "@/hooks/use-cluster-id";
-import { ulid } from "ulid";
 
 export function useDeployments(instanceName?: string | null) {
   const queryClient = useQueryClient();
   const clusterId = useClusterId();
-  const { isConnected, sendJson, subscribe, unsubscribe, error: streamError } = useInstanceStream();
-  const subscriberId = useRef(`deployments-${Math.random().toString(36).substring(2, 9)}`).current;
+  const { sendOperation, isConnected } = useWebSocketOperation();
+  const { error: streamError } = useInstanceStream();
 
   const pathSegments = window.location.pathname.split("/");
   const id = pathSegments[pathSegments.indexOf("deployments") + 1];
@@ -20,51 +20,30 @@ export function useDeployments(instanceName?: string | null) {
   const { data: deploymentListData = [] } = useQuery<Deployment[]>({
     queryKey: ["deployments", clusterId, instanceName],
     queryFn: async () => {
-      if (!isConnected) {
+      if (!isConnected || !instanceName) {
         return [];
       }
 
-      if (!instanceName) {
-        console.error("No instance name provided");
-        return [];
-      }
-
-      return new Promise<Deployment[]>((resolve) => {
-        const requestId = ulid();
-        const timeoutId = setTimeout(() => {
-          unsubscribe(subscriberId);
-          resolve([]);
-        }, 10000);
-
-        const handler = (message: any) => {
-          
-          if (message.kind === "task_response" && message.requestId === requestId) {
-            clearTimeout(timeoutId);
-            unsubscribe(subscriberId);
-            
-            if (message.success && message.data && Array.isArray(message.data)) {
-              const deployments = message.data.map((item: any) => ({
-                id: item.id,
-                config: item.config,
-                status: item.status,
-                created_at: item.created_at,
-                updated_at: item.updated_at,
-              }));
-              resolve(deployments);
-            } else {
-              resolve([]);
-            }
-          }
-        };
-
-        subscribe(subscriberId, handler);
-        
-        sendJson({
+      try {
+        const response = await sendOperation({
           kind: "deployment_list",
-          requestId,
-          instanceName: instanceName,
-        });
-      });
+          instanceName,
+        }) as any;
+
+        if (response.success && response.data && Array.isArray(response.data)) {
+          return response.data.map((item: any) => ({
+            id: item.id,
+            config: item.config,
+            status: item.status,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+          }));
+        }
+        return [];
+      } catch (error) {
+        console.error("Failed to fetch deployments:", error);
+        return [];
+      }
     },
     enabled: !!clusterId && isConnected && !!instanceName,
     staleTime: 1000 * 60 * 5,

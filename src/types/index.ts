@@ -6,6 +6,7 @@ import type { IconType } from "react-icons";
 import { FaBitbucket, FaDiscord, FaGithub, FaGitlab, FaLink, FaSlack } from "react-icons/fa";
 import { SiAmazonroute53, SiCloudflare, SiGodaddy, SiNamecheap } from "react-icons/si";
 import { dnsProviders, runtimes, logLevels } from "./runtimes";
+import type { ProxyApp } from "./proxy";
 
 export type Runtime = (typeof runtimes)[number];
 export type DnsProvider = (typeof dnsProviders)[number];
@@ -262,7 +263,10 @@ export interface FileUpdateEvent {
 
 export type FileWatchCallback = (event: FileUpdateEvent) => void;
 
-// Proxy Status
+// Proxy types - re-export from proxy.ts
+export type { ProxyApp, ProxyApps, ProxyAppStatus, ProxyTemplate } from "./proxy";
+
+// Proxy Status - overall proxy server status
 export interface ProxyStatus {
   status: "running" | "stopped" | "error";
   routes: number;
@@ -311,7 +315,7 @@ export interface InstanceStreamUpdateV1 {
   uptime: string;
   deployments?: Deployment[];
   services?: Service[];
-  proxies?: any[];
+  proxies?: ProxyApp[];
   proxy?: ProxyStatus;
   health?: AgentHealth;
   debug?: AgentDebug;
