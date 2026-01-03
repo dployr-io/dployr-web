@@ -103,7 +103,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
 
       socket.onerror = event => {
         setIsConnected(false);
-        setError("WebSocket error occurred");
+        // setError("WebSocket error occurred");
         setState("error");
         onError?.(event, socket);
       };
