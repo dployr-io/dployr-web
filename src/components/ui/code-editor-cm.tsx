@@ -16,7 +16,7 @@ import { indentWithTab } from "@codemirror/commands";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, CheckCircle2, Copy, RotateCcw, Wand2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Copy, Wand2 } from "lucide-react";
 
 import type { BlueprintFormat } from "@/types";
 import type { SchemaError } from "@/lib/blueprint-schema";
@@ -33,6 +33,7 @@ interface CodeEditorProps {
   onFormatChange?: (format: BlueprintFormat) => void;
   errors?: SchemaError[];
   showFormatSelector?: boolean;
+  instanceSelector?: React.ReactNode;
 }
 
 // VS Code Dark+ inspired theme extension
@@ -165,6 +166,7 @@ export function CodeEditor({
   onFormatChange,
   errors = [],
   showFormatSelector = false,
+  instanceSelector,
 }: CodeEditorProps) {
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editorViewRef = useRef<EditorView | null>(null);
@@ -270,9 +272,9 @@ export function CodeEditor({
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      // ignore
+      await navigator.clipboard.writeText(valueRef.current);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
     }
   }, [value]);
 
@@ -284,10 +286,11 @@ export function CodeEditor({
     // Default JSON formatting
     if (language === "json") {
       try {
-        const parsed = JSON.parse(value);
-        onChange(JSON.stringify(parsed, null, 2));
-      } catch {
-        // invalid JSON
+        const parsed = JSON.parse(valueRef.current);
+        const formatted = JSON.stringify(parsed, null, 2);
+        onChange(formatted);
+      } catch (error) {
+        console.error("Failed to format JSON:", error);
       }
     }
   }, [value, onChange, language, onFormat]);
@@ -316,6 +319,7 @@ export function CodeEditor({
                 </SelectContent>
               </Select>
             )}
+            {instanceSelector}
             {/* Validation status */}
             {hasErrors ? (
               <div className="flex items-center gap-1 text-red-400">
@@ -360,22 +364,6 @@ export function CodeEditor({
               </TooltipTrigger>
               <TooltipContent side="bottom">Copy to clipboard</TooltipContent>
             </Tooltip>
-            {onReset && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-1.5 text-xs text-neutral-400 hover:text-neutral-200"
-                    onClick={onReset}
-                    disabled={disabled}
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Reset to default</TooltipContent>
-              </Tooltip>
-            )}
           </div>
         </div>
 
