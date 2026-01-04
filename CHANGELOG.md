@@ -1,3 +1,15 @@
+## [0.1.28] - 2026-01-03
+
+### 🚀 Features
+
+- *(proxy)* Update service selector to use dropdown
+- *(deps)* Add js-yaml and smol-toml for configuration parsing
+
+### 🚜 Refactor
+
+- *(create-service)* Style fixes
+- *(blueprint)* Improve blueprint parsing, validation, and sync logic
+- *(code-editor)* Add instance selector prop
 ## [0.1.27] - 2026-01-03
 
 ### 🚀 Features
