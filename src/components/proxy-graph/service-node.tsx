@@ -1,0 +1,95 @@
+// Copyright 2025 Emmanuel Madehin
+// SPDX-License-Identifier: Apache-2.0
+
+import { cn } from "@/lib/utils";
+import { Box } from "lucide-react";
+import type { ProxyApp, Service } from "@/types";
+import { getStatusColor } from "./utils";
+
+export function ServiceNode({
+  service,
+  proxyApp,
+  isProxied,
+  x,
+  y,
+  isSelected,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+  onContextMenu,
+}: {
+  service: Service;
+  proxyApp?: ProxyApp | null;
+  isProxied: boolean;
+  x: number;
+  y: number;
+  isSelected?: boolean;
+  onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+}) {
+  const displayName = service.name.length > 14 ? service.name.substring(0, 12) + "..." : service.name;
+
+  return (
+    <g
+      transform={`translate(${x}, ${y})`}
+      className={cn(onContextMenu && "cursor-context-menu", onClick && "cursor-pointer")}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onContextMenu={onContextMenu}
+    >
+      {/* Card background */}
+      <rect
+        x="-80"
+        y="-40"
+        width="160"
+        height="80"
+        rx="8"
+        className="fill-stone-300 dark:fill-stone-800"
+        stroke={isSelected ? "#3b82f6" : undefined}
+        strokeWidth={isSelected ? 2 : 1.5}
+        strokeDasharray={isProxied ? undefined : "6 4"}
+      />
+      <rect
+        x="-80"
+        y="-40"
+        width="160"
+        height="80"
+        rx="8"
+        fill="none"
+        className="stroke-stone-400 dark:stroke-stone-700"
+        strokeWidth={isSelected ? 0 : 1.5}
+        strokeDasharray={isProxied ? undefined : "6 4"}
+      />
+      
+      {/* Content */}
+      <foreignObject x="-75" y="-35" width="150" height="70" className="pointer-events-none">
+        <div className="flex flex-col h-full p-1 select-none"
+          style={{ pointerEvents: 'auto' }}
+          onContextMenu={onContextMenu}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div className="flex items-center gap-2">
+            <Box className="h-4 w-4" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate" title={service.name}>
+                {displayName}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {isProxied ? "Proxied" : "Not Proxied"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-auto">
+            <code className="text-[9px] bg-stone-400 dark:bg-stone-900 px-1.5 py-0.5 rounded block truncate">
+              {proxyApp?.upstream || `localhost:${service.port}`}
+            </code>
+          </div>
+        </div>
+      </foreignObject>
+    </g>
+  );
+}

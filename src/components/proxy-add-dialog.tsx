@@ -13,8 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
-import { Loader2, Server, Globe, Folder, FileCode, Code2 } from "lucide-react";
+import { FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Loader2, ArrowLeftRight, FileCode, Code2, Info } from "lucide-react";
+import { SiPhp } from "react-icons/si";
 
 interface ProxyAddDialogProps {
   open: boolean;
@@ -31,9 +37,9 @@ interface ProxyAddDialogProps {
 }
 
 const templates = [
-  { value: "reverse_proxy", label: "Reverse Proxy", icon: Server, description: "Forward requests to an upstream server" },
-  { value: "static", label: "Static Files", icon: Folder, description: "Serve static files from a directory" },
-  { value: "php_fastcgi", label: "PHP FastCGI", icon: FileCode, description: "PHP applications via FastCGI" },
+  { value: "reverse_proxy", label: "Reverse Proxy", icon: ArrowLeftRight, description: "Forward requests to an upstream server" },
+  { value: "static", label: "Static Files", icon: FileCode, description: "Serve static files from a directory" },
+  { value: "php_fastcgi", label: "PHP FastCGI", icon: SiPhp, description: "PHP applications via FastCGI" },
   { value: "custom", label: "Custom", icon: Code2, description: "Custom configuration" },
 ];
 
@@ -122,130 +128,163 @@ export function ProxyAddDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[400px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Add Proxy Route
-            </DialogTitle>
-            <DialogDescription>
-              Configure a new service route in the proxy
+            <DialogTitle>Add Proxy</DialogTitle>
+            <DialogDescription className="text-xs">
+              Configure a new proxy to your service
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {/* Service Selection */}
-            <Field>
-              <FieldLabel htmlFor="serviceName">Service</FieldLabel>
-              <Select value={serviceName} onValueChange={setServiceName} disabled={isSubmitting}>
-                <SelectTrigger id="serviceName">
-                  <SelectValue placeholder="Select a service" />
-                </SelectTrigger>
-                <SelectContent>
-                  {services.map((service) => (
-                    <SelectItem key={service.id} value={service.name}>
-                      <div className="flex items-center gap-2">
-                        <Server className="h-4 w-4" />
-                        <span>{service.name}</span>
-                        <span className="text-xs text-muted-foreground">:{service.port}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {services.length === 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  No services available
-                </p>
-              )}
-              {errors.serviceName && <FieldError>{errors.serviceName}</FieldError>}
-            </Field>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Service Selection */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <FieldLabel htmlFor="serviceName" className="text-xs">Service</FieldLabel>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Select the backend service to route traffic to</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Select value={serviceName} onValueChange={setServiceName} disabled={isSubmitting}>
+                  <SelectTrigger id="serviceName" className="h-8 text-xs">
+                    <SelectValue placeholder="Select service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services.map((service) => (
+                      <SelectItem key={service.id} value={service.name} className="text-xs">
+                        <span className="truncate">{service.name}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Template */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <FieldLabel className="text-xs">Template</FieldLabel>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{selectedTemplate?.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Select value={template} onValueChange={setTemplate} disabled={isSubmitting}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((t) => (
+                      <SelectItem key={t.value} value={t.value} className="text-xs">
+                        <div className="flex items-center gap-2">
+                          <t.icon className="h-3 w-3" />
+                          <span>{t.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
             {/* Domain */}
-            <Field>
-              <FieldLabel htmlFor="domain">Domain</FieldLabel>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <FieldLabel htmlFor="domain" className="text-xs">Domain</FieldLabel>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>The domain name for this proxy (e.g. api.example.com)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 id="domain"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value.toLowerCase())}
                 placeholder="api.example.com"
                 disabled={isSubmitting}
+                className="h-8 text-xs"
               />
-              {errors.domain && <FieldError>{errors.domain}</FieldError>}
-            </Field>
-
-            {/* Template */}
-            <Field>
-              <FieldLabel>Template</FieldLabel>
-              <Select value={template} onValueChange={setTemplate} disabled={isSubmitting}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      <div className="flex items-center gap-2">
-                        <t.icon className="h-4 w-4" />
-                        <span>{t.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedTemplate && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {selectedTemplate.description}
-                </p>
-              )}
-            </Field>
+              {errors.domain && <FieldError className="text-[10px]">{errors.domain}</FieldError>}
+            </div>
 
             {/* Upstream (conditional) */}
             {showUpstream && (
-              <Field>
-                <FieldLabel htmlFor="upstream">Upstream</FieldLabel>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <FieldLabel htmlFor="upstream" className="text-xs">Upstream</FieldLabel>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {template === "php_fastcgi"
+                          ? "PHP-FPM socket address (host:port)"
+                          : "Backend server URL to forward requests to"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="upstream"
                   value={upstream}
                   onChange={(e) => setUpstream(e.target.value)}
                   placeholder={template === "php_fastcgi" ? "127.0.0.1:9000" : "http://localhost:3000"}
                   disabled={isSubmitting}
+                  className="h-8 text-xs"
                 />
-                {errors.upstream && <FieldError>{errors.upstream}</FieldError>}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {template === "php_fastcgi"
-                    ? "PHP-FPM socket address (host:port)"
-                    : "Backend server URL to forward requests to"}
-                </p>
-              </Field>
+                {errors.upstream && <FieldError className="text-[10px]">{errors.upstream}</FieldError>}
+              </div>
             )}
 
             {/* Root Directory (conditional) */}
             {showRoot && (
-              <Field>
-                <FieldLabel htmlFor="root">Root Directory</FieldLabel>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <FieldLabel htmlFor="root" className="text-xs">Root</FieldLabel>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Absolute path to serve files from</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   id="root"
                   value={root}
                   onChange={(e) => setRoot(e.target.value)}
                   placeholder="/var/www/html"
                   disabled={isSubmitting}
+                  className="h-8 text-xs"
                 />
-                {errors.root && <FieldError>{errors.root}</FieldError>}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Absolute path to serve files from
-                </p>
-              </Field>
+                {errors.root && <FieldError className="text-[10px]">{errors.root}</FieldError>}
+              </div>
             )}
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" size="sm" onClick={handleClose} disabled={isSubmitting} className="h-8 text-xs">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {isSubmitting ? "Adding..." : "New Proxy Route"}
+            <Button type="submit" size="sm" disabled={isSubmitting} className="h-8 text-xs">
+              {isSubmitting && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+              {isSubmitting ? "Adding..." : "Create"}
             </Button>
           </DialogFooter>
         </form>

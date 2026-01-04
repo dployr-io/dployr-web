@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight, CirclePlus, MoreHorizontal, Settings2, RotateCcw, Trash2, Copy, Check, Boxes, HardDrive } from "lucide-react";
+import { ChevronLeft, ChevronRight, MoreHorizontal, Settings2, RotateCcw, Trash2, Copy, Check, Boxes, HardDrive, Info } from "lucide-react";
 import TimeAgo from "react-timeago";
 import { formatWithoutSuffix } from "@/lib/utils";
 import { useInstances } from "@/hooks/use-instances";
@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/ui/field";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useClusterId } from "@/hooks/use-cluster-id";
 import { use2FA } from "@/hooks/use-2fa";
@@ -119,34 +120,59 @@ function Instances() {
                   New Instance
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-[400px]">
                 <DialogHeader>
                   <DialogTitle>New Instance</DialogTitle>
-                  <DialogDescription>Setup dployr on a new instance.</DialogDescription>
+                  <DialogDescription className="text-xs">Setup dployr on a new instance.</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-6 py-4">
-                  <div className="space-y-4">
-                    <Label htmlFor="instance-address">IPv4 Address</Label>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <FieldLabel htmlFor="instance-address" className="text-xs">IPv4 Address</FieldLabel>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>The public IP address of your VPS or server</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="instance-address"
                       placeholder="52.222.52.222"
                       value={address}
                       onChange={e => setAddress(e.target.value)}
+                      className="h-8 text-xs"
                     />
                   </div>
-                  <div className="space-y-4">
-                    <Label htmlFor="instance-tag">Tag</Label>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <FieldLabel htmlFor="instance-tag" className="text-xs">Tag</FieldLabel>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>A unique identifier for this instance (max 15 chars)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="instance-tag"
                       placeholder="my-instance-1"
                       value={tag}
                       maxLength={15}
                       onChange={e => setTag(e.target.value)}
+                      className="h-8 text-xs"
                     />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="button" onClick={handleCreateInstance}>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setInstancesDialog({ new: false })} className="h-8 text-xs">
+                    Cancel
+                  </Button>
+                  <Button type="button" size="sm" onClick={handleCreateInstance} className="h-8 text-xs">
                     Create Instance
                   </Button>
                 </DialogFooter>
