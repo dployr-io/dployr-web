@@ -186,11 +186,6 @@ export function ProxyServiceList({
                       </code>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(app.status.status)}>
-                        {app.status.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -245,7 +240,7 @@ export function ProxyServiceList({
           <AlertDialogHeader>
             <AlertDialogTitle>Remove proxy route?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the route for <strong>{deleteDialog.domain}</strong> from the proxy.
+              This will remove the route for <strong className="font-medium text-foreground">{deleteDialog.domain}</strong> from the proxy.
               The service will no longer be accessible through this domain.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -254,7 +249,7 @@ export function ProxyServiceList({
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               disabled={isDeleting}
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? "Removing..." : "Remove"}
             </AlertDialogAction>

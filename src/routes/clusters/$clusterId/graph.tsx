@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import AppLayout from "@/layouts/app-layout";
@@ -36,9 +36,9 @@ const graphBreadcrumbs = (clusterId?: string): BreadcrumbItem[] => [
   { title: "Graph", href: `/clusters/${clusterId}/graph` },
 ];
 
-
 function GraphPage() {
   const { clusterId } = Route.useParams();
+  const router = useRouter();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
 
@@ -48,9 +48,13 @@ function GraphPage() {
   const [isAddingService, setIsAddingService] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
+  const [rebootDialogOpen, setRebootDialogOpen] = useState(false);
+  const [instanceRestartTarget, setInstanceRestartTarget] = useState<string | null>(null);
+  const [forceInstanceRestart, setForceInstanceRestart] = useState(false);
+  const [forceInstanceReboot, setForceInstanceReboot] = useState(false);
 
   // Hooks
-  const { instances } = useInstances();
+  const { instances, restartInstance, rebootInstance } = useInstances();
   useInstanceStream(); // Ensure stream is active
 
   // Auto-select first instance
@@ -171,6 +175,63 @@ function GraphPage() {
     [currentInstance, clusterId, removeService]
   );
 
+  const handleInstanceRestart = useCallback(
+    (instanceName: string) => {
+      setInstanceRestartTarget(instanceName);
+      setRebootDialogOpen(false);
+      setForceInstanceRestart(false);
+      setRestartDialogOpen(true);
+    },
+    []
+  );
+
+  const handleInstanceReboot = useCallback(
+    (instanceName: string) => {
+      setInstanceRestartTarget(instanceName);
+      setRestartDialogOpen(false);
+      setForceInstanceReboot(false);
+      setRebootDialogOpen(true);
+    },
+    []
+  );
+
+  const handleInstanceRestartSubmit = useCallback(async () => {
+    if (!instanceRestartTarget || !clusterId) return;
+    setIsRestarting(true);
+    try {
+      await restartInstance.mutateAsync({ name: instanceRestartTarget, force: forceInstanceRestart });
+      toast.success("Instance restart initiated");
+      setRestartDialogOpen(false);
+      setInstanceRestartTarget(null);
+    } catch {
+      toast.error("Failed to restart instance");
+    } finally {
+      setIsRestarting(false);
+    }
+  }, [instanceRestartTarget, clusterId, forceInstanceRestart, restartInstance]);
+
+  const handleInstanceRebootSubmit = useCallback(async () => {
+    if (!instanceRestartTarget || !clusterId) return;
+    setIsRestarting(true);
+    try {
+      await rebootInstance.mutateAsync({ name: instanceRestartTarget, force: forceInstanceReboot });
+      toast.success("Instance reboot initiated");
+      setRebootDialogOpen(false);
+      setInstanceRestartTarget(null);
+    } catch {
+      toast.error("Failed to reboot instance");
+    } finally {
+      setIsRestarting(false);
+    }
+  }, [instanceRestartTarget, clusterId, forceInstanceReboot, rebootInstance]);
+
+  const handleOpenInstance = useCallback(
+    (instanceId: string) => {
+      router.navigate({ to: `/clusters/${clusterId}/instances/${instanceId}` });
+    },
+    [router, clusterId]
+  );
+
   return (
     <ProtectedRoute>
       <AppLayout breadcrumbs={graphBreadcrumbs(clusterId)}>
@@ -190,6 +251,9 @@ function GraphPage() {
               await handleRemoveService(domain);
             }}
             onRestart={() => setRestartDialogOpen(true)}
+            onInstanceRestart={handleInstanceRestart}
+            onInstanceReboot={handleInstanceReboot}
+            onOpenInstance={handleOpenInstance}
             className="flex-1"
           />
         </div>
@@ -204,13 +268,13 @@ function GraphPage() {
         />
 
         {/* Restart Confirmation Dialog */}
-        <AlertDialog open={restartDialogOpen} onOpenChange={setRestartDialogOpen}>
+        <AlertDialog open={restartDialogOpen && !instanceRestartTarget} onOpenChange={setRestartDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Restart proxy server?</AlertDialogTitle>
               <AlertDialogDescription>
                 This will briefly interrupt all proxy routes on{" "}
-                <strong>{currentInstance?.tag}</strong>. Active connections may be dropped.
+                <strong className="font-medium text-foreground">{currentInstance?.tag}</strong>. Active connections may be dropped.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -218,6 +282,90 @@ function GraphPage() {
               <AlertDialogAction onClick={handleRestart} disabled={isRestarting}>
                 {isRestarting && <RotateCcw className="h-4 w-4 mr-2 animate-spin" />}
                 {isRestarting ? "Restarting..." : "Restart"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Instance Restart Dialog */}
+        <AlertDialog open={restartDialogOpen && !!instanceRestartTarget} onOpenChange={setRestartDialogOpen}>
+          <AlertDialogContent className="sm:max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restart Instance Daemon</AlertDialogTitle>
+              <AlertDialogDescription>
+                Restart the dployr daemon on <strong className="font-medium text-foreground">{instanceRestartTarget}</strong>. The connection will briefly drop, this won't affect your deployed services.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="force-restart" 
+                  checked={forceInstanceRestart} 
+                  onChange={e => setForceInstanceRestart(e.target.checked)} 
+                  className="h-4 w-4 rounded border-input" 
+                />
+                <label htmlFor="force-restart" className="text-sm text-muted-foreground">
+                  Force restart (skip pending tasks check)
+                </label>
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel 
+                disabled={isRestarting}
+                onClick={() => {
+                  setRestartDialogOpen(false);
+                  setInstanceRestartTarget(null);
+                  setForceInstanceRestart(false);
+                }}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleInstanceRestartSubmit} disabled={isRestarting}>
+                {isRestarting && <RotateCcw className="h-4 w-4 mr-2 animate-spin" />}
+                {isRestarting ? "Restarting..." : "Restart Daemon"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Instance Reboot Dialog */}
+        <AlertDialog open={rebootDialogOpen} onOpenChange={setRebootDialogOpen}>
+          <AlertDialogContent className="sm:max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reboot Instance</AlertDialogTitle>
+              <AlertDialogDescription>
+                Reboot the instance OS on <strong className="font-medium text-foreground">{instanceRestartTarget}</strong>. Connections and services will be briefly unavailable, so prefer low-traffic periods.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="force-reboot" 
+                  checked={forceInstanceReboot} 
+                  onChange={e => setForceInstanceReboot(e.target.checked)} 
+                  className="h-4 w-4 rounded border-input" 
+                />
+                <label htmlFor="force-reboot" className="text-sm text-muted-foreground">
+                  Force reboot (skip pending tasks check)
+                </label>
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel 
+                disabled={isRestarting}
+                onClick={() => {
+                  setRebootDialogOpen(false);
+                  setInstanceRestartTarget(null);
+                  setForceInstanceReboot(false);
+                }}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleInstanceRebootSubmit} disabled={isRestarting}>
+                {isRestarting && <RotateCcw className="h-4 w-4 mr-2 animate-spin" />}
+                {isRestarting ? "Rebooting..." : "Reboot Instance"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

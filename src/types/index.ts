@@ -484,6 +484,11 @@ export type LogTimeRange = "live" | "5m" | "15m" | "30m" | "1h" | "3h" | "6h" | 
 export type LogType = "app" | "install";
 export type LogStreamMode = "tail" | "historical";
 
+export interface PendingAction {
+  prompt: string;
+  action: () => void;
+}
+
 export interface LogStreamRequest {
   logType: LogType;
   mode: LogStreamMode;

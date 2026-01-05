@@ -6,16 +6,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   RefreshCcw,
   ZoomIn,
   ZoomOut,
@@ -23,13 +13,17 @@ import {
   Plus,
   Network,
 } from "lucide-react";
-import type { ProxyApp, ProxyApps, Service } from "@/types";
+import type { ProxyApp, ProxyApps, Service, InstanceStream } from "@/types";
 import { StatusDot } from "./status-dot";
 import { ConnectionPath } from "./connection-path";
 import { InstanceNode } from "./instance-node";
 import { ProxyNode } from "./proxy-node";
 import { ServiceNode } from "./service-node";
 import { DetailPanel } from "./detail-panel";
+import { InstanceDetailPanel } from "./instance-detail-panel";
+import { ConfirmationDialog } from "@/components/confirmation-dialog";
+import { useConfirmation } from "@/hooks/use-confirmation";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProxyGraphVisualizerProps {
   proxyStatus: "running" | "stopped" | "error" | "unknown";
@@ -43,6 +37,9 @@ interface ProxyGraphVisualizerProps {
   onAddRoute?: () => void;
   onRemoveRoute?: (domain: string) => Promise<void>;
   onRestart?: () => void;
+  onInstanceRestart?: (instanceName: string) => void;
+  onInstanceReboot?: (instanceName: string) => void;
+  onOpenInstance?: (instanceId: string) => void;
   className?: string;
 }
 
@@ -58,19 +55,20 @@ export function ProxyGraphVisualizer({
   onAddRoute,
   onRemoveRoute,
   onRestart,
+  onInstanceRestart,
+  onInstanceReboot,
+  onOpenInstance,
   className,
 }: ProxyGraphVisualizerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [selectedApp, setSelectedApp] = useState<{ domain: string; app: ProxyApp } | null>(null);
+  const [selectedInstance, setSelectedInstance] = useState<{ id: string; name: string; status?: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; domain: string | null }>({
-    open: false,
-    domain: null,
-  });
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { pendingAction, setPendingAction } = useConfirmation();
   const [hoveredNode, setHoveredNode] = useState<{ id: string; type: 'instance' | 'proxy' | 'service'; x: number; y: number; isProxied?: boolean } | null>(null);
 
   // Fix passive event listener issue
@@ -172,6 +170,7 @@ export function ProxyGraphVisualizer({
   const handleServiceClick = useCallback((domain: string | null, app: ProxyApp | null) => {
     if (domain && app) {
       setSelectedApp({ domain, app });
+      setSelectedInstance(null);
       onSelectApp?.(domain, app);
     } else {
       // Service is not proxied - trigger add route with prefilled data
@@ -179,6 +178,12 @@ export function ProxyGraphVisualizer({
       // Note: The parent component should handle prefilling the form with service data
     }
   }, [onSelectApp, onAddRoute]);
+
+  const handleInstanceClick = useCallback((instance: { id: string; name: string; status?: string }) => {
+    setSelectedInstance(instance);
+    setSelectedApp(null);
+    onSelectInstance?.(instance);
+  }, [onSelectInstance]);
 
   // Zoom controls
   const handleZoomIn = useCallback(() => setZoom((z) => Math.min(z + 0.15, 2)), []);
@@ -190,20 +195,16 @@ export function ProxyGraphVisualizer({
 
   // Delete handlers
   const handleDeleteClick = useCallback((domain: string) => {
-    setDeleteDialog({ open: true, domain });
+    setPendingAction({
+      prompt: `This will remove the route for ${domain} from the proxy.`,
+      action: async () => {
+        if (onRemoveRoute) {
+          await onRemoveRoute(domain);
+        }
+      },
+    });
     setSelectedApp(null);
-  }, []);
-
-  const handleDeleteConfirm = useCallback(async () => {
-    if (!deleteDialog.domain || !onRemoveRoute) return;
-    setIsDeleting(true);
-    try {
-      await onRemoveRoute(deleteDialog.domain);
-      setDeleteDialog({ open: false, domain: null });
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [deleteDialog.domain, onRemoveRoute]);
+  }, [setPendingAction, onRemoveRoute]);
 
   return (
     <>
@@ -213,7 +214,7 @@ export function ProxyGraphVisualizer({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-stone-300 border border-stone-400 dark:bg-stone-800 dark:border-stone-700">
               <StatusDot status={proxyStatus} />
-              <span className="text-xs font-mono">· {layout.proxyRouteCount} routes</span>
+              <span className="text-xs font-mono">· {layout.proxyRouteCount} {layout.proxyRouteCount === 1 ? 'service' : 'services'}</span>
             </div>
           </div>
 
@@ -386,7 +387,7 @@ export function ProxyGraphVisualizer({
                   onContextMenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    onSelectInstance?.({ id: inst.id, name: inst.name, status: inst.status });
+                    handleInstanceClick({ id: inst.id, name: inst.name, status: inst.status });
                   }}
                 />
               ))}
@@ -449,6 +450,18 @@ export function ProxyGraphVisualizer({
           />
         )}
 
+        {/* Instance Detail Panel */}
+        {selectedInstance && (
+          <InstanceDetailPanel
+            instance={selectedInstance}
+            instanceStatus={queryClient.getQueryData<InstanceStream>(["instance-status", selectedInstance.name])}
+            onClose={() => setSelectedInstance(null)}
+            onRestart={onInstanceRestart ? () => onInstanceRestart(selectedInstance.name) : undefined}
+            onReboot={onInstanceReboot ? () => onInstanceReboot(selectedInstance.name) : undefined}
+            onOpenInstance={onOpenInstance ? () => onOpenInstance(selectedInstance.id) : undefined}
+          />
+        )}
+
         {/* Tooltip */}
         {hoveredNode && containerRef.current && hoveredNode.type !== 'proxy' && (
           <div
@@ -466,30 +479,7 @@ export function ProxyGraphVisualizer({
         )}
       </div>
 
-      {/* Delete Dialog */}
-      <AlertDialog
-        open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ open, domain: deleteDialog.domain })}
-      >
-        <AlertDialogContent className="bg-slate-900 border-stone-700">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Remove proxy route?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
-              This will remove the route for <strong className="text-white">{deleteDialog.domain}</strong> from the proxy.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting} className="border-stone-700 text-slate-300">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {isDeleting ? "Removing..." : "Remove"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmationDialog pendingAction={pendingAction} setPendingAction={setPendingAction} />
     </>
   );
 }

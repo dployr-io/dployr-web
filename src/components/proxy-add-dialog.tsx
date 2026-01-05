@@ -283,8 +283,8 @@ export function ProxyAddDialog({
               Cancel
             </Button>
             <Button type="submit" size="sm" disabled={isSubmitting} className="h-8 text-xs">
-              {isSubmitting && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
-              {isSubmitting ? "Adding..." : "Create"}
+              {isSubmitting && <Loader2 className="h-3 w-3 animate-spin" />}
+              {isSubmitting ? "Adding" : "Create"}
             </Button>
           </DialogFooter>
         </form>

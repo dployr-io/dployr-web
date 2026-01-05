@@ -421,7 +421,7 @@ function Profile() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Promote User</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Select a new role for <strong>{userToPromote?.name || userToPromote?.email}</strong>.
+                  Select a new role for <strong className="font-medium text-foreground">{userToPromote?.name || userToPromote?.email}</strong>.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="py-4">

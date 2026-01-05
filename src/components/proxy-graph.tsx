@@ -353,7 +353,7 @@ export function ProxyGraph({
       id: "proxy",
       type: "proxy",
       label: "Proxy",
-      sublabel: `${appEntries.length} routes`,
+      sublabel: `${appEntries.length} ${appEntries.length === 1 ? 'service' : 'services'}`,
       status: "running",
       x: centerX,
       y: centerY,

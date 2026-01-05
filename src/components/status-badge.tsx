@@ -12,7 +12,7 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, variant = "default", type }: StatusBadgeProps) {
-  const normalized = status?.toLowerCase() || "";
+  const normalized = typeof status === "string" ? status.toLowerCase() : "";
   
   const getStatusColor = () => {
     // For service/deployment types, use specific status values
@@ -71,7 +71,7 @@ export function StatusBadge({ status, variant = "default", type }: StatusBadgePr
       )}
     >
       {getStatusIcon()}
-      {status?.charAt(0).toUpperCase() + status?.slice(1)}
+      {typeof status === "string" ? status.charAt(0).toUpperCase() + status.slice(1) : "-"}
     </span>
   );
 }

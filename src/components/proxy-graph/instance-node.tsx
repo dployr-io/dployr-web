@@ -40,10 +40,9 @@ export function InstanceNode({
       />
       
       {/* Content */}
-      <foreignObject x="-60" y="-38" width="120" height="76" className="pointer-events-none">
+      <foreignObject x="-60" y="-38" width="120" height="76">
         <div 
           className="flex flex-col items-center justify-center h-full gap-2 select-none"
-          style={{ pointerEvents: 'auto' }}
           onContextMenu={onContextMenu}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}

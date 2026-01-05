@@ -395,7 +395,7 @@ function ViewInstance() {
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <MetricCard label="Services" value={metrics?.services.length > 0 ? `${metrics?.services.length} running` : "-"} />
+                    <MetricCard label="Services" value={metrics?.services?.length > 0 ? `${metrics?.services.length} running` : "-"} />
                     <MetricCard label="Health" value={<StatusBadge status={metrics?.health?.overall || "-"} variant="compact" />} />
                   </div>
 
@@ -405,7 +405,7 @@ function ViewInstance() {
                       value={
                         <div className="flex items-center gap-2">
                           <StatusBadge status={metrics?.proxy?.status || "-"} variant="compact" />
-                          {typeof metrics?.proxy?.routes === "number" && <span className="text-xs text-muted-foreground">{metrics.proxy.routes} routes</span>}
+                          {typeof metrics?.proxy?.routes === "number" && <span className="text-xs text-muted-foreground">{metrics.proxy.routes} {metrics.proxy.routes === 1 ? "service" : "services"}</span>}
                         </div>
                       }
                     />
