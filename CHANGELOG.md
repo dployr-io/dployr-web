@@ -1,3 +1,11 @@
+## [0.1.29] - 2026-01-06
+
+### 🚜 Refactor
+
+- *(ui)* Remove CirclePlus icons from buttons and update button labels
+- *(proxy)* Redesign add dialog UI
+- *(proxy-graph)* Redesign detail panels and improve UI consistency
+- *(ui)* Normalize data formats and improve visual consistency across components
 ## [0.1.28] - 2026-01-03
 
 ### 🚀 Features
