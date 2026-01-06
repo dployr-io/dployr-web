@@ -1,10 +1,62 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Server, Activity, HardDrive, Cpu, ExternalLink, RotateCcw, Power } from "lucide-react";
-import type { InstanceStream } from "@/types";
+import type { InstanceStream, InstanceStreamUpdateV1, InstanceStreamUpdateV1_1 } from "@/types";
+
+// Normalize instance update data to handle both v1 and v1.1 formats
+function normalizeInstanceUpdate(update: InstanceStreamUpdateV1 | InstanceStreamUpdateV1_1 | undefined) {
+  if (!update) return null;
+  
+  const isV1_1 = (update as any).schema === "v1.1";
+  
+  if (isV1_1) {
+    const u = update as InstanceStreamUpdateV1_1;
+    return {
+      status: u.status?.state || u.health?.overall || "unknown",
+      uptime: u.status?.uptime_seconds ? formatSeconds(u.status.uptime_seconds) : undefined,
+      platform: u.agent ? { os: u.agent.os, arch: u.agent.arch } : null,
+      version: u.agent?.version || null,
+      cpu: u.resources?.cpu ? {
+        user: u.resources.cpu.user_percent,
+        system: u.resources.cpu.system_percent,
+        idle: u.resources.cpu.idle_percent,
+      } : null,
+      memory: u.resources?.memory ? {
+        used_bytes: u.resources.memory.used_bytes,
+        total_bytes: u.resources.memory.total_bytes,
+      } : null,
+    };
+  }
+  
+  // v1 format
+  const u = update as InstanceStreamUpdateV1;
+  return {
+    status: u.status || "unknown",
+    uptime: u.uptime,
+    platform: u.platform,
+    version: u.build_info?.version || null,
+    cpu: u.top?.cpu ? {
+      user: u.top.cpu.user,
+      system: u.top.cpu.system,
+      idle: u.top.cpu.idle,
+    } : null,
+    memory: u.top?.memory ? {
+      used_bytes: u.top.memory.used_bytes,
+      total_bytes: u.top.memory.total_bytes,
+    } : null,
+  };
+}
+
+function formatSeconds(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h${minutes}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return `${seconds}s`;
+}
 
 export function InstanceDetailPanel({
   instance,
@@ -33,31 +85,14 @@ export function InstanceDetailPanel({
     }
   };
 
-  const update = instanceStatus?.update;
-  const buildInfo = update?.build_info;
-  const platform = update?.platform;
-  const top = update?.top;
-
-  // Format uptime string (e.g., "561h17m53s" -> "561h 17m")
-  const formatUptimeString = (uptimeStr?: string): string => {
-    if (!uptimeStr) return "-";
-    const match = uptimeStr.match(/(\d+)d\s*(\d+)h|(\d+)h\s*(\d+)m|(\d+)m/);
-    if (!match) return uptimeStr;
-    
-    if (match[1]) return `${match[1]}d ${match[2]}h`;
-    if (match[3]) return `${match[3]}h ${match[4]}m`;
-    if (match[5]) return `${match[5]}m`;
-    return uptimeStr;
-  };
-
-  const uptime = formatUptimeString(update?.uptime);
+  const normalized = useMemo(() => normalizeInstanceUpdate(instanceStatus?.update), [instanceStatus?.update]);
 
   return (
-    <div className="absolute right-4 bottom-20 w-72 bg-background border border-border shadow-lg z-20">
-      <div className="flex items-start justify-between p-3 border-b border-border">
+    <div className="absolute right-4 bottom-20 w-72 bg-background border border-stone-700 rounded-md shadow-lg z-20 font-mono">
+      <div className="flex items-start justify-between p-3 border-b border-stone-700">
         <div className="space-y-0.5">
           <h3 className="text-sm font-mono font-semibold">{instance.name}</h3>
-          <p className="text-[10px] text-muted-foreground capitalize">
+          <p className="text-[10px] text-muted-foreground capitalize font-mono">
             Instance
           </p>
         </div>
@@ -69,80 +104,76 @@ export function InstanceDetailPanel({
       <div className="space-y-3 p-3">
         {/* Status */}
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
             <Activity className="h-3 w-3" />
             Status
           </span>
           <div className="flex items-center gap-2">
             <div className={`h-2 w-2 rounded-full ${
-              update?.status === 'healthy' ? 'bg-emerald-500' :
-              update?.status === 'degraded' ? 'bg-yellow-500' :
-              update?.status === 'unhealthy' ? 'bg-red-500' :
+              normalized?.status === 'healthy' ? 'bg-emerald-500' :
+              normalized?.status === 'degraded' ? 'bg-yellow-500' :
+              normalized?.status === 'unhealthy' ? 'bg-red-500' :
               'bg-stone-500'
             }`} />
             <span className="text-xs font-mono capitalize">
-              {update?.status || instance.status || 'unknown'}
+              {normalized?.status || instance.status || 'unknown'}
             </span>
           </div>
         </div>
 
         {/* Uptime */}
-        {uptime && (
+        {normalized?.uptime && (
           <div className="space-y-1">
-            <span className="text-[10px] text-muted-foreground">Uptime</span>
+            <span className="text-[10px] text-muted-foreground font-mono">Uptime</span>
             <code className="text-[10px] bg-muted px-2 py-1 rounded block font-mono">
-              {uptime}
+              {normalized.uptime}
             </code>
           </div>
         )}
 
         {/* Platform */}
-        {platform && (
+        {normalized?.platform && (
           <div className="space-y-1">
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
               <Server className="h-3 w-3" />
               Platform
             </span>
             <code className="text-[10px] bg-muted px-2 py-1 rounded block font-mono">
-              {platform.os}/{platform.arch}
+              {normalized.platform.os}/{normalized.platform.arch}
             </code>
           </div>
         )}
 
         {/* System Metrics */}
-        {top && (
-          <>
-            {top.cpu && (
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Cpu className="h-3 w-3" />
-                  CPU
-                </span>
-                <span className="text-[10px] tabular-nums font-mono">
-                  {((top.cpu.user + top.cpu.system) / (top.cpu.user + top.cpu.system + top.cpu.idle) * 100).toFixed(1)}%
-                </span>
-              </div>
-            )}
-            {top.memory && (
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <HardDrive className="h-3 w-3" />
-                  Memory
-                </span>
-                <span className="text-[10px] tabular-nums font-mono">
-                  {top.memory.total_bytes > 0 ? ((top.memory.used_bytes / top.memory.total_bytes) * 100).toFixed(1) : '0'}%
-                </span>
-              </div>
-            )}
-          </>
+        {normalized?.cpu && (
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+              <Cpu className="h-3 w-3" />
+              CPU
+            </span>
+            <span className="text-[10px] tabular-nums font-mono">
+              {((normalized.cpu.user + normalized.cpu.system) / (normalized.cpu.user + normalized.cpu.system + normalized.cpu.idle) * 100).toFixed(1)}%
+            </span>
+          </div>
+        )}
+        {normalized?.memory && (
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+              <HardDrive className="h-3 w-3" />
+              Memory
+            </span>
+            <span className="text-[10px] tabular-nums font-mono">
+              {normalized.memory.total_bytes > 0 ? ((normalized.memory.used_bytes / normalized.memory.total_bytes) * 100).toFixed(1) : '0'}%
+            </span>
+          </div>
         )}
 
-        {/* Build Info */}
-        {buildInfo && (
+        {/* Version */}
+        {normalized?.version && (
           <div className="space-y-1">
-            <span className="text-[10px] text-muted-foreground">Version</span>
-            <code className="text-[10px] bg-muted px-2 py-1 rounded block font-mono truncate" title={buildInfo.version}>
-              {buildInfo.version}
+            <span className="text-[10px] text-muted-foreground font-mono">Version</span>
+            <code className="text-[10px] bg-muted px-2 py-1 rounded block font-mono truncate" title={normalized.version}>
+              {normalized.version}
             </code>
           </div>
         )}

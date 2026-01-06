@@ -214,12 +214,11 @@ export function useFileSystemMap({
    * Auto-load on mount if rootPath is provided
    */
   useEffect(() => {
-    if (rootPath && !hasLoadedRef.current && !state.isLoading && !state.map) {
+    if (rootPath && !hasLoadedRef.current && !state.isLoading && !state.map && fileSystem.isConnected) {
       hasLoadedRef.current = true;
       loadTree(rootPath, initialDepth);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rootPath, initialDepth]);
+  }, [rootPath, initialDepth, fileSystem.isConnected]);
 
   /**
    * Auto-watch if enabled
@@ -229,7 +228,6 @@ export function useFileSystemMap({
       hasStartedWatchRef.current = true;
       startWatching();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoWatch, state.map]);
 
   /**
@@ -252,7 +250,6 @@ export function useFileSystemMap({
     isWatching: state.isWatching,
     updateCount: state.updateCount,
     
-    // File system operations (includes isLoading, error, etc.)
     ...fileSystem,
     
     // Map operations

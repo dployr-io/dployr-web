@@ -60,11 +60,13 @@ export function useProxyOperations(instanceTag?: string, options: UseProxyOperat
     const update = data?.update as any;
     
     const proxyApps: ProxyApps = {};
-    update?.proxies.forEach((proxy: ProxyApp) => {
-      if (proxy.domain) {
-        proxyApps[proxy.domain] = proxy;
-      }
-    });
+    if (update?.proxies && Array.isArray(update.proxies)) {
+      update.proxies.forEach((proxy: ProxyApp) => {
+        if (proxy.domain) {
+          proxyApps[proxy.domain] = proxy;
+        }
+      });
+    }
     
     return Object.keys(proxyApps).length > 0 ? proxyApps : null;
   }, [instanceTag, instanceTags, instanceQueries]);

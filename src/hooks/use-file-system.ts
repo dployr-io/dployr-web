@@ -59,6 +59,7 @@ export function useFileSystem({
   const { isConnected, sendJson, subscribe, unsubscribe } = useInstanceStream();
   const pendingRequestsRef = useRef<Map<string, PendingRequest>>(new Map());
   const requestQueueRef = useRef<QueuedRequest[]>([]);
+  const isMountedRef = useRef(true);
 
   const [state, setState] = useState<FileSystemState>({
     isLoading: false,
@@ -162,12 +163,17 @@ export function useFileSystem({
   }, [maxRetries, processQueue]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     subscribe(subscriberId, handleMessage);
     return () => {
+      isMountedRef.current = false;
       unsubscribe(subscriberId);
       pendingRequestsRef.current.forEach((pending) => {
         clearTimeout(pending.timeout);
-        pending.reject(new Error("Component unmounted"));
+        // Only reject if the component is still mounted to avoid unhandled promise rejections
+        if (isMountedRef.current) {
+          pending.reject(new Error("Component unmounted"));
+        }
       });
       pendingRequestsRef.current.clear();
       

@@ -168,6 +168,15 @@ export interface ProcessInfo {
   state: string;
 }
 
+// Process Snapshot for history tracking
+export interface ProcessSnapshot {
+  seq: number;
+  timestamp: number;
+  data: {
+    list?: ProcessV1_1[] | ProcessV1[];
+  };
+}
+
 // Top Metrics (real-time system stats)
 export interface TopMetrics {
   timestamp: string;
@@ -204,13 +213,8 @@ export interface TopMetrics {
   processes: ProcessInfo[];
 }
 
-// Filesystem Node
-export interface FsNode {
-  path: string;
-  name: string;
-  type: "file" | "dir" | "symlink";
-  size_bytes: number;
-  mod_time: string;
+// Filesystem Node Permissions (v1.1 format)
+export interface FsNodePermissions {
   mode: string;
   owner: string;
   group: string;
@@ -219,6 +223,28 @@ export interface FsNode {
   readable: boolean;
   writable: boolean;
   executable: boolean;
+}
+
+// Filesystem Node
+export interface FsNode {
+  path: string;
+  name: string;
+  type: "file" | "dir" | "symlink" | "directory";
+  size_bytes: number;
+  // v1 format
+  mod_time?: string;
+  mode?: string;
+  owner?: string;
+  group?: string;
+  uid?: number;
+  gid?: number;
+  readable?: boolean;
+  writable?: boolean;
+  executable?: boolean;
+  // v1.1 format
+  modified_at?: string;
+  permissions?: FsNodePermissions;
+  // Common
   children?: FsNode[];
   truncated?: boolean;
   child_count?: number;
@@ -323,13 +349,178 @@ export interface InstanceStreamUpdateV1 {
   top?: TopMetrics;
 }
 
+// v1.1 Update schema
+export interface InstanceStreamUpdateV1_1 {
+  schema: "v1.1";
+  sequence: number;
+  epoch: string;
+  instance_id: string;
+  timestamp: string;
+  is_full_sync: boolean;
+  agent?: {
+    version: string;
+    commit: string;
+    build_date: string;
+    go_version: string;
+    os: string;
+    arch: string;
+  };
+  status?: {
+    state: string;
+    mode: string;
+    uptime_seconds: number;
+  };
+  health?: {
+    overall: string;
+    websocket?: string;
+    tasks?: string;
+    proxy?: string;
+    auth?: string;
+  };
+  resources?: {
+    cpu?: {
+      count: number;
+      user_percent: number;
+      system_percent: number;
+      idle_percent: number;
+      iowait_percent: number;
+      load_average?: {
+        one_minute: number;
+        five_minute: number;
+        fifteen_minute: number;
+      };
+    };
+    memory?: {
+      total_bytes: number;
+      used_bytes: number;
+      free_bytes: number;
+      available_bytes: number;
+      buffer_cache_bytes: number;
+    };
+    swap?: {
+      total_bytes: number;
+      used_bytes: number;
+      free_bytes: number;
+      available_bytes: number;
+    };
+    disks?: Array<{
+      filesystem: string;
+      mount_point: string;
+      total_bytes: number;
+      used_bytes: number;
+      available_bytes: number;
+    }>;
+  };
+  workloads?: {
+    deployments?: Array<Record<string, unknown>>;
+    services?: Array<Record<string, unknown>>;
+  };
+  proxy?: {
+    type: string;
+    status: string;
+    version?: string;
+    route_count?: number;
+    routes?: Array<{
+      domain: string;
+      upstream: string;
+      template: string;
+      root?: string | null;
+      status: string;
+    }>;
+  };
+  processes?: {
+    summary?: {
+      total: number;
+      running: number;
+      sleeping: number;
+      stopped: number;
+      zombie: number;
+    };
+    list?: ProcessV1_1[];
+  };
+  filesystem?: {
+    generated_at: string;
+    is_stale: boolean;
+    roots: Array<Record<string, unknown>>;
+  };
+  diagnostics?: {
+    websocket?: {
+      is_connected: boolean;
+      last_connected_at?: string;
+      reconnect_count: number;
+      last_error?: string | null;
+    };
+    tasks?: {
+      inflight_count: number;
+      unsent_count: number;
+      last_task_id?: string;
+      last_task_status?: string;
+      last_task_duration_ms?: number;
+      last_task_at?: string;
+    };
+    auth?: {
+      token_age_seconds: number;
+      token_expires_in_seconds: number;
+      bootstrap_token_preview?: string;
+    };
+    worker?: {
+      max_concurrent: number;
+      active_jobs: number;
+    };
+    cert?: {
+      not_after: string;
+      days_remaining: number;
+    };
+  };
+}
+
+export interface ProcessV1_1 {
+  pid: number;
+  user: string;
+  priority: number;
+  nice: number;
+  virtual_memory_bytes: number;
+  resident_memory_bytes: number;
+  shared_memory_bytes: number;
+  state: string;
+  cpu_percent: number;
+  memory_percent: number;
+  cpu_time: string;
+  command: string;
+}
+
+// Process from v1 (for backward compat)
+export interface ProcessV1 {
+  pid: number;
+  user: string;
+  priority: number;
+  nice: number;
+  virt_mem: number;
+  res_mem: number;
+  shr_mem: number;
+  state: string;
+  cpu_pct: number;
+  mem_pct: number;
+  time: string;
+  command: string;
+}
+
+export type InstanceStreamUpdate = InstanceStreamUpdateV1 | InstanceStreamUpdateV1_1;
+
+// Alias for backward compatibility
+export type ProcessHistorySnapshot = ProcessSnapshot;
+
+export type ProcessTimeWindow = "live" | "1h" | "6h" | "24h";
+
+// Re-export normalized types from instance-update module
+export type { NormalizedInstanceData, InstanceUpdate } from "@/lib/instance-update";
 
 export interface InstanceStream {
   id?: string;
   ts?: string;
   kind: string;
   timestamp?: number;
-  update: InstanceStreamUpdateV1;
+  update: InstanceStreamUpdateV1 | InstanceStreamUpdateV1_1;
 }
 
 // Memory profile entry for caching

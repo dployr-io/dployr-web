@@ -31,11 +31,11 @@ export function DetailPanel({
   };
 
   return (
-    <div className="absolute right-4 bottom-20 w-72 bg-background border border-border shadow-lg z-20">
-      <div className="flex items-start justify-between p-3 border-b border-border">
+    <div className="absolute right-4 bottom-20 w-72 bg-background border border-stone-700 rounded-md shadow-lg z-20 font-mono">
+      <div className="flex items-start justify-between p-3 border-b border-stone-700">
         <div className="space-y-0.5">
           <h3 className="text-sm font-mono font-semibold">{domain}</h3>
-          <p className="text-[10px] text-muted-foreground capitalize">
+          <p className="text-[10px] text-muted-foreground capitalize font-mono">
             {app.template?.replace(/_/g, " ") || "Service"}
           </p>
         </div>
@@ -47,7 +47,7 @@ export function DetailPanel({
       <div className="space-y-3 p-3">
         {/* Upstream */}
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">Upstream</span>
+          <span className="text-[10px] text-muted-foreground font-mono">Upstream</span>
           <code className="text-[10px] bg-muted px-2 py-1 rounded block font-mono">
             {app.upstream}
           </code>
@@ -56,7 +56,7 @@ export function DetailPanel({
         {/* Uptime */}
         {app.status?.uptime && app.status.uptime > 0 && (
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
               <Timer className="h-3 w-3" />
               Uptime
             </span>

@@ -39,6 +39,30 @@ import {
 import { formatBytes } from "./instance-metrics";
 import { useFileSystemMap } from "@/hooks/use-file-system-map";
 
+// Helper to normalize FsNode properties for both v1 and v1.1 formats
+function normalizeNode(node: FsNode): {
+  readable: boolean;
+  writable: boolean;
+  executable: boolean;
+  mode: string;
+  owner: string;
+  group: string;
+  modTime: string;
+  isDir: boolean;
+} {
+  const perms = node.permissions;
+  return {
+    readable: perms?.readable ?? node.readable ?? false,
+    writable: perms?.writable ?? node.writable ?? false,
+    executable: perms?.executable ?? node.executable ?? false,
+    mode: perms?.mode ?? node.mode ?? "-",
+    owner: perms?.owner ?? node.owner ?? "-",
+    group: perms?.group ?? node.group ?? "-",
+    modTime: node.modified_at ?? node.mod_time ?? "-",
+    isDir: node.type === "dir" || node.type === "directory",
+  };
+}
+
 interface FileSystemBrowserProps {
   instanceId: string;
   fs?: FsSnapshot;
@@ -124,7 +148,8 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
   }, [map, searchQuery]);
 
   const readFile = useCallback(async (node: FsNode) => {
-    if (!node.readable) return;
+    const { readable } = normalizeNode(node);
+    if (!readable) return;
     
     setOperation({ type: "read", path: node.path, loading: true });
     setSelectedNode(node);
@@ -141,7 +166,8 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
   }, [fsReadFile]);
 
   const writeFile = useCallback(async () => {
-    if (!selectedNode || !selectedNode.writable) return;
+    const nodeProps = selectedNode ? normalizeNode(selectedNode) : null;
+    if (!selectedNode || !nodeProps?.writable) return;
     
     setOperation({ type: "write", path: selectedNode.path, loading: true });
     
@@ -180,7 +206,7 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
     setOperation({ type: "delete", path: selectedNode.path, loading: true });
     
     try {
-      const recursive = selectedNode.type === "dir";
+      const recursive = normalizeNode(selectedNode).isDir;
       await fsDeleteItem(selectedNode.path, recursive);
       setShowDeleteDialog(false);
       setSelectedNode(null);
@@ -202,12 +228,12 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
         setIsEditing(true);
         break;
       case "new-file":
-        setTargetPath(node.type === "dir" ? node.path : node.path.substring(0, node.path.lastIndexOf("/")));
+        setTargetPath(normalizeNode(node).isDir ? node.path : node.path.substring(0, node.path.lastIndexOf("/")));
         setCreateType("file");
         setShowCreateDialog(true);
         break;
       case "new-folder":
-        setTargetPath(node.type === "dir" ? node.path : node.path.substring(0, node.path.lastIndexOf("/")));
+        setTargetPath(normalizeNode(node).isDir ? node.path : node.path.substring(0, node.path.lastIndexOf("/")));
         setCreateType("dir");
         setShowCreateDialog(true);
         break;
@@ -221,7 +247,8 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
   const getParentWritable = useCallback((node: FsNode): boolean => {
     // For root nodes, assume writable if the node itself is writable
     // In a real implementation, you'd check the parent directory
-    return node.writable;
+    const { writable } = normalizeNode(node);
+    return writable;
   }, []);
 
   // Use map data if available, fallback to fs snapshot
@@ -355,9 +382,9 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
                 )}
                 <span className="text-sm font-medium truncate">{selectedNode.name}</span>
                 <div className="flex gap-1">
-                  {selectedNode.readable && <Badge variant="outline" className="text-[10px] px-1 py-0">R</Badge>}
-                  {selectedNode.writable && <Badge variant="outline" className="text-[10px] px-1 py-0">W</Badge>}
-                  {selectedNode.executable && <Badge variant="outline" className="text-[10px] px-1 py-0">X</Badge>}
+                  {normalizeNode(selectedNode).readable && <Badge variant="outline" className="text-[10px] px-1 py-0">R</Badge>}
+                  {normalizeNode(selectedNode).writable && <Badge variant="outline" className="text-[10px] px-1 py-0">W</Badge>}
+                  {normalizeNode(selectedNode).executable && <Badge variant="outline" className="text-[10px] px-1 py-0">X</Badge>}
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -369,7 +396,7 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
                       readFile(selectedNode);
                       setIsEditing(true);
                     }}
-                    disabled={!selectedNode.writable || operation?.loading}
+                    disabled={!normalizeNode(selectedNode).writable || operation?.loading}
                   >
                     <Pencil className="h-3.5 w-3.5 mr-1" />
                     Edit
@@ -421,8 +448,8 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
             <div className="px-3 py-2 border-b bg-muted/30 text-xs text-muted-foreground flex items-center gap-4">
               <span>{selectedNode.path}</span>
               <span>{formatBytes(selectedNode.size_bytes)}</span>
-              <span>{selectedNode.owner}:{selectedNode.group}</span>
-              <span className="font-mono">{selectedNode.mode}</span>
+              <span>{normalizeNode(selectedNode).owner}:{normalizeNode(selectedNode).group}</span>
+              <span className="font-mono">{normalizeNode(selectedNode).mode}</span>
             </div>
 
             {/* Content */}
@@ -566,8 +593,9 @@ function FileTreeNode({
 }: FileTreeNodeProps) {
   const isExpanded = expandedPaths.has(node.path);
   const isSelected = selectedPath === node.path;
-  const hasChildren = node.type === "dir" && node.children && node.children.length > 0;
-  const isDir = node.type === "dir";
+  const nodeProps = normalizeNode(node);
+  const hasChildren = nodeProps.isDir && node.children && node.children.length > 0;
+  const isDir = nodeProps.isDir;
   const isSymlink = node.type === "symlink";
   const parentWritable = getParentWritable(node);
 
@@ -591,7 +619,7 @@ function FileTreeNode({
             className={cn(
               "flex items-center gap-1 py-1 px-2 rounded-md cursor-pointer group",
               isSelected ? "bg-accent" : "hover:bg-muted/50",
-              !node.readable && "opacity-50"
+              !nodeProps.readable && "opacity-50"
             )}
             style={{ paddingLeft: `${depth * 16 + 8}px` }}
             onClick={async () => {
@@ -645,14 +673,14 @@ function FileTreeNode({
             <>
               <ContextMenuItem
                 onClick={() => onContextAction("view", node)}
-                disabled={!node.readable}
+                disabled={!nodeProps.readable}
               >
                 <Eye className="h-4 w-4 mr-2" />
                 View
               </ContextMenuItem>
               <ContextMenuItem
                 onClick={() => onContextAction("edit", node)}
-                disabled={!node.readable || !node.writable}
+                disabled={!nodeProps.readable || !nodeProps.writable}
               >
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
@@ -664,14 +692,14 @@ function FileTreeNode({
             <>
               <ContextMenuItem
                 onClick={() => onContextAction("new-file", node)}
-                disabled={!node.writable}
+                disabled={!nodeProps.writable}
               >
                 <FilePlus className="h-4 w-4 mr-2" />
                 New File
               </ContextMenuItem>
               <ContextMenuItem
                 onClick={() => onContextAction("new-folder", node)}
-                disabled={!node.writable}
+                disabled={!nodeProps.writable}
               >
                 <FolderPlus className="h-4 w-4 mr-2" />
                 New Folder
@@ -702,7 +730,7 @@ function FileTreeNode({
               onToggle={onToggle}
               onSelect={onSelect}
               onContextAction={onContextAction}
-              getParentWritable={() => node.writable}
+              getParentWritable={() => normalizeNode(node).writable}
               onExpand={onExpand}
             />
           ))}

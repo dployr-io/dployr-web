@@ -3,6 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Cpu, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MemoryProfileEntry } from "@/types";
 
@@ -281,7 +282,7 @@ export function InstanceMetricsChart({ data, height = 180, className }: Instance
             onClick={() => setShowCpu(!showCpu)}
             className={cn("flex items-center gap-1.5 transition-opacity", !showCpu && "opacity-40")}
           >
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            <Cpu className="h-3.5 w-3.5 text-cyan-500" />
             <span className="text-muted-foreground">CPU</span>
             <span className="font-mono">{currentCpu.toFixed(1)}%</span>
           </button>
@@ -289,24 +290,24 @@ export function InstanceMetricsChart({ data, height = 180, className }: Instance
             onClick={() => setShowMemory(!showMemory)}
             className={cn("flex items-center gap-1.5 transition-opacity", !showMemory && "opacity-40")}
           >
-            <span className="h-2 w-2 rounded-full bg-amber-500" />
+            <HardDrive className="h-3.5 w-3.5 text-orange-500" />
             <span className="text-muted-foreground">Memory</span>
             <span className="font-mono">{currentMemory.toFixed(1)}%</span>
           </button>
         </div>
       </div>
       
-      <div className="px-4 pb-4" style={{ height: height - 50 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+      <div className="px-4 pb-4" style={{ height: Math.max(height - 50, 100), minHeight: 100 }}>
+        <ResponsiveContainer width="100%" height="100%" minHeight={100}>
+          <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="instanceCpuGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="instanceMemoryGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                <stop offset="0%" stopColor="#f97316" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
               </linearGradient>
             </defs>
             
@@ -328,16 +329,16 @@ export function InstanceMetricsChart({ data, height = 180, className }: Instance
                       <div className="space-y-0.5">
                         {showCpu && (
                           <div className="flex items-center gap-2">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
                             <span className="text-xs text-muted-foreground">CPU:</span>
-                            <span className="text-xs font-mono text-emerald-400">{d.cpu}%</span>
+                            <span className="text-xs font-mono text-cyan-400">{d.cpu}%</span>
                           </div>
                         )}
                         {showMemory && (
                           <div className="flex items-center gap-2">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
                             <span className="text-xs text-muted-foreground">Memory:</span>
-                            <span className="text-xs font-mono text-amber-400">{d.memory}%</span>
+                            <span className="text-xs font-mono text-orange-400">{d.memory}%</span>
                           </div>
                         )}
                       </div>
@@ -352,7 +353,7 @@ export function InstanceMetricsChart({ data, height = 180, className }: Instance
               <Area
                 type="monotone"
                 dataKey="cpu"
-                stroke="#10b981"
+                stroke="#06b6d4"
                 strokeWidth={1.5}
                 fill="url(#instanceCpuGradient)"
                 animationDuration={300}
@@ -362,7 +363,7 @@ export function InstanceMetricsChart({ data, height = 180, className }: Instance
               <Area
                 type="monotone"
                 dataKey="memory"
-                stroke="#f59e0b"
+                stroke="#f97316"
                 strokeWidth={1.5}
                 fill="url(#instanceMemoryGradient)"
                 animationDuration={300}
