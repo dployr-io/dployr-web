@@ -1,12 +1,25 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { LucideIcon } from "lucide-react";
+ import type { LucideIcon } from "lucide-react";
 import type { IconType } from "react-icons";
 import { FaBitbucket, FaDiscord, FaGithub, FaGitlab, FaLink, FaSlack } from "react-icons/fa";
 import { SiAmazonroute53, SiCloudflare, SiGodaddy, SiNamecheap } from "react-icons/si";
 import { dnsProviders, runtimes, logLevels } from "./runtimes";
-import type { ProxyApp } from "./proxy";
+import type { InstanceStreamUpdateV1 } from "./schemas/v1/";
+import type { InstanceStreamUpdateV1_1, Process } from "./schemas/v1.1/";
+
+// Re-export all schema types from the new modular schema system
+export * from "./schemas";
+
+export type {
+  InstanceStreamUpdateV1_1,
+  Process as ProcessV1_1,
+} from "./schemas/v1.1/";
+
+export type {
+  InstanceStreamUpdateV1,
+} from "./schemas/v1/";
 
 export type Runtime = (typeof runtimes)[number];
 export type DnsProvider = (typeof dnsProviders)[number];
@@ -108,53 +121,53 @@ export type UserRole = "owner" | "admin" | "developer" | "viewer";
 
 export type InstanceStatus = "ready" | "starting" | "stopped" | "error" | string;
 
-// Agent Health Status
-export type AgentHealthStatus = "ok" | "degraded" | "error";
+// // Agent Health Status
+// export type AgentHealthStatus = "ok" | "degraded" | "error";
 
-export interface AgentHealth {
-  overall: AgentHealthStatus;
-  ws: AgentHealthStatus;
-  tasks: AgentHealthStatus;
-  auth: AgentHealthStatus;
-}
+// export interface AgentHealth {
+//   overall: AgentHealthStatus;
+//   ws: AgentHealthStatus;
+//   tasks: AgentHealthStatus;
+//   auth: AgentHealthStatus;
+// }
 
-// Disk Information
-export interface DiskInfo {
-  filesystem: string;
-  mountpoint: string;
-  size_bytes: number;
-  used_bytes?: number;
-  available_bytes: number;
-}
+// // Disk Information
+// export interface DiskInfo {
+//   filesystem: string;
+//   mountpoint: string;
+//   size_bytes: number;
+//   used_bytes?: number;
+//   available_bytes: number;
+// }
 
-// System Debug Information
-export interface SystemDebug {
-  cpu_count: number;
-  mem_total_bytes: number;
-  mem_used_bytes: number;
-  mem_free_bytes: number;
-  disks: DiskInfo[];
-  workers: number;
-}
+// // System Debug Information
+// export interface SystemDebug {
+//   cpu_count: number;
+//   mem_total_bytes: number;
+//   mem_used_bytes: number;
+//   mem_free_bytes: number;
+//   disks: DiskInfo[];
+//   workers: number;
+// }
 
-// Debug Information
-export interface AgentDebug {
-  ws: {
-    connected: boolean;
-    last_connect_at: string;
-    reconnects_since_start: number;
-  };
-  tasks: {
-    inflight: number;
-    done_unsent: number;
-  };
-  auth: {
-    agent_token_age_s: number;
-    agent_token_expires_in_s: number;
-    bootstrap_token: string;
-  };
-  system: SystemDebug;
-}
+// // Debug Information
+// export interface AgentDebug {
+//   ws: {
+//     connected: boolean;
+//     last_connect_at: string;
+//     reconnects_since_start: number;
+//   };
+//   tasks: {
+//     inflight: number;
+//     done_unsent: number;
+//   };
+//   auth: {
+//     agent_token_age_s: number;
+//     agent_token_expires_in_s: number;
+//     bootstrap_token: string;
+//   };
+//   system: SystemDebug;
+// }
 
 // Process Information for Top
 export interface ProcessInfo {
@@ -173,88 +186,88 @@ export interface ProcessSnapshot {
   seq: number;
   timestamp: number;
   data: {
-    list?: ProcessV1_1[] | ProcessV1[];
+    list?: Process[];
   };
 }
 
-// Top Metrics (real-time system stats)
-export interface TopMetrics {
-  timestamp: string;
-  uptime_seconds: number;
-  load_avg: {
-    load1: number;
-    load5: number;
-    load15: number;
-  };
-  cpu: {
-    user: number;
-    system: number;
-    idle: number;
-    iowait: number;
-    steal: number;
-  };
-  memory: {
-    total_bytes: number;
-    used_bytes: number;
-    free_bytes: number;
-    available_bytes: number;
-    used_percent: number;
-    swap_total_bytes: number;
-    swap_used_bytes: number;
-    swap_free_bytes: number;
-  };
-  tasks: {
-    total: number;
-    running: number;
-    sleeping: number;
-    stopped: number;
-    zombie: number;
-  };
-  processes: ProcessInfo[];
-}
+// // Top Metrics (real-time system stats)
+// export interface TopMetrics {
+//   timestamp: string;
+//   uptime_seconds: number;
+//   load_avg: {
+//     load1: number;
+//     load5: number;
+//     load15: number;
+//   };
+//   cpu: {
+//     user: number;
+//     system: number;
+//     idle: number;
+//     iowait: number;
+//     steal: number;
+//   };
+//   memory: {
+//     total_bytes: number;
+//     used_bytes: number;
+//     free_bytes: number;
+//     available_bytes: number;
+//     used_percent: number;
+//     swap_total_bytes: number;
+//     swap_used_bytes: number;
+//     swap_free_bytes: number;
+//   };
+//   tasks: {
+//     total: number;
+//     running: number;
+//     sleeping: number;
+//     stopped: number;
+//     zombie: number;
+//   };
+//   processes: ProcessInfo[];
+// }
 
-// Filesystem Node Permissions (v1.1 format)
-export interface FsNodePermissions {
-  mode: string;
-  owner: string;
-  group: string;
-  uid: number;
-  gid: number;
-  readable: boolean;
-  writable: boolean;
-  executable: boolean;
-}
+// // Filesystem Node Permissions (v1.1 format)
+// export interface FsNodePermissions {
+//   mode: string;
+//   owner: string;
+//   group: string;
+//   uid: number;
+//   gid: number;
+//   readable: boolean;
+//   writable: boolean;
+//   executable: boolean;
+// }
 
-// Filesystem Node
-export interface FsNode {
-  path: string;
-  name: string;
-  type: "file" | "dir" | "symlink" | "directory";
-  size_bytes: number;
-  // v1 format
-  mod_time?: string;
-  mode?: string;
-  owner?: string;
-  group?: string;
-  uid?: number;
-  gid?: number;
-  readable?: boolean;
-  writable?: boolean;
-  executable?: boolean;
-  // v1.1 format
-  modified_at?: string;
-  permissions?: FsNodePermissions;
-  // Common
-  children?: FsNode[];
-  truncated?: boolean;
-  child_count?: number;
-}
+// // Filesystem Node
+// export interface FsNode {
+//   path: string;
+//   name: string;
+//   type: "file" | "dir" | "symlink" | "directory";
+//   size_bytes: number;
+//   // v1 format
+//   mod_time?: string;
+//   mode?: string;
+//   owner?: string;
+//   group?: string;
+//   uid?: number;
+//   gid?: number;
+//   readable?: boolean;
+//   writable?: boolean;
+//   executable?: boolean;
+//   // v1.1 format
+//   modified_at?: string;
+//   permissions?: FsNodePermissions;
+//   // Common
+//   children?: FsNode[];
+//   truncated?: boolean;
+//   child_count?: number;
+// }
 
-// Filesystem Snapshot
-export interface FsSnapshot {
-  generated_at: string;
-  roots: FsNode[];
-}
+// // Filesystem Snapshot
+// export interface FsSnapshot {
+//   generated_at: string;
+//   roots: FsNode[];
+// }
 
 // Filesystem Task Types
 export type FsTaskType = "file_read" | "file_write" | "file_create" | "file_delete" | "file_tree" | "file_watch" | "file_unwatch";
@@ -289,235 +302,48 @@ export interface FileUpdateEvent {
 
 export type FileWatchCallback = (event: FileUpdateEvent) => void;
 
-// Proxy types - re-export from proxy.ts
-export type { ProxyApp, ProxyApps, ProxyAppStatus, ProxyTemplate } from "./proxy";
+// // Proxy types - re-export from proxy.ts
+// export type { ProxyApp, ProxyApps, ProxyAppStatus, ProxyTemplate } from "./proxy";
 
-// Proxy Status - overall proxy server status
-export interface ProxyStatus {
-  status: "running" | "stopped" | "error";
-  routes: number;
-}
+// // Proxy Status - overall proxy server status
+// export interface ProxyStatus {
+//   status: "running" | "stopped" | "error";
+//   routes: number;
+// }
 
-export interface Service {
-  id: string;
-  name: string;
-  description: string;
-  source: string;
-  runtime: string;
-  runtime_version: string;
-  run_cmd: string;
-  build_cmd: string;
-  port: number;
-  working_dir: string;
-  status: string;
-  remote: string;
-  branch: string;
-  commit_hash: string;
-  domain: string;
-  blueprint?: Blueprint;
-  created_at: string;
-  updated_at: string;
-}
+// export interface Service {
+//   id: string;
+//   name: string;
+//   description: string;
+//   source: string;
+//   runtime: string;
+//   runtime_version: string;
+//   run_cmd: string;
+//   build_cmd: string;
+//   port: number;
+//   working_dir: string;
+//   status: string;
+//   remote: string;
+//   branch: string;
+//   commit_hash: string;
+//   domain: string;
+//   blueprint?: Blueprint;
+//   created_at: string;
+//   updated_at: string;
+// }
 
-// New v1 schema update
-export interface InstanceStreamUpdateV1 {
-  schema: "v1";
-  seq: number;
-  epoch: string;
-  full: boolean;
-  instance_id: string;
-  build_info: {
-    version: string;
-    commit: string;
-    date: string;
-    go_version: string;
-  };
-  platform: {
-    os: string;
-    arch: string;
-  };
-  status: "healthy" | "degraded" | "unhealthy" | string;
-  mode: "ready" | "starting" | "stopping" | string;
-  uptime: string;
-  deployments?: Deployment[];
-  services?: Service[];
-  proxies?: ProxyApp[];
-  proxy?: ProxyStatus;
-  health?: AgentHealth;
-  debug?: AgentDebug;
-  fs?: FsSnapshot;
-  top?: TopMetrics;
-}
-
-// v1.1 Update schema
-export interface InstanceStreamUpdateV1_1 {
-  schema: "v1.1";
-  sequence: number;
-  epoch: string;
-  instance_id: string;
-  timestamp: string;
-  is_full_sync: boolean;
-  agent?: {
-    version: string;
-    commit: string;
-    build_date: string;
-    go_version: string;
-    os: string;
-    arch: string;
-  };
-  status?: {
-    state: string;
-    mode: string;
-    uptime_seconds: number;
-  };
-  health?: {
-    overall: string;
-    websocket?: string;
-    tasks?: string;
-    proxy?: string;
-    auth?: string;
-  };
-  resources?: {
-    cpu?: {
-      count: number;
-      user_percent: number;
-      system_percent: number;
-      idle_percent: number;
-      iowait_percent: number;
-      load_average?: {
-        one_minute: number;
-        five_minute: number;
-        fifteen_minute: number;
-      };
-    };
-    memory?: {
-      total_bytes: number;
-      used_bytes: number;
-      free_bytes: number;
-      available_bytes: number;
-      buffer_cache_bytes: number;
-    };
-    swap?: {
-      total_bytes: number;
-      used_bytes: number;
-      free_bytes: number;
-      available_bytes: number;
-    };
-    disks?: Array<{
-      filesystem: string;
-      mount_point: string;
-      total_bytes: number;
-      used_bytes: number;
-      available_bytes: number;
-    }>;
-  };
-  workloads?: {
-    deployments?: Array<Record<string, unknown>>;
-    services?: Array<Record<string, unknown>>;
-  };
-  proxy?: {
-    type: string;
-    status: string;
-    version?: string;
-    route_count?: number;
-    routes?: Array<{
-      domain: string;
-      upstream: string;
-      template: string;
-      root?: string | null;
-      status: string;
-    }>;
-  };
-  processes?: {
-    summary?: {
-      total: number;
-      running: number;
-      sleeping: number;
-      stopped: number;
-      zombie: number;
-    };
-    list?: ProcessV1_1[];
-  };
-  filesystem?: {
-    generated_at: string;
-    is_stale: boolean;
-    roots: Array<Record<string, unknown>>;
-  };
-  diagnostics?: {
-    websocket?: {
-      is_connected: boolean;
-      last_connected_at?: string;
-      reconnect_count: number;
-      last_error?: string | null;
-    };
-    tasks?: {
-      inflight_count: number;
-      unsent_count: number;
-      last_task_id?: string;
-      last_task_status?: string;
-      last_task_duration_ms?: number;
-      last_task_at?: string;
-    };
-    auth?: {
-      token_age_seconds: number;
-      token_expires_in_seconds: number;
-      bootstrap_token_preview?: string;
-    };
-    worker?: {
-      max_concurrent: number;
-      active_jobs: number;
-    };
-    cert?: {
-      not_after: string;
-      days_remaining: number;
-    };
-  };
-}
-
-export interface ProcessV1_1 {
-  pid: number;
-  user: string;
-  priority: number;
-  nice: number;
-  virtual_memory_bytes: number;
-  resident_memory_bytes: number;
-  shared_memory_bytes: number;
-  state: string;
-  cpu_percent: number;
-  memory_percent: number;
-  cpu_time: string;
-  command: string;
-}
-
-// Process from v1 (for backward compat)
-export interface ProcessV1 {
-  pid: number;
-  user: string;
-  priority: number;
-  nice: number;
-  virt_mem: number;
-  res_mem: number;
-  shr_mem: number;
-  state: string;
-  cpu_pct: number;
-  mem_pct: number;
-  time: string;
-  command: string;
-}
-
-export type InstanceStreamUpdate = InstanceStreamUpdateV1 | InstanceStreamUpdateV1_1;
+// // Note: InstanceStreamUpdateV1, InstanceStreamUpdateV1_1, ProcessV1, ProcessV1_1, and InstanceStreamUpdate
+// // are now exported from ./schemas module above
 
 // Alias for backward compatibility
-export type ProcessHistorySnapshot = ProcessSnapshot;
+// export type ProcessHistorySnapshot = ProcessSnapshot;
 
 export type ProcessTimeWindow = "live" | "1h" | "6h" | "24h";
 
-// Re-export normalized types from instance-update module
-export type { NormalizedInstanceData, InstanceUpdate } from "@/lib/instance-update";
+// Note: NormalizedInstanceData, InstanceUpdate, and related types are now exported from ./schemas module above
 
 export interface InstanceStream {
   id?: string;
-  ts?: string;
   kind: string;
   timestamp?: number;
   update: InstanceStreamUpdateV1 | InstanceStreamUpdateV1_1;
