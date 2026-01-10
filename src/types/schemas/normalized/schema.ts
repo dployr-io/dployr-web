@@ -31,9 +31,7 @@ export const schemaVersionSchema = z.enum(["v1", "v1.1"]);
 export type SchemaVersion = z.infer<typeof schemaVersionSchema>;
 
 export const instanceSchema = z.object({
-  id: z.string(),
-  tag: z.string(),
-  address: z.string(),
+  tag: z.string()
 });
 
 /**

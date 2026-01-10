@@ -1,13 +1,13 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { FsNode, FileUpdateEvent } from "@/types";
+import type { NormalizedFsNode, FileUpdateEvent } from "@/types";
 
 /**
  * Consolidated file system map for efficient querying
  */
 export interface FileSystemMap {
-  byPath: Map<string, FsNode>;
+  byPath: Map<string, NormalizedFsNode>;
   byType: Map<"file" | "dir" | "symlink", Set<string>>;
   children: Map<string, Set<string>>;
   parents: Map<string, string>;
@@ -16,7 +16,7 @@ export interface FileSystemMap {
 /**
  * Consolidate a file tree into a flat, queryable structure
  */
-export function consolidateTree(root: FsNode): FileSystemMap {
+export function consolidateTree(root: NormalizedFsNode): FileSystemMap {
   const map: FileSystemMap = {
     byPath: new Map(),
     byType: new Map([
@@ -28,7 +28,7 @@ export function consolidateTree(root: FsNode): FileSystemMap {
     parents: new Map(),
   };
 
-  function traverse(node: FsNode, parentPath?: string) {
+  function traverse(node: NormalizedFsNode, parentPath?: string) {
     // Index by path
     map.byPath.set(node.path, node);
 
@@ -46,7 +46,7 @@ export function consolidateTree(root: FsNode): FileSystemMap {
 
     // Recurse through children
     if (node.children && node.children.length > 0) {
-      node.children.forEach((child) => traverse(child, node.path));
+      node.children.forEach((child: any) => traverse(child, node.path));
     }
   }
 
@@ -75,9 +75,9 @@ export function applyFileUpdate(
       // Update modification time if node exists
       const node = map.byPath.get(path);
       if (node && event.timestamp) {
-        node.mod_time = new Date(event.timestamp).toISOString();
+        node.modifiedAt = new Date(event.timestamp).toISOString();
         if (event.size !== undefined) {
-          node.size_bytes = event.size;
+          node.sizeBytes = event.size;
         }
       }
       break;
@@ -185,14 +185,14 @@ export const FileSystemQuery = {
   /**
    * Get a node by path
    */
-  getNode(map: FileSystemMap, path: string): FsNode | undefined {
+  getNode(map: FileSystemMap, path: string): NormalizedFsNode | undefined {
     return map.byPath.get(path);
   },
 
   /**
    * Get all files
    */
-  getAllFiles(map: FileSystemMap): FsNode[] {
+  getAllFiles(map: FileSystemMap): NormalizedFsNode[] {
     const filePaths = Array.from(map.byType.get("file") || []);
     return filePaths.map((path) => map.byPath.get(path)!).filter(Boolean);
   },
@@ -200,7 +200,7 @@ export const FileSystemQuery = {
   /**
    * Get all directories
    */
-  getAllDirs(map: FileSystemMap): FsNode[] {
+  getAllDirs(map: FileSystemMap): NormalizedFsNode[] {
     const dirPaths = Array.from(map.byType.get("dir") || []);
     return dirPaths.map((path) => map.byPath.get(path)!).filter(Boolean);
   },
@@ -208,7 +208,7 @@ export const FileSystemQuery = {
   /**
    * Get children of a directory
    */
-  getChildren(map: FileSystemMap, path: string): FsNode[] {
+  getChildren(map: FileSystemMap, path: string): NormalizedFsNode[] {
     const childPaths = Array.from(map.children.get(path) || []);
     return childPaths.map((childPath) => map.byPath.get(childPath)!).filter(Boolean);
   },
@@ -216,7 +216,7 @@ export const FileSystemQuery = {
   /**
    * Get parent of a node
    */
-  getParent(map: FileSystemMap, path: string): FsNode | undefined {
+  getParent(map: FileSystemMap, path: string): NormalizedFsNode | undefined {
     const parentPath = map.parents.get(path);
     return parentPath ? map.byPath.get(parentPath) : undefined;
   },
@@ -224,8 +224,8 @@ export const FileSystemQuery = {
   /**
    * Get all ancestors of a node (parent, grandparent, etc.)
    */
-  getAncestors(map: FileSystemMap, path: string): FsNode[] {
-    const ancestors: FsNode[] = [];
+  getAncestors(map: FileSystemMap, path: string): NormalizedFsNode[] {
+    const ancestors: NormalizedFsNode[] = [];
     let currentPath = path;
 
     while (true) {
@@ -245,8 +245,8 @@ export const FileSystemQuery = {
   /**
    * Get all descendants of a directory (recursive)
    */
-  getDescendants(map: FileSystemMap, path: string): FsNode[] {
-    const descendants: FsNode[] = [];
+  getDescendants(map: FileSystemMap, path: string): NormalizedFsNode[] {
+    const descendants: NormalizedFsNode[] = [];
     const childPaths = Array.from(map.children.get(path) || []);
 
     childPaths.forEach((childPath) => {
@@ -265,9 +265,9 @@ export const FileSystemQuery = {
   /**
    * Search nodes by name pattern
    */
-  searchByName(map: FileSystemMap, pattern: string | RegExp): FsNode[] {
+  searchByName(map: FileSystemMap, pattern: string | RegExp): NormalizedFsNode[] {
     const regex = typeof pattern === "string" ? new RegExp(pattern, "i") : pattern;
-    const results: FsNode[] = [];
+    const results: NormalizedFsNode[] = [];
 
     map.byPath.forEach((node) => {
       if (regex.test(node.name)) {
@@ -290,7 +290,7 @@ export const FileSystemQuery = {
 
     descendants.forEach((descendant) => {
       if (descendant.type === "file") {
-        totalSize += descendant.size_bytes;
+        totalSize += descendant.sizeBytes;
       }
     });
 

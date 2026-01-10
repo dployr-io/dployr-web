@@ -5,7 +5,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, InstanceStream, Service } from "@/types";
+import type { BreadcrumbItem, InstanceStream, NormalizedService } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProxyGraphVisualizer } from "@/components/proxy-graph/index";
@@ -88,14 +88,14 @@ function GraphPage() {
     
     const data = queryClient.getQueryData<InstanceStream>(["instance-status", currentInstance.tag]);
     const update = data?.update as any;
-    return (update?.services || []) as Service[];
+    return (update?.services || []) as NormalizedService[];
   }, [currentInstance?.tag, queryClient]);
 
   const _services = useMemo(() => {
     return services.map((service) => ({
       id: service.id,
       name: service.name,
-      port: service.port,
+      port: service.port || 80, // Default to port 80 if null
     }));
   }, [services]);
 

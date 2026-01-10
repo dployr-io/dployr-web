@@ -4,7 +4,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, Instance, InstanceStream, InstanceStreamUpdateV1 } from "@/types";
+import type { BreadcrumbItem, Instance } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -26,10 +26,9 @@ import { useClusterId } from "@/hooks/use-cluster-id";
 import { use2FA } from "@/hooks/use-2fa";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { StatusBadge } from "@/components/status-badge";
 import { DiskBrowserDialog } from "@/components/disk-browser";
+import { useInstanceStatus } from "@/hooks/use-instance-status";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/")({
   component: Instances,
@@ -55,17 +54,7 @@ function Instances() {
   const [selectedPlatform, setSelectedPlatform] = useState<"linux" | "windows">("linux");
   const [copied, setCopied] = useState(false);
   
-  const queryClient = useQueryClient();
-  useInstanceStream(); // Ensure stream is active
-  
-  // Get instance status data from cache using instance tag
-  const getInstanceStatus = (instanceTag: string): InstanceStreamUpdateV1 | null => {
-    const data = queryClient.getQueryData<InstanceStream>(["instance-status", instanceTag]);
-    if (data?.update?.schema === "v1") {
-      return data.update as InstanceStreamUpdateV1;
-    }
-    return null;
-  };
+  const { update, isConnected, error } = useInstanceStatus(); 
 
   async function handleCreateInstance() {
     const data = getFormData();
@@ -213,10 +202,10 @@ function Instances() {
                       </TableRow>
                     ))
                   : paginatedInstances.map((instance: Instance) => {
-                      const status = getInstanceStatus(instance.tag);
-                      const servicesCount = status?.services?.length ?? 0;
-                      const hasFs = !!status?.fs;
-                      const disks = status?.debug?.system?.disks;
+                      const servicesCount = update?.workloads?.services?.length ?? 0;
+                      const hasFs = !!update?.filesystem;
+                      const disks = update?.resources?.disks;
+                      const fs = update?.filesystem;
                       
                       return (
                       <TableRow
@@ -237,8 +226,8 @@ function Instances() {
                           </div>
                         </TableCell>
                         <TableCell className="h-16 max-w-[100px] align-middle">
-                          {status ? (
-                            <StatusBadge status={status.status} variant="compact" />
+                          {update ? (
+                            <StatusBadge status={update.health?.overall || "-"} variant="compact" />
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
@@ -306,7 +295,7 @@ function Instances() {
                                   <div>
                                     <DiskBrowserDialog
                                       disks={disks}
-                                      fs={status?.fs}
+                                      fs={fs}
                                       trigger={
                                         <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
                                           <HardDrive className="h-4 w-4 text-foreground" />

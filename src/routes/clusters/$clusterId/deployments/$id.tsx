@@ -1,10 +1,10 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, BlueprintFormat } from "@/types";
+import { type BreadcrumbItem, type BlueprintFormat, denormalize, type InstanceStreamUpdateV1_1 } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
 import { toJson, toYaml } from "@/lib/utils";
@@ -18,7 +18,7 @@ import { useDeployments } from "@/hooks/use-deployments";
 import { ArrowUpRightIcon, ChevronLeft, FileX2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { APP_LINKS } from "@/lib/constants";
+import { useInstanceStatus } from "@/hooks/use-instance-status";
 export const Route = createFileRoute("/clusters/$clusterId/deployments/$id")({
   component: ViewDeployment,
 });
@@ -41,9 +41,8 @@ const viewDeploymentBreadcrumbs = (clusterId?: string, deploymentId?: string, de
 function ViewDeployment() {
   const router = useRouter();
   const { clusterId } = Route.useParams();
-  const { selectedDeployment: deployment, selectedInstanceName, isLoading } = useDeployments();
-  const config = deployment?.config;
-  const breadcrumbs = viewDeploymentBreadcrumbs(clusterId, deployment?.id, deployment?.config?.name);
+  const { selectedDeployment: deployment, selectedInstanceName } = useDeployments();
+  const breadcrumbs = viewDeploymentBreadcrumbs(clusterId, deployment?.id, deployment?.name);
 
   const { useDeploymentTabsState } = useUrlState();
   const [{ tab, logRange, logLevel, duration }, setTabState] = useDeploymentTabsState();
@@ -72,6 +71,10 @@ function ViewDeployment() {
     selectedLevel: selectedLogLevel,
   });
 
+
+  const { update } = useInstanceStatus();
+  const config = denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null;
+
   const yamlConfig = config ? toYaml(config) : "";
   const jsonConfig = config ? toJson(config) : "";
 
@@ -94,36 +97,6 @@ function ViewDeployment() {
       stopStreaming();
     }
   }, [currentTab, deployment?.id, startStreaming, stopStreaming]);
-
-  if (isLoading) {
-    return (
-      <ProtectedRoute>
-        <AppLayout breadcrumbs={breadcrumbs}>
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </EmptyMedia>
-              <EmptyTitle>Retrieving Deployment...</EmptyTitle>
-              <EmptyDescription>This shouldn&apos;t take too long! Try refreshing your browser if you see this.</EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-              <div className="flex justify-center gap-2">
-                <Button asChild>
-                  <Link to="/clusters/$clusterId/deployments" params={{ clusterId }}>Deploy Service</Link>
-                </Button>
-                <Button variant="link" asChild className="text-muted-foreground" size="sm">
-                  <a href={APP_LINKS.DOCS.DEPLOYMENTS}>
-                    Learn More <ArrowUpRightIcon />
-                  </a>
-                </Button>
-              </div>
-            </EmptyContent>
-          </Empty>
-        </AppLayout>
-      </ProtectedRoute>
-    );
-  }
 
   if (!deployment) {
     return (
@@ -190,9 +163,9 @@ function ViewDeployment() {
                   />
                 </TabsContent>
                 <TabsContent value="blueprint">
-                  {config?.name ? (
+                  {config?.workloads?.services?.length ? (
                     <BlueprintSection
-                      name={config.name}
+                      name={deployment?.name || "Deployment"}
                       blueprintFormat={blueprintFormat}
                       yamlConfig={yamlConfig}
                       jsonConfig={jsonConfig}

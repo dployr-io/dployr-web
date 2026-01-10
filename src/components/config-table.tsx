@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toWordUpperCase } from "@/lib/utils";
 
 interface Props {
-  config: Record<string, string>;
+  config: Record<string, string | number | boolean>;
   editingKey: string | null;
   editValue: string;
   setEditValue: (value: React.SetStateAction<string>) => void;

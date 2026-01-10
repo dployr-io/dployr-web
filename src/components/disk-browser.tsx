@@ -309,8 +309,8 @@ export function FileBrowser({ fs, onSelectNode, className }: FileBrowserProps) {
 }
 
 interface DiskBrowserDialogProps {
-  disks?: DiskInfo[];
-  fs?: FsSnapshot;
+  disks?: DiskInfo[] | null;
+  fs?: FsSnapshot | null;
   trigger?: React.ReactNode;
   className?: string;
 }

@@ -44,8 +44,8 @@ function normalizeInstanceUpdate(update: InstanceStreamUpdateV1 | InstanceStream
       idle: u.top.cpu.idle,
     } : null,
     memory: u.top?.memory ? {
-      used_bytes: u.top.memory.used_bytes,
-      total_bytes: u.top.memory.total_bytes,
+      used_bytes: u.top.memory.used,
+      total_bytes: u.top.memory.total,
     } : null,
   };
 }

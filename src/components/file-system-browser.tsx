@@ -17,7 +17,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import type { FsNode, FsSnapshot } from "@/types";
+import type { NormalizedFilesystem, NormalizedFsNode } from "@/types";
 import {
   ChevronRight,
   ChevronDown,
@@ -39,33 +39,9 @@ import {
 import { formatBytes } from "./instance-metrics";
 import { useFileSystemMap } from "@/hooks/use-file-system-map";
 
-// Helper to normalize FsNode properties for both v1 and v1.1 formats
-function normalizeNode(node: FsNode): {
-  readable: boolean;
-  writable: boolean;
-  executable: boolean;
-  mode: string;
-  owner: string;
-  group: string;
-  modTime: string;
-  isDir: boolean;
-} {
-  const perms = node.permissions;
-  return {
-    readable: perms?.readable ?? node.readable ?? false,
-    writable: perms?.writable ?? node.writable ?? false,
-    executable: perms?.executable ?? node.executable ?? false,
-    mode: perms?.mode ?? node.mode ?? "-",
-    owner: perms?.owner ?? node.owner ?? "-",
-    group: perms?.group ?? node.group ?? "-",
-    modTime: node.modified_at ?? node.mod_time ?? "-",
-    isDir: node.type === "dir" || node.type === "directory",
-  };
-}
-
 interface FileSystemBrowserProps {
   instanceId: string;
-  fs?: FsSnapshot;
+  fs?: NormalizedFilesystem;
   clusterId: string;
   className?: string;
   onRefresh?: () => void;
@@ -74,19 +50,19 @@ interface FileSystemBrowserProps {
 interface FileOperation {
   type: "read" | "write" | "create" | "delete";
   path: string;
-  loading: boolean;
+  loading: boolean; 
   error?: string;
 }
 
 export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrowserProps) {
-  const [selectedNode, setSelectedNode] = useState<FsNode | null>(null);
+  const [selectedNode, setSelectedNode] = useState<NormalizedFsNode | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [fileContent, setFileContent] = useState<string>("");
   const [editedContent, setEditedContent] = useState<string>("");
   const [isEditing, setIsEditing] = useState(false);
   const [operation, setOperation] = useState<FileOperation | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<FsNode[]>([]);
+  const [searchResults, setSearchResults] = useState<NormalizedFsNode[]>([]);
   
   // Dialog states
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -147,27 +123,27 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
     }
   }, [map, searchQuery]);
 
-  const readFile = useCallback(async (node: FsNode) => {
-    const { readable } = normalizeNode(node);
+  const readFile = useCallback(async () => {
+    const { readable } = selectedNode?.permissions || {};
     if (!readable) return;
     
-    setOperation({ type: "read", path: node.path, loading: true });
-    setSelectedNode(node);
+    setOperation({ type: "read", path: selectedNode!.path, loading: true });
+    setSelectedNode(selectedNode);
     
     try {
-      const result = await fsReadFile(node.path);
+      const result = await fsReadFile(selectedNode!.path);
       setFileContent(result.content);
       setEditedContent(result.content);
       setOperation(null);
     } catch (error: any) {
       const message = error?.message || "Failed to read file";
-      setOperation({ type: "read", path: node.path, loading: false, error: message });
+      setOperation({ type: "read", path: selectedNode!.path, loading: false, error: message });
     }
   }, [fsReadFile]);
 
   const writeFile = useCallback(async () => {
-    const nodeProps = selectedNode ? normalizeNode(selectedNode) : null;
-    if (!selectedNode || !nodeProps?.writable) return;
+    const { writable } = selectedNode?.permissions || {};
+    if (!selectedNode || !writable) return;
     
     setOperation({ type: "write", path: selectedNode.path, loading: true });
     
@@ -201,12 +177,13 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
   }, [fsCreateItem, targetPath, newItemName, createType]);
 
   const deleteItem = useCallback(async () => {
-    if (!selectedNode) return;
+    const { writable } = selectedNode?.permissions || {};
+    if (!selectedNode || !writable) return;
     
     setOperation({ type: "delete", path: selectedNode.path, loading: true });
     
     try {
-      const recursive = normalizeNode(selectedNode).isDir;
+      const recursive = selectedNode.type === "dir";
       await fsDeleteItem(selectedNode.path, recursive);
       setShowDeleteDialog(false);
       setSelectedNode(null);
@@ -218,22 +195,22 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
     }
   }, [fsDeleteItem, selectedNode]);
 
-  const handleContextAction = useCallback((action: string, node: FsNode) => {
+  const handleContextAction = useCallback((action: string, node: NormalizedFsNode) => {
     switch (action) {
       case "view":
-        readFile(node);
+        readFile();
         break;
       case "edit":
-        readFile(node);
+        readFile();
         setIsEditing(true);
         break;
       case "new-file":
-        setTargetPath(normalizeNode(node).isDir ? node.path : node.path.substring(0, node.path.lastIndexOf("/")));
+        setTargetPath(node.path.substring(0, node.path.lastIndexOf("/")));
         setCreateType("file");
         setShowCreateDialog(true);
         break;
       case "new-folder":
-        setTargetPath(normalizeNode(node).isDir ? node.path : node.path.substring(0, node.path.lastIndexOf("/")));
+        setTargetPath(node.path.substring(0, node.path.lastIndexOf("/")));
         setCreateType("dir");
         setShowCreateDialog(true);
         break;
@@ -244,17 +221,13 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
     }
   }, [readFile]);
 
-  const getParentWritable = useCallback((node: FsNode): boolean => {
+  const getParentWritable = useCallback((node: NormalizedFsNode): boolean => {
     // For root nodes, assume writable if the node itself is writable
-    // In a real implementation, you'd check the parent directory
-    const { writable } = normalizeNode(node);
-    return writable;
+    const { writable } = node.permissions || {};
+    return writable || false;
   }, []);
 
-  // Use map data if available, fallback to fs snapshot
-  const displayRoots = rootNode ? [rootNode] : (fs?.roots || []);
-
-  if (displayRoots.length === 0 && !mapLoading) {
+  if (fs?.roots.length === 0 && !mapLoading) {
     return (
       <div className={cn("flex items-center justify-center h-64 text-muted-foreground", className)}>
         No filesystem data available
@@ -317,7 +290,7 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
                   onClick={() => {
                     setSelectedNode(node);
                     if (node.type === "file") {
-                      readFile(node);
+                      readFile();
                     }
                   }}
                 >
@@ -336,7 +309,7 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
             </div>
           ) : (
             <div className="p-2">
-              {displayRoots.map((root, idx) => (
+              {(fs?.roots || []).map((root, idx) => (
                 <FileTreeNode
                   key={`${root.path}-${idx}`}
                   node={root}
@@ -382,21 +355,21 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
                 )}
                 <span className="text-sm font-medium truncate">{selectedNode.name}</span>
                 <div className="flex gap-1">
-                  {normalizeNode(selectedNode).readable && <Badge variant="outline" className="text-[10px] px-1 py-0">R</Badge>}
-                  {normalizeNode(selectedNode).writable && <Badge variant="outline" className="text-[10px] px-1 py-0">W</Badge>}
-                  {normalizeNode(selectedNode).executable && <Badge variant="outline" className="text-[10px] px-1 py-0">X</Badge>}
+                  {selectedNode.permissions?.readable && <Badge variant="outline" className="text-[10px] px-1 py-0">R</Badge>}
+                  {selectedNode.permissions?.writable && <Badge variant="outline" className="text-[10px] px-1 py-0">W</Badge>}
+                  {selectedNode.permissions?.executable && <Badge variant="outline" className="text-[10px] px-1 py-0">X</Badge>}
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {selectedNode.type === "file" && selectedNode.readable && !isEditing && (
+                {selectedNode.type === "file" && selectedNode.permissions?.writable && !isEditing && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      readFile(selectedNode);
+                      readFile();
                       setIsEditing(true);
                     }}
-                    disabled={!normalizeNode(selectedNode).writable || operation?.loading}
+                    disabled={!selectedNode.permissions?.writable || operation?.loading}
                   >
                     <Pencil className="h-3.5 w-3.5 mr-1" />
                     Edit
@@ -447,9 +420,9 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
             {/* File Info */}
             <div className="px-3 py-2 border-b bg-muted/30 text-xs text-muted-foreground flex items-center gap-4">
               <span>{selectedNode.path}</span>
-              <span>{formatBytes(selectedNode.size_bytes)}</span>
-              <span>{normalizeNode(selectedNode).owner}:{normalizeNode(selectedNode).group}</span>
-              <span className="font-mono">{normalizeNode(selectedNode).mode}</span>
+              <span>{formatBytes(selectedNode.sizeBytes)}</span>
+              <span>{selectedNode.owner}:{selectedNode.group}</span>
+              <span className="font-mono">{selectedNode.mode}</span>
             </div>
 
             {/* Content */}
@@ -569,14 +542,14 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
 }
 
 interface FileTreeNodeProps {
-  node: FsNode;
+  node: NormalizedFsNode;
   depth: number;
   expandedPaths: Set<string>;
   selectedPath?: string;
   onToggle: (path: string) => void;
-  onSelect: (node: FsNode) => void;
-  onContextAction: (action: string, node: FsNode) => void;
-  getParentWritable: (node: FsNode) => boolean;
+  onSelect: (node: NormalizedFsNode) => void;
+  onContextAction: (action: string, node: NormalizedFsNode) => void;
+  getParentWritable: (node: NormalizedFsNode) => boolean;
   onExpand?: (path: string) => Promise<void>;
 }
 
@@ -593,9 +566,8 @@ function FileTreeNode({
 }: FileTreeNodeProps) {
   const isExpanded = expandedPaths.has(node.path);
   const isSelected = selectedPath === node.path;
-  const nodeProps = normalizeNode(node);
-  const hasChildren = nodeProps.isDir && node.children && node.children.length > 0;
-  const isDir = nodeProps.isDir;
+  const hasChildren = node.children && node.children.length > 0;
+  const isDir = node.type === "dir";
   const isSymlink = node.type === "symlink";
   const parentWritable = getParentWritable(node);
 
@@ -619,7 +591,7 @@ function FileTreeNode({
             className={cn(
               "flex items-center gap-1 py-1 px-2 rounded-md cursor-pointer group",
               isSelected ? "bg-accent" : "hover:bg-muted/50",
-              !nodeProps.readable && "opacity-50"
+              !node.permissions?.readable && "opacity-50"
             )}
             style={{ paddingLeft: `${depth * 16 + 8}px` }}
             onClick={async () => {
@@ -663,7 +635,7 @@ function FileTreeNode({
             </span>
             {node.truncated && (
               <Badge variant="outline" className="text-[10px] px-1 py-0">
-                +{node.child_count}
+                +{node.childCount}
               </Badge>
             )}
           </div>
@@ -673,14 +645,14 @@ function FileTreeNode({
             <>
               <ContextMenuItem
                 onClick={() => onContextAction("view", node)}
-                disabled={!nodeProps.readable}
+                disabled={!node.permissions?.readable}
               >
                 <Eye className="h-4 w-4 mr-2" />
                 View
               </ContextMenuItem>
               <ContextMenuItem
                 onClick={() => onContextAction("edit", node)}
-                disabled={!nodeProps.readable || !nodeProps.writable}
+                disabled={!node.permissions?.readable || !node.permissions?.writable}
               >
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
@@ -692,14 +664,14 @@ function FileTreeNode({
             <>
               <ContextMenuItem
                 onClick={() => onContextAction("new-file", node)}
-                disabled={!nodeProps.writable}
+                disabled={!node.permissions?.writable}
               >
                 <FilePlus className="h-4 w-4 mr-2" />
                 New File
               </ContextMenuItem>
               <ContextMenuItem
                 onClick={() => onContextAction("new-folder", node)}
-                disabled={!nodeProps.writable}
+                disabled={!node.permissions?.writable}
               >
                 <FolderPlus className="h-4 w-4 mr-2" />
                 New Folder
@@ -730,7 +702,7 @@ function FileTreeNode({
               onToggle={onToggle}
               onSelect={onSelect}
               onContextAction={onContextAction}
-              getParentWritable={() => normalizeNode(node).writable}
+              getParentWritable={(node) => node.permissions?.writable ?? false}
               onExpand={onExpand}
             />
           ))}

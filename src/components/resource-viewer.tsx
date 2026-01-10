@@ -7,57 +7,12 @@ import { Activity, Clock, ChevronDown, ChevronUp, Cpu, MemoryStick, Loader2, Tre
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Area, AreaChart, ResponsiveContainer,  YAxis } from "recharts";
-import type { ProcessV1, ProcessV1_1, ProcessHistorySnapshot, ProcessTimeWindow } from "@/types";
+import type { NormalizedProcess, ProcessSnapshot, ProcessTimeWindow, ProcessV1_1 } from "@/types";
+import type { NormalizedProcessSummary } from "@/types/schemas/normalized/entities/";
+import type { Process } from "@/types/schemas/v1.1";
 
-interface NormalizedProcess {
-  pid: number;
-  user: string;
-  priority: number;
-  nice: number;
-  virtualMemoryBytes: number;
-  residentMemoryBytes: number;
-  sharedMemoryBytes: number;
-  state: string;
-  cpuPercent: number;
-  memoryPercent: number;
-  cpuTime: string;
-  command: string;
-}
-
-function normalizeProcess(p: ProcessV1 | ProcessV1_1): NormalizedProcess {
-  if ("virtual_memory_bytes" in p) {
-    return {
-      pid: p.pid,
-      user: p.user,
-      priority: p.priority,
-      nice: p.nice,
-      virtualMemoryBytes: p.virtual_memory_bytes,
-      residentMemoryBytes: p.resident_memory_bytes,
-      sharedMemoryBytes: p.shared_memory_bytes,
-      state: p.state,
-      cpuPercent: p.cpu_percent,
-      memoryPercent: p.memory_percent,
-      cpuTime: p.cpu_time,
-      command: p.command,
-    };
-  }
-  return {
-    pid: p.pid,
-    user: p.user,
-    priority: p.priority,
-    nice: p.nice,
-    virtualMemoryBytes: p.virt_mem,
-    residentMemoryBytes: p.res_mem,
-    sharedMemoryBytes: p.shr_mem,
-    state: p.state,
-    cpuPercent: p.cpu_pct,
-    memoryPercent: p.mem_pct,
-    cpuTime: p.time,
-    command: p.command,
-  };
-}
-
-function formatBytes(bytes: number): string {
+function formatBytes(bytes: number | undefined | null): string {
+  if (bytes == null || isNaN(bytes)) return "0B";
   if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}G`;
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)}K`;
@@ -72,15 +27,9 @@ type SortField = "cpu" | "memory" | "pid" | "command";
 type SortDirection = "asc" | "desc";
 
 interface ProcessViewerProps {
-  processes?: (ProcessV1 | ProcessV1_1)[];
-  processSummary?: {
-    total: number;
-    running: number;
-    sleeping: number;
-    stopped: number;
-    zombie: number;
-  };
-  historySnapshots?: ProcessHistorySnapshot[];
+  processes?: NormalizedProcess[];
+  processSummary?: NormalizedProcessSummary;
+  historySnapshots?: ProcessSnapshot[];
   timeWindow?: ProcessTimeWindow;
   onTimeWindowChange?: (window: ProcessTimeWindow) => void;
   isLoadingHistory?: boolean;
@@ -103,32 +52,24 @@ export function ProcessViewer({
   const [showHistoricalChart, setShowHistoricalChart] = useState(true);
 
   const displayProcesses = useMemo(() => {
-    let procs: (ProcessV1 | ProcessV1_1)[] = [];
-
-    if (timeWindow === "live") {
-      procs = processes || [];
-    } else if (historySnapshots.length > 0) {
-      const snapshot = historySnapshots[selectedSnapshotIndex];
-      procs = (snapshot?.data?.list as (ProcessV1 | ProcessV1_1)[]) || [];
-    }
-
-    const normalized = procs.map(normalizeProcess);
-
-    normalized.sort((a, b) => {
+    if (!processes) return [];
+    
+    const sortedProcesses = [...processes];
+    sortedProcesses.sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
         case "cpu": cmp = a.cpuPercent - b.cpuPercent; break;
-        case "memory": cmp = a.memoryPercent - b.memoryPercent; break;
+        case "memory": cmp = a.memPercent - b.memPercent; break;
         case "pid": cmp = a.pid - b.pid; break;
         case "command": cmp = a.command.localeCompare(b.command); break;
       }
       return sortDirection === "desc" ? -cmp : cmp;
     });
 
-    return normalized;
-  }, [processes, historySnapshots, selectedSnapshotIndex, timeWindow, sortField, sortDirection]);
+    return sortedProcesses;
+  }, [processes, sortField, sortDirection]);
 
-  const visibleProcesses = expanded ? displayProcesses : displayProcesses.slice(0, 5);
+  const visibleProcesses = expanded ? displayProcesses : displayProcesses?.slice(0, 5);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -160,7 +101,7 @@ export function ProcessViewer({
     if (historySnapshots.length < 2) return [];
 
     return historySnapshots.map((snapshot, idx) => {
-      const procs = (snapshot?.data?.list as (ProcessV1 | ProcessV1_1)[]) || [];
+      const procs = (snapshot?.data?.list as Process[]) || [];
       const time = new Date(snapshot.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
       // Count processes by state
@@ -169,8 +110,7 @@ export function ProcessViewer({
       let totalMem = 0;
       
       procs.forEach(p => {
-        const normalized = normalizeProcess(p);
-        const state = normalized.state.toLowerCase();
+        const state = p.state.toLowerCase();
         
         if (state === 'running' || state === 'r') states.running++;
         else if (state === 'sleeping' || state === 'sleep' || state === 's') states.sleeping++;
@@ -178,8 +118,8 @@ export function ProcessViewer({
         else if (state === 'zombie' || state === 'z') states.zombie++;
         else states.other++;
         
-        totalCpu += normalized.cpuPercent;
-        totalMem += normalized.memoryPercent;
+        totalCpu += p.cpu_percent;
+        totalMem += p.memory_percent;
       });
       
       return {
@@ -375,7 +315,7 @@ export function ProcessViewer({
                     className={cn(
                       "border-b border-border/40 hover:bg-muted/30 transition-colors",
                       proc.cpuPercent > 50 && "bg-red-500/5",
-                      proc.memoryPercent > 50 && "bg-orange-500/5"
+                      proc.memPercent > 50 && "bg-orange-500/5"
                     )}
                   >
                     <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground">{proc.pid}</td>
@@ -393,15 +333,15 @@ export function ProcessViewer({
                     <td className="px-4 py-2.5 text-right">
                       <span className={cn(
                         "font-mono text-[11px]",
-                        proc.memoryPercent > 80 && "text-red-500 font-semibold",
-                        proc.memoryPercent > 50 && proc.memoryPercent <= 80 && "text-orange-500 font-medium",
-                        proc.memoryPercent <= 50 && "text-foreground"
+                        proc.memPercent > 80 && "text-red-500 font-semibold",
+                        proc.memPercent > 50 && proc.memPercent <= 80 && "text-orange-500 font-medium",
+                        proc.memPercent <= 50 && "text-foreground"
                       )}>
-                        {proc.memoryPercent.toFixed(1)}%
+                        {proc.memPercent.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-[11px] text-muted-foreground">{formatBytes(proc.residentMemoryBytes)}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-[11px] text-muted-foreground">{formatBytes(proc.virtualMemoryBytes)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-[11px] text-muted-foreground">{formatBytes(proc.resMem)}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-[11px] text-muted-foreground">{formatBytes(proc.virtMem)}</td>
                     <td className="px-4 py-2.5 text-center">
                       <Tooltip>
                         <TooltipTrigger>
@@ -418,7 +358,7 @@ export function ProcessViewer({
                         <TooltipContent className="font-mono text-xs">{proc.state}</TooltipContent>
                       </Tooltip>
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-[11px] text-muted-foreground">{proc.cpuTime}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-[11px] text-muted-foreground">{proc.time}</td>
                     <td className="px-4 py-2.5 max-w-[200px]">
                       <Tooltip>
                         <TooltipTrigger asChild>

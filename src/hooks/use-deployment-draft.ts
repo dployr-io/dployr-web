@@ -27,7 +27,6 @@ export interface DeploymentDraft {
   };
   domain: string;
   updatedAt: number;
-  clusterId: string;
 }
 
 export interface DeploymentDraftValidation {
@@ -142,9 +141,6 @@ export function useDeploymentDraft() {
     setDrafts(storedDrafts);
   }, []);
 
-  // Get drafts for current cluster
-  const clusterDrafts = drafts.filter(d => d.clusterId === clusterId);
-
   // Check if current draft has unsaved changes
   const hasUnsavedChanges = useCallback(() => {
     if (!currentDraft) return false;
@@ -164,7 +160,6 @@ export function useDeploymentDraft() {
       ...DEFAULT_DRAFT,
       id: generateId(),
       updatedAt: Date.now(),
-      clusterId: clusterId || "",
     };
     setCurrentDraft(newDraft);
     setIsDirty(false);
@@ -278,7 +273,6 @@ export function useDeploymentDraft() {
       const parsed = JSON.parse(json);
       const draft: DeploymentDraft = {
         id: currentDraft?.id || generateId(),
-        clusterId: clusterId || "",
         updatedAt: Date.now(),
         name: parsed.name || "",
         description: parsed.description || "",
@@ -319,7 +313,7 @@ export function useDeploymentDraft() {
   return {
     // State
     currentDraft,
-    drafts: clusterDrafts,
+    drafts,
     isDirty,
     hasUnsavedChanges,
 

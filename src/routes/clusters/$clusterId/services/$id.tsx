@@ -4,10 +4,10 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, BlueprintFormat, Runtime, Service } from "@/types";
+import { type BreadcrumbItem, type BlueprintFormat, type Runtime, type NormalizedService, denormalize, type InstanceStreamUpdateV1_1, type NormalizedInstanceData } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronLeft, CirclePlus, Edit2, FileX2, Globe, Loader2, Save, StopCircle, X } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, Edit2, FileX2, Globe, Loader2, Save, StopCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
@@ -29,12 +29,15 @@ import { ulid } from "ulid";
 import { BlueprintSection } from "@/components/blueprint";
 import { toJson, toYaml } from "@/lib/utils";
 import { useCallback, useMemo, useState } from "react";
+import { useInstanceStatus } from "@/hooks/use-instance-status";
+import { useInstances } from "@/hooks/use-instances";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
 });
 
-const viewServiceBreadcrumbs = (service: Service | null, clusterId?: string): BreadcrumbItem[] => {
+const viewServiceBreadcrumbs = (service: NormalizedService | null, clusterId?: string): BreadcrumbItem[] => {
   const base = clusterId ? `/clusters/${clusterId}/services` : "/services";
 
   return [
@@ -52,6 +55,8 @@ const viewServiceBreadcrumbs = (service: Service | null, clusterId?: string): Br
 function ViewService() {
   const router = useRouter();
   const { selectedService: service, isLoading } = useServices();
+  const { instances } = useInstances();
+  const queryClient = useQueryClient();
   const { handleStartCreate } = useDeploymentCreator();
   const { clusterId, userCluster } = useClusters();
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
@@ -60,6 +65,18 @@ function ViewService() {
   const currentTab = (tab || "overview") as "overview" | "logs" | "env" | "settings";
   const navigate = useNavigate();
   const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("yaml");
+
+  // Find the instance that contains this service
+  const instance = useMemo(() => {
+    if (!service?.id || !instances) return null;
+    for (const inst of instances) {
+      const cachedData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", inst.id]);
+      if (cachedData?.workloads?.services?.some(s => s.id === service.id)) {
+        return inst;
+      }
+    }
+    return null;
+  }, [service?.id, instances, queryClient]);
 
   const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useServiceEnv(service);
 
@@ -72,21 +89,31 @@ function ViewService() {
     handleStartEdit,
     handleCancelEdit,
     handleSave: handleSaveEdit,
-  } = useServiceEditor(service, clusterId || "");
+  } = useServiceEditor(service, clusterId || "", instance?.tag || "");
 
   const {
     handleRemoveService,
   } = useServiceRemove();
 
+  // Get normalized data and denormalize to get blueprint structure
+  const { update } = useInstanceStatus();
+  const denormalizedData = useMemo(() => denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null, [update]);
+
   const yamlConfig = useMemo(() => {
-    if (!service?.blueprint) return "";
-    return toYaml(service.blueprint);
-  }, [service?.blueprint]);
+    if (!denormalizedData?.workloads?.services?.length) return "";
+    // Find the specific service in the denormalized data
+    const serviceBlueprint = denormalizedData.workloads.services.find((s: any) => s.id === service?.id);
+    if (!serviceBlueprint) return "";
+    return toYaml(serviceBlueprint);
+  }, [denormalizedData, service?.id]);
 
   const jsonConfig = useMemo(() => {
-    if (!service?.blueprint) return "";
-    return toJson(service.blueprint);
-  }, [service?.blueprint]);
+    if (!denormalizedData?.workloads?.services?.length) return "";
+    // Find the specific service in the denormalized data
+    const serviceBlueprint = denormalizedData.workloads.services.find((s: any) => s.id === service?.id);
+    if (!serviceBlueprint) return "";
+    return toJson(serviceBlueprint);
+  }, [denormalizedData, service?.id]);
 
   const handleBlueprintCopy = useCallback(() => {
     const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
@@ -187,17 +214,17 @@ function ViewService() {
                   <>
                     <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
                       <MetricCard label="Name" value={service.name} />
-                      <MetricCard label="Port" value={<span className="font-mono">{service.port || service.blueprint?.port}</span>} />
+                      <MetricCard label="Port" value={<span className="font-mono">{service.port}</span>} />
                       <MetricCard
                         label="Runtime"
                         value={
                           <div className="flex items-center gap-2">
-                            {getRuntimeIcon((service.runtime || "custom") as Runtime)}
-                            <span>{service.runtime}</span>
+                            {getRuntimeIcon((service.runtime?.type || "custom") as Runtime)}
+                            <span>{service.runtime?.type}</span>
                           </div>
                         }
                       />
-                      <MetricCard label="Created" value={<TimeAgo date={service.created_at} />} />
+                      <MetricCard label="Created" value={<TimeAgo date={service.createdAt} />} />
                     </div>
 
                     {service.description && (
@@ -215,7 +242,7 @@ function ViewService() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
                           <Globe className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-mono text-sm">{service.domain ? service.domain : `${service.name}.${userCluster?.name}.dployr.io`}</span>
+                          <span className="font-mono text-sm">{`${service.name}.${userCluster?.name}.dployr.io`}</span>
                         </div>
                       </div>
                     </div>
@@ -291,7 +318,7 @@ function ViewService() {
               </TabsContent>
 
               <TabsContent value="blueprint" className="mt-4">
-                {service?.blueprint ? (
+                {service ? (
                   <BlueprintSection
                     name={service.name}
                     blueprintFormat={blueprintFormat}

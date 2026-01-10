@@ -153,7 +153,6 @@ export function useDeploymentCreator() {
   const resetBlueprint = useCallback(() => {
     const defaultContent = getDefaultTemplate(blueprintFormat);
     setBlueprintContent(defaultContent);
-    // Also reset the draft to default values
     if (currentDraft) {
       fromBlueprint(JSON.stringify({
         name: "",

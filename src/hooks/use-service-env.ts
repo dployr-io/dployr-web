@@ -2,28 +2,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import type { Service, InstanceStream } from "@/types";
+import type { NormalizedService } from "@/types";
 import { useDeployment, DEPLOYMENT_ERRORS } from "./use-deployment";
 import { useUrlState } from "./use-url-state";
+import { useInstanceStatus } from "./use-instance-status";
 
-export function useServiceEnv(service: Service | null) {
-  const queryClient = useQueryClient();
+export function useServiceEnv(service: NormalizedService | null) {
+  const { update } = useInstanceStatus();
   const { deploy } = useDeployment();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
 
-  const config = service?.blueprint?.env_vars || {};
+  const config = service?.envVars || {};
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
   const handleEdit = useCallback((key: string) => {
     setEditingKey(key);
-    setEditValue(config[key] || "");
+    setEditValue(String(config[key] || ""));
   }, [config]);
 
   const handleSave = useCallback((key: string) => {
-    if (!service || !service.blueprint) {
+    if (!service) {
       setAppError({
         appError: {
           message: DEPLOYMENT_ERRORS.BLUEPRINT_NOT_FOUND,
@@ -33,26 +33,27 @@ export function useServiceEnv(service: Service | null) {
       return;
     }
 
-    // Update the env_vars with the new value
     const updatedEnvVars = {
       ...config,
       [key]: editValue,
     };
 
-    // Construct deployment payload from service blueprint
     const payload = {
-      ...service.blueprint,
+      name: service.name,
+      description: service.description,
+      source: service.source,
+      runtime: service.runtime,
+      remote: service.remote,
+      run_cmd: service.runCmd,
+      build_cmd: service.buildCmd,
+      port: service.port,
+      working_dir: service.workingDir,
       env_vars: updatedEnvVars,
+      secrets: service.secrets,
     };
-
-    // Find the instance that contains this service
-    const allCachedData = queryClient.getQueriesData<InstanceStream>({ queryKey: ['instance-status'] });
-    const targetInstance = allCachedData.find(([, data]) => {
-      const services = data?.update?.services;
-      return services?.some(s => s.id === service.id || s.name === service.name);
-    });
+    const targetInstance = update?.workloads?.services?.find(s => s.id === service.id || s.name === service.name);
     
-    const instanceId = targetInstance?.[1]?.update?.instance_id;
+    const instanceId = targetInstance?.id;
     
     if (!instanceId) {
       setAppError({
@@ -70,7 +71,7 @@ export function useServiceEnv(service: Service | null) {
       setEditingKey(null);
       setEditValue("");
     }
-  }, [service, config, editValue, deploy, setAppError, queryClient]);
+  }, [service, config, editValue, deploy, setAppError]);
 
   const handleCancel = useCallback(() => {
     setEditingKey(null);

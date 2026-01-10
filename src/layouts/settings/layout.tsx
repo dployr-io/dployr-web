@@ -13,7 +13,7 @@ import { useConfirmation } from "@/hooks/use-confirmation";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { use2FA } from "@/hooks/use-2fa";
-import { useClusterContext } from "@/hooks/use-cluster-context";
+import { useClusterId } from "@/hooks/use-cluster-id";
 
 interface SettingsLayoutProps extends PropsWithChildren {
   twoFactor: ReturnType<typeof use2FA>;
@@ -21,7 +21,7 @@ interface SettingsLayoutProps extends PropsWithChildren {
 }
 
 export default function SettingsLayout({ children, twoFactor, confirmation }: SettingsLayoutProps) {
-  const { clusterId } = useClusterContext();
+  const clusterId = useClusterId();
   const location = useLocation();
   const { useAppError, useAppNotification, useAutoInitializeAppState } = useUrlState();
   const [{ appError }, setError] = useAppError();

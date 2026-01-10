@@ -59,8 +59,8 @@ export function MiniSparkline({ data, type, width = 60, height = 20, className }
 }
 
 // Helper to format bytes
-export function formatBytes(bytes: number, decimals = 1): string {
-  if (bytes === 0) return "0 B";
+export function formatBytes(bytes: number | undefined | null, decimals = 1): string {
+  if (bytes == null || isNaN(bytes) || bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

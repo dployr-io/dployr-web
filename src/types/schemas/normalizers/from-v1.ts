@@ -308,6 +308,9 @@ function normalizeDiagnostics(update: InstanceStreamUpdateV1): NormalizedDiagnos
 export function normalizeFromV1(update: InstanceStreamUpdateV1): NormalizedInstanceData {
   return {
     schema: "v1",
+    instance: {
+      tag: update.instance_id,
+    },
     agent: normalizeAgent(update),
     status: normalizeStatus(update),
     health: normalizeHealth(update.health),

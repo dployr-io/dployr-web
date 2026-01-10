@@ -3,8 +3,9 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useInstanceStream } from "./use-instance-stream";
-import type { FsTaskRequest, FsNode, FileUpdateEvent, FileWatchCallback } from "@/types";
+import type { FsTaskRequest, NormalizedFilesystem, FileUpdateEvent, FileWatchCallback } from "@/types";
 import { ulid } from "ulid";
+import type { FsNode } from "@/types/schemas/v1.1";
 
 interface FileSystemState {
   isLoading: boolean;

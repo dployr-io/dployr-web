@@ -4,9 +4,10 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useClusterId } from "./use-cluster-id";
 import { useQueryClient } from "@tanstack/react-query";
-import type { InstanceStream } from "@/types";
-import { persistCacheToStorage, addMemoryProfileEntry, persistMemoryProfiles } from "@/lib/query-cache-persistence";
+import type { InstanceStream, NormalizedInstanceData } from "@/types";
+import { persistCacheToStorage, persistMemoryProfiles } from "@/lib/query-cache-persistence";
 import { useUrlState } from "./use-url-state";
+import { normalizeInstanceUpdate } from "@/lib/instance-update";
 
 export type StreamConnectionState = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -144,14 +145,24 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
         
         if (message.kind === "update") {
           const data = message as InstanceStream;
-          const instanceId = data.update?.instance_id;
+          const update = data.update;
+          const instanceId = update?.instance_id;
           
           if (instanceId) {
-            queryClient.setQueryData<InstanceStream>(["instance-status", instanceId], data);
+            const instancesData = queryClient.getQueryData<any>(["instances", clusterId, 1, 8]);
+            const instance = instancesData?.items?.find((i: any) => i.tag === instanceId);
+            const normalizedUpdate = normalizeInstanceUpdate(update);
             
-            // Add memory profile entry if v1 schema with top metrics
-            if (data.update?.schema === "v1" && data.update?.top?.memory) {
-              addMemoryProfileEntry(instanceId, data.update);
+            // Ensure we have a complete normalized object and add instance information
+            if (normalizedUpdate) {
+              const updateWithInstance: NormalizedInstanceData = {
+                ...normalizedUpdate,
+                instance: {
+                  tag: instance?.tag || "",
+                }
+              };
+              
+              queryClient.setQueryData<NormalizedInstanceData | null>(["instance-status", instanceId], updateWithInstance);
             }
             
             // Debounce cache persistence

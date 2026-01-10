@@ -20,11 +20,16 @@ import {
 export const instanceStreamUpdateV1_1Schema = z.object({
   // Required metadata
   schema: z.literal("v1.1"),
-  sequence: z.number(),
-  epoch: z.string(),
-  instance_id: z.string(),
-  timestamp: z.string(),
-  is_full_sync: z.boolean(),
+  sequence: z.number().optional(),
+  epoch: z.string().optional(),
+  instance_id: z.string().optional(),
+  timestamp: z.string().optional(),
+  is_full_sync: z.boolean().optional(),
+
+  // Instance info (alternative to instance_id)
+  instance: z.object({
+    tag: z.string(),
+  }).optional(),
 
   // Optional data 
   agent: agentSchema.optional(),
@@ -60,5 +65,6 @@ export function safeParseV1_1(data: unknown): InstanceStreamUpdateV1_1 | null {
  */
 export function isV1_1(data: unknown): data is InstanceStreamUpdateV1_1 {
   if (!data || typeof data !== "object") return false;
-  return (data as Record<string, unknown>).schema === "v1.1";
+  const result = instanceStreamUpdateV1_1Schema.safeParse(data);
+  return result.success;
 }

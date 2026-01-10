@@ -89,7 +89,7 @@ function normalizeResources(resources: InstanceStreamUpdateV1_1["resources"]): N
             : undefined,
         }
       : null,
-    memory: resources.memory
+    memory: resources.memory && resources.memory.total_bytes !== undefined
       ? {
           totalBytes: resources.memory.total_bytes,
           usedBytes: resources.memory.used_bytes,
@@ -98,7 +98,7 @@ function normalizeResources(resources: InstanceStreamUpdateV1_1["resources"]): N
           bufferCacheBytes: resources.memory.buffer_cache_bytes,
         }
       : null,
-    swap: resources.swap
+    swap: resources.swap && resources.swap.total_bytes !== undefined
       ? {
           totalBytes: resources.swap.total_bytes,
           usedBytes: resources.swap.used_bytes,
@@ -298,9 +298,7 @@ export function normalizeFromV1_1(update: InstanceStreamUpdateV1_1): NormalizedI
   return {
     schema: "v1.1",
     instance: {
-      id: update.instance_id,
-      tag: "",
-      address: "",
+      tag: update.instance_id || update.instance?.tag || "",
     },
     agent: normalizeAgent(update.agent),
     status: normalizeStatus(update.status),

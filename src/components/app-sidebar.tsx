@@ -6,15 +6,15 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { type NavItem } from "@/types";
-import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, CircleGauge, Factory, LayoutGrid, Logs, MessageCircleQuestion, Server, Settings2, SquareChevronRight } from "lucide-react";
+import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, CircleGauge, Factory, LayoutGrid, MessageCircleQuestion, Server, Settings2, SquareChevronRight } from "lucide-react";
 import AppLogo from "./app-logo";
-import { useClusterContext } from "@/hooks/use-cluster-context";
 import { useAuth } from "@/hooks/use-auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Link } from "@tanstack/react-router";
+import { useClusterId } from "@/hooks/use-cluster-id";
 
 export function AppSidebar() {
-  const { clusterId } = useClusterContext();
+  const clusterId = useClusterId();
   const { clusters } = useAuth();
 
   function getClusterName(

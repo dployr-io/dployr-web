@@ -4,15 +4,17 @@
 import { useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ulid } from "ulid";
-import type { Service, InstanceStream } from "@/types";
+import type { NormalizedService } from "@/types";
 import { useDeployment, DEPLOYMENT_ERRORS } from "./use-deployment";
 import { useUrlState } from "./use-url-state";
 import { useInstanceStream } from "./use-instance-stream";
+import { useInstanceStatus } from "./use-instance-status";
 
-export function useServiceEditor(service: Service | null, clusterId: string) {
+export function useServiceEditor(service: NormalizedService | null, clusterId: string, instanceName: string) {
   const queryClient = useQueryClient();
   const { deploy } = useDeployment();
   const { sendJson, isConnected: wsConnected } = useInstanceStream();
+  const { update } = useInstanceStatus();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
 
@@ -25,8 +27,8 @@ export function useServiceEditor(service: Service | null, clusterId: string) {
 
   const handleStartEdit = useCallback(() => {
     if (!service) return;
-    setEditedName(service.blueprint?.name || service.name);
-    setEditedDescription(service.blueprint?.description || service.description);
+    setEditedName(service.name);
+    setEditedDescription(service.description || "");
     setSecrets({});
     setIsEditMode(true);
   }, [service]);
@@ -106,7 +108,7 @@ export function useServiceEditor(service: Service | null, clusterId: string) {
   }, []);
 
   const handleSave = useCallback(() => {
-    if (!service || !service.blueprint) {
+    if (!service) {
       setAppError({
         appError: {
           message: DEPLOYMENT_ERRORS.BLUEPRINT_NOT_FOUND,
@@ -127,20 +129,31 @@ export function useServiceEditor(service: Service | null, clusterId: string) {
     }
 
     const payload = {
-      ...service.blueprint,
       name: editedName,
       description: editedDescription || undefined,
-      secrets: Object.keys(secrets).length > 0 ? secrets : undefined,
+      source: service.source,
+      runtime: service.runtime,
+      remote: service.remote,
+      run_cmd: service.runCmd,
+      build_cmd: service.buildCmd,
+      port: service.port,
+      working_dir: service.workingDir,
+      env_vars: service.envVars,
+      secrets: Object.keys(secrets).length > 0 ? secrets : service.secrets,
     };
 
     // Find the instance that contains this service
-    const allCachedData = queryClient.getQueriesData<InstanceStream>({ queryKey: ['instance-status'] });
-    const targetInstance = allCachedData.find(([, data]) => {
-      const services = data?.update?.services;
-      return services?.some(s => s.id === service.id || s.name === service.name);
-    });
+    const targetService = update?.workloads?.services?.find(s => s.id === service.id || s.name === service.name);
     
-    const instanceName = targetInstance?.[0]?.[1] as string;
+    if (!targetService) {
+      setAppError({
+        appError: {
+          message: "Could not find the service in the current instance.",
+          helpLink: "",
+        },
+      });
+      return;
+    }
     
     if (!instanceName) {
       setAppError({

@@ -106,7 +106,10 @@ export function detectSchemaVersion(data: unknown): SchemaVersion | null {
  * @returns Normalized data or null if parsing fails
  */
 export function parseAndNormalize(data: unknown): NormalizedInstanceData | null {
-  if (!data) return null;
+  if (!data) {
+    console.debug("[parseAndNormalize] No data provided");
+    return null;
+  }
 
   const version = detectSchemaVersion(data);
 
@@ -126,7 +129,6 @@ export function parseAndNormalize(data: unknown): NormalizedInstanceData | null 
 
   return null;
 }
-
 
 
 /**
@@ -157,9 +159,9 @@ function denormalizeToV1_1(data: NormalizedInstanceData | null): InstanceStreamU
 
   return {
     schema: "v1.1",
-    sequence: 0, // This would need to be provided separately
-    epoch: "", // This would need to be provided separately
-    instance_id: "", // This would need to be provided separately
+    sequence: 0, 
+    epoch: "", 
+    instance_id: data.instance.tag, 
     timestamp: new Date().toISOString(),
     is_full_sync: true,
     agent: data.agent ? {
@@ -342,8 +344,8 @@ function denormalizeToV1(data: NormalizedInstanceData): InstanceStreamUpdateV1 {
     seq: 0, // This would need to be provided separately
     epoch: "", // This would need to be provided separately
     full: true,
-    instance_id: "", // This would need to be provided separately
-    uptime: "", // This would need to be provided separately
+    instance_id: data.instance.tag,
+    uptime: "",
     build_info: data.agent ? {
       version: data.agent.version,
       commit: data.agent.commit,

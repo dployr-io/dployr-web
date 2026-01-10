@@ -2,17 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { QueryClient } from '@tanstack/react-query';
-import type { InstanceStream, MemoryProfileEntry, InstanceStreamUpdateV1 } from '@/types';
+import type { MemoryProfileEntry, NormalizedInstanceData } from '@/types';
 
 const CACHE_KEY = 'dployr_instance_cache';
 const MEMORY_PROFILE_KEY = 'dployr_memory_profiles';
 const CACHE_VERSION = 2;
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 const MAX_CACHE_SIZE = 2 * 1024 * 1024; // 2MB limit
-const MAX_PROFILE_ENTRIES = 60; // Keep last 60 data points (1 hour at 1-min intervals)
 
 interface CacheEntry {
-  data: InstanceStream;
+  data: NormalizedInstanceData;
   timestamp: number;
 }
 
@@ -56,7 +55,7 @@ export function persistCacheToStorage(queryClient: QueryClient): void {
     cacheData.forEach(query => {
       if (query.queryKey[0] === 'instance-status' && query.state.data) {
         const instanceId = query.queryKey[1] as string;
-        const data = query.state.data as InstanceStream;
+        const data = query.state.data as NormalizedInstanceData;
         const currentHash = hashInstanceStream(data);
 
         // Only include if data changed since last persist
@@ -88,31 +87,6 @@ export function persistCacheToStorage(queryClient: QueryClient): void {
   }
 }
 
-// Add a memory profile entry for an instance
-export function addMemoryProfileEntry(instanceId: string, update: InstanceStreamUpdateV1): void {
-  if (!update.top?.memory) return;
-
-  const entry: MemoryProfileEntry = {
-    timestamp: Date.now(),
-    mem_used_bytes: update.top.memory.used_bytes,
-    mem_total_bytes: update.top.memory.total_bytes,
-    mem_used_percent: update.top.memory.used_percent,
-    cpu_user: update.top.cpu?.user ?? 0,
-    cpu_system: update.top.cpu?.system ?? 0,
-  };
-
-  if (!memoryProfiles[instanceId]) {
-    memoryProfiles[instanceId] = [];
-  }
-
-  memoryProfiles[instanceId].push(entry);
-
-  // Keep only the last N entries
-  if (memoryProfiles[instanceId].length > MAX_PROFILE_ENTRIES) {
-    memoryProfiles[instanceId] = memoryProfiles[instanceId].slice(-MAX_PROFILE_ENTRIES);
-  }
-}
-
 // Persist memory profiles to storage (debounced externally)
 export function persistMemoryProfiles(): void {
   try {
@@ -140,10 +114,10 @@ export function getAllMemoryProfiles(): Record<string, MemoryProfileEntry[]> {
 }
 
 // Simple hash to detect changes without deep comparison
-function hashInstanceStream(data: InstanceStream): number {
-  const deploymentCount = ((data?.update as any)?.deployments?.length ?? 0);
-  const status = (data?.update as any)?.status?.state ?? '';
-  const timestamp = (data?.update as any)?.timestamp ?? 0;
+function hashInstanceStream(data: NormalizedInstanceData): number {
+  const deploymentCount = data?.workloads?.deployments?.length ?? 0;
+  const status = data?.status?.state ?? '';
+  const timestamp = Date.now() ?? 0;
   return deploymentCount * 1000 + status.charCodeAt(0) + (timestamp % 10000);
 }
 

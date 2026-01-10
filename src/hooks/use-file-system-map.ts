@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFileSystem } from "./use-file-system";
 import { consolidateTree, applyFileUpdate, FileSystemQuery, type FileSystemMap } from "@/lib/file-system-map";
-import type { FsNode, FileUpdateEvent } from "@/types";
+import type { FileUpdateEvent, NormalizedFilesystem } from "@/types";
 
 interface UseFileSystemMapOptions {
   instanceId: string;
@@ -16,7 +16,7 @@ interface UseFileSystemMapOptions {
 
 interface FileSystemMapState {
   map: FileSystemMap | null;
-  rootNode: FsNode | null;
+  rootNode: NormalizedFilesystem | null;
   isLoading: boolean;
   error: string | null;
   isWatching: boolean;

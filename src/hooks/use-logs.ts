@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { parseLog } from "@/lib/utils";
-import type { Deployment, LogLevel, Service } from "@/types";
+import type { NormalizedDeployment, LogLevel, NormalizedService } from "@/types";
 import type { Log } from "@/types";
 import { useEffect, useRef, useState } from "react";
 
-export function useLogs(id?: string, filterItem?: Deployment | Service | null) {
+export function useLogs(id?: string, filterItem?: NormalizedDeployment | NormalizedService | null) {
     const [logs, setLogs] = useState<Log[]>([]);
     const [filteredLogs, setFilteredLogs] = useState<Log[]>([]);
     const [selectedLevel, setSelectedLevel] = useState<"ALL" | LogLevel>("ALL");

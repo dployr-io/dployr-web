@@ -41,7 +41,7 @@ import { InstanceMetricsChart } from "@/components/metrics-chart";
 import { getMemoryProfile } from "@/lib/query-cache-persistence";
 import { ProcessViewer } from "@/components/resource-viewer";
 import { ProxyBadge } from "@/components/proxy-badge";
-import { normalizeInstanceUpdate, formatUptime, formatBytes, type NormalizedInstanceData } from "@/lib/instance-update";
+import { formatUptime, formatBytes } from "@/lib/instance-update";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/$id")({
   component: ViewInstance,
@@ -62,12 +62,9 @@ function ViewInstance() {
   const [{ tab, logRange, logLevel, duration }, setTabState] = useInstanceTabsState();
   const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
-  const { status, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instance?.tag);
-  
-  // Normalize the update payload for unified access
-  const normalized: NormalizedInstanceData | null = normalizeInstanceUpdate(status?.update as any);
-  
-  const { compatibility } = useVersion({ currentVersion: normalized?.version });
+  const { update, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instance?.tag);
+  const { compatibility } = useVersion({ currentVersion: update?.agent.version });
+    
   const breadcrumbs = viewInstanceBreadcrumbs(clusterId, instanceId, instance?.tag);
   const { user } = useAuth();
   const { users: clusterUsers } = useClusters();
@@ -154,7 +151,7 @@ function ViewInstance() {
     selectedLevel: selectedLogLevel,
   });
 
-  const updatePayload = status?.update ?? null;
+  const updatePayload = update ?? null;
   const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
   const [isCertOpen, setIsCertOpen] = useState(false);
   const [domainInput, setDomainInput] = useState("");
@@ -164,13 +161,13 @@ function ViewInstance() {
 
   const handleScrollPositionChange = useCallback((atBottom: boolean) => setIsAtBottom(atBottom), [setIsAtBottom]);
 
-  // Set bootstrap token from normalized data
+  // Set bootstrap token from update data
   useEffect(() => {
-    const token = normalized?.diagnostics.bootstrapTokenPreview;
+    const token = update?.diagnostics.bootstrapTokenPreview;
     if (token && !bootstrapToken) {
       setBootstrapToken(token);
     }
-  }, [normalized, bootstrapToken, setBootstrapToken]);
+  }, [update, bootstrapToken, setBootstrapToken]);
 
   useEffect(() => {
     if (!instance) return;
@@ -272,7 +269,7 @@ function ViewInstance() {
   }
 
   // Loading state
-  if (!status && !statusConnected) {
+  if (!statusConnected) {
     return (
       <ProtectedRoute>
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -290,7 +287,7 @@ function ViewInstance() {
     );
   }
 
-  const uptime = formatUptime(normalized?.uptimeSeconds || 0);
+  const uptime = formatUptime(update?.status.uptimeSeconds || 0);
 
   return (
     <ProtectedRoute>
@@ -302,7 +299,7 @@ function ViewInstance() {
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="system">System</TabsTrigger>
-                  {normalized?.filesystem && <TabsTrigger value="files">Files</TabsTrigger>}
+                  {update?.filesystem && <TabsTrigger value="files">Files</TabsTrigger>}
                   {canViewConfig && <TabsTrigger value="config">Configuration</TabsTrigger>}
                   {canViewLogs && <TabsTrigger value="logs">Logs</TabsTrigger>}
                   {canViewAdvanced && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
@@ -321,7 +318,7 @@ function ViewInstance() {
                     label="Version"
                     value={
                       <VersionSelector
-                        currentVersion={normalized?.version || "-"}
+                        currentVersion={update?.agent.version || "-"}
                         latestVersion={compatibility?.latestVersion}
                         upgradeLevel={compatibility?.upgradeLevel}
                         onInstall={handleInstallVersion}
@@ -329,31 +326,31 @@ function ViewInstance() {
                       />
                     }
                   />
-                  <MetricCard label="Platform" value={`${normalized?.os || "-"} · ${normalized?.arch || "-"}`} />
+                  <MetricCard label="Platform" value={`${update?.agent.os || "-"} · ${update?.agent.arch || "-"}`} />
                 </div>
 
                 {/* Status & Workloads */}
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
                   <div className="flex flex-col gap-3">
-                    <MetricCard label="Status" value={<StatusBadge status={normalized?.state || "-"} variant="compact" />} />
-                    <MetricCard label="Mode" value={<StatusBadge status={normalized?.mode || "-"} variant="compact" />} />
+                    <MetricCard label="Status" value={<StatusBadge status={update?.status.state || "-"} variant="compact" />} />
+                    <MetricCard label="Mode" value={<StatusBadge status={update?.status.mode || "-"} variant="compact" />} />
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <MetricCard label="Services" value={normalized?.services.length ? `${normalized.services.length} running` : "-"} />
-                    <MetricCard label="Health" value={<StatusBadge status={normalized?.health.overall || "-"} variant="compact" />} />
+                    <MetricCard label="Services" value={update?.workloads?.services.length ? `${update.workloads.services.length} running` : "-"} />
+                    <MetricCard label="Health" value={<StatusBadge status={update?.health.overall || "-"} variant="compact" />} />
                   </div>
 
                   <div className="flex flex-col gap-3">
                     <MetricCard
                       label="Proxy"
                       value={
-                        normalized?.proxy ? (
+                        update?.proxy ? (
                           <ProxyBadge
-                            type={normalized.proxy.type}
-                            status={normalized.proxy.status}
-                            version={normalized.proxy.version}
-                            routeCount={normalized.proxy.routeCount}
+                            type={update.proxy.type}
+                            status={update.proxy.status}
+                            version={update.proxy.version}
+                            routeCount={update.proxy.routes.length}
                           />
                         ) : "-"
                       }
@@ -363,11 +360,11 @@ function ViewInstance() {
 
                 {/* Health Breakdown */}
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
-                  <MetricCard label="Overall" value={<StatusBadge status={normalized?.health.overall || "-"} variant="compact" />} />
-                  <MetricCard label="Websocket" value={<StatusBadge status={normalized?.health.websocket || "-"} variant="compact" />} />
-                  <MetricCard label="Tasks" value={<StatusBadge status={normalized?.health.tasks || "-"} variant="compact" />} />
-                  <MetricCard label="Proxy" value={<StatusBadge status={normalized?.health.proxy || "-"} variant="compact" />} />
-                  <MetricCard label="Auth" value={<StatusBadge status={normalized?.health.auth || "-"} variant="compact" />} />
+                  <MetricCard label="Overall" value={<StatusBadge status={update?.health.overall || "-"} variant="compact" />} />
+                  <MetricCard label="Websocket" value={<StatusBadge status={update?.health.websocket || "-"} variant="compact" />} />
+                  <MetricCard label="Tasks" value={<StatusBadge status={update?.health.tasks || "-"} variant="compact" />} />
+                  <MetricCard label="Proxy" value={<StatusBadge status={update?.health.proxy || "-"} variant="compact" />} />
+                  <MetricCard label="Auth" value={<StatusBadge status={update?.health.auth || "-"} variant="compact" />} />
                 </div>
               </TabsContent>
 
@@ -379,26 +376,26 @@ function ViewInstance() {
                 />
 
                 <ProcessViewer
-                  processes={normalized?.processes}
-                  processSummary={normalized?.processSummary || undefined}
+                  processes={update?.processes.list || []}
+                  processSummary={update?.processes.summary || undefined}
                   historySnapshots={processSnapshots}
                   isLoadingHistory={isLoadingProcessHistory}
                 />
 
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
-                  <MetricCard label="CPU" icon={<Cpu className="h-3 w-3" />} value={normalized?.cpu?.count?.toString() || "-"} />
-                  <MetricCard label="Workers" icon={<Cog className="h-3 w-3" />} value={normalized?.diagnostics.workers?.toString() || "-"} />
+                  <MetricCard label="CPU" icon={<Cpu className="h-3 w-3" />} value={update?.resources.cpu?.count?.toString() || "-"} />
+                  <MetricCard label="Workers" icon={<Cog className="h-3 w-3" />} value={update?.diagnostics.workers?.toString() || "-"} />
                   <MetricCard
                     label="Memory"
                     icon={<MemoryStick className="h-3 w-3" />}
                     value={
-                      normalized?.memory
-                        ? `${formatBytes(normalized.memory.usedBytes)} / ${formatBytes(normalized.memory.totalBytes)}`
+                      update?.resources.memory
+                        ? `${formatBytes(update.resources.memory.usedBytes)} / ${formatBytes(update.resources.memory.totalBytes)}`
                         : "-"
                     }
                     progress={
-                      normalized?.memory
-                        ? (normalized.memory.usedBytes / normalized.memory.totalBytes) * 100
+                      update?.resources.memory
+                        ? (update.resources.memory.usedBytes / update.resources.memory.totalBytes) * 100
                         : undefined
                     }
                   />
@@ -432,10 +429,10 @@ function ViewInstance() {
                 {/* Disks */}
                 <div className="rounded-xl border bg-background/40 p-4 mb-6">
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {normalized?.disks && normalized.disks.length > 0 ? (
-                      normalized.disks.map((d: { totalBytes: number; usedBytes: number; filesystem: any; mountPoint: string; }, idx: any) => {
+                    {update?.resources.disks && update.resources.disks.length > 0 ? (
+                      update.resources.disks.map((d: { totalBytes: number; usedBytes: number; filesystem: any; mountPoint: string; }, idx: any) => {
                         const percent = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0;
-                        const hasFs = !!normalized.filesystem;
+                        const hasFs = !!update.filesystem;
 
                         return (
                           <button
@@ -464,10 +461,10 @@ function ViewInstance() {
               </TabsContent>
 
               {/* Files Tab */}
-              {normalized?.filesystem && (
+              {update?.filesystem && (
                 <TabsContent value="files" className="mt-4 flex min-h-0 flex-1 flex-col">
                   <div className="flex-1 rounded-xl border bg-background/40 overflow-hidden" style={{ minHeight: "500px" }}>
-                    <FileSystemBrowser instanceId={instanceId} clusterId={clusterId} fs={normalized.filesystem} className="h-full" />
+                    <FileSystemBrowser instanceId={instanceId} clusterId={clusterId} fs={update.filesystem} className="h-full" />
                   </div>
                 </TabsContent>
               )}
