@@ -1,3 +1,10 @@
+## [0.1.30] - 2026-01-10
+
+### 🚜 Refactor
+
+- *(types)* Migrate to modular schema system and consolidate type definitions
+- *(types)* Standardized components to use normalized schema types
+- *(hooks)* Bug fixes and improvements
 ## [0.1.29] - 2026-01-06
 
 ### 🚜 Refactor
