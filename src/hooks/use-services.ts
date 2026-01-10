@@ -13,7 +13,7 @@ export interface ServiceWithInstance extends NormalizedService {
   _instanceId: string;
 }
 
-export function useServices(filterInstanceName?: string | null) {
+export function useServices(instanceTag?: string | null) {
   const queryClient = useQueryClient();
   const { instances } = useInstances();
   const { isConnected, error: streamError } = useInstanceStream();
@@ -48,11 +48,11 @@ export function useServices(filterInstanceName?: string | null) {
 
   // Filter by instance if specified
   const services = useMemo(() => {
-    if (!filterInstanceName || filterInstanceName === "all") {
+    if (!instanceTag || instanceTag === "all") {
       return allServices;
     }
-    return allServices.filter(s => s._instanceName === filterInstanceName);
-  }, [allServices, filterInstanceName]);
+    return allServices.filter(s => s._instanceName === instanceTag);
+  }, [allServices, instanceTag]);
 
   // Use standardized pagination
   const pagination = usePagination(services);

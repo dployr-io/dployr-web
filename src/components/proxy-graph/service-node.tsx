@@ -3,7 +3,7 @@
 
 import { cn } from "@/lib/utils";
 import { Box } from "lucide-react";
-import type { ProxyApp, Service } from "@/types";
+import type { NormalizedProxyRoute, NormalizedService } from "@/types";
 
 export function ServiceNode({
   service,
@@ -16,8 +16,8 @@ export function ServiceNode({
   onMouseLeave,
   onContextMenu,
 }: {
-  service: Service;
-  proxyApp?: ProxyApp | null;
+  service: NormalizedService;
+  proxyApp?: NormalizedProxyRoute | null;
   isProxied: boolean;
   x: number;
   y: number;
@@ -77,7 +77,7 @@ export function ServiceNode({
           </div>
           <div className="mt-auto">
             <code className="text-[9px] bg-stone-400 dark:bg-stone-900 px-1.5 py-0.5 rounded block truncate">
-              {proxyApp?.upstream || `localhost:${service.port}`}
+              {proxyApp?.domain ?? proxyApp?.upstream}
             </code>
           </div>
         </div>
