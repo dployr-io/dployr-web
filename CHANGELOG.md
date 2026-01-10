@@ -1,3 +1,8 @@
+## [0.1.31] - 2026-01-10
+
+### 🚜 Refactor
+
+- *(proxy-graph)* Update service node to use consolidated proxy routes
 ## [0.1.30] - 2026-01-10
 
 ### 🚜 Refactor
