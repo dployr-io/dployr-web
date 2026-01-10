@@ -27,10 +27,9 @@ export function useProxyOperations(instanceTag?: string, options: UseProxyOperat
   const { error: streamError } = useInstanceStream();
   const queryClient = useQueryClient();
 
-  // Get proxy apps for the specific selected instance
-  const apps = instanceTag 
-    ? queryClient.getQueryData<NormalizedInstanceData>(["instance-status", instanceTag])?.proxy?.routes
-    : undefined;
+  // Get proxy data for the specific selected instance
+  const update = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", instanceTag])?.proxy;
+  const apps = update?.routes || null;
 
   // Restart proxy
   const restart = useCallback(

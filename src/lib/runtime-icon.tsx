@@ -1,13 +1,12 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { Runtime } from '@/types';
 import { BiCustomize } from 'react-icons/bi';
 import { FaDocker, FaJava, FaNodeJs, FaPython } from 'react-icons/fa';
 import { FaGolang, FaServer } from 'react-icons/fa6';
 import { SiDotnet, SiK3S, SiPhp, SiRubyonrails } from 'react-icons/si';
 
-export const getRuntimeIcon = (runtime: Runtime) => {
+export const getRuntimeIcon = (runtime: string) => {
     switch (runtime) {
         case 'static':
             return <FaServer size={14} />;

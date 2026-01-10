@@ -4,7 +4,7 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, LogType, LogStreamMode, LogLevel, LogTimeRange } from "@/types";
+import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Cog, Copy, Cpu, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { StatusBadge } from "@/components/status-badge";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
-import { useLogs } from "@/hooks/use-instance-logs";
 import { useInstanceViewState } from "@/hooks/use-instance-view-state";
 import { useProcessHistory } from "@/hooks/use-process-history";
 import { useMetricsHistory } from "@/hooks/use-metrics-history";
@@ -25,12 +24,13 @@ import { useInstances } from "@/hooks/use-instances";
 import { FormattedFile } from "@/components/formatted-file";
 import { useInstancesForm } from "@/hooks/use-instances-form";
 import { useVersion } from "@/hooks/use-version";
-import { useUrlState } from "@/hooks/use-url-state";
 import { use2FA } from "@/hooks/use-2fa";
+import { useInstanceTabs } from "@/hooks/use-standardized-tabs";
+import { useInstanceLogs } from "@/hooks/use-standardized-logs";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { LogsWindow } from "@/components/logs-window";
 import { VersionSelector } from "@/components/version-selector";
 import { useDns } from "@/hooks/use-dns";
@@ -58,8 +58,16 @@ const viewInstanceBreadcrumbs = (clusterId?: string, instanceId?: string, instan
 function ViewInstance() {
   const router = useRouter();
   const { id: instanceId, clusterId } = Route.useParams();
-  const { useInstanceTabsState } = useUrlState();
-  const [{ tab, logRange, logLevel, duration }, setTabState] = useInstanceTabsState();
+  
+  // Use standardized tabs hook
+  const {
+    currentTab,
+    logTimeRange,
+    selectedLogLevel,
+    logDuration,
+    setTabState,
+  } = useInstanceTabs();
+  
   const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
   const { update, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instance?.tag);
@@ -82,7 +90,7 @@ function ViewInstance() {
     setBootstrapToken, setRotateOpen, setRotateValue, setRotateError, setIsRotating,
     setRotatedToken, setShowBootstrapInfo, setIsInstalling, setIsRestarting,
     setRestartOpen, setRebootOpen, setForceRestart, setForceReboot,
-    setLogType, setLogMode, setIsAtBottom,
+    setLogType, setLogMode,
   } = useInstanceViewState();
 
   // Process history hook
@@ -99,7 +107,6 @@ function ViewInstance() {
   // Transform metrics snapshots to chart format
   const metricsChartData = useMemo(() => {
     return metricsSnapshots.map(snapshot => {
-      // Check if we have system-level metrics
       if (snapshot.data.cpu && snapshot.data.memory) {
         return {
           timestamp: snapshot.timestamp,
@@ -140,26 +147,27 @@ function ViewInstance() {
     });
   }, [metricsSnapshots]);
 
-  const logTimeRange = (logRange || "live") as LogTimeRange;
-  const selectedLogLevel = (logLevel || "ALL") as "ALL" | LogLevel;
-  const logDuration = (duration || logRange || "live") as LogTimeRange;
-  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, startStreaming, stopStreaming } = useLogs({
-    instanceName: instance?.tag,
-    path: logType || "app",
-    initialMode: logMode,
-    duration: logDuration,
-    selectedLevel: selectedLogLevel,
+  // Use standardized logs hook
+  const {
+    logs,
+    filteredLogs,
+    searchQuery,
+    logsEndRef,
+    isStreaming,
+    setSearchQuery,
+    handleScrollPositionChange,
+  } = useInstanceLogs(instance?.tag, logType || "app", {
+    currentTab,
+    logTimeRange,
+    selectedLogLevel,
+    logDuration,
   });
 
   const updatePayload = update ?? null;
-  const currentTab = (tab || "overview") as "overview" | "system" | "config" | "logs" | "advanced";
   const [isCertOpen, setIsCertOpen] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const { dnsList, setupDnsAsync, isSettingUp, deleteDnsAsync, isDeleting } = useDns(instanceId);
-  const { useAppError } = useUrlState();
-  const [, setError] = useAppError();
-
-  const handleScrollPositionChange = useCallback((atBottom: boolean) => setIsAtBottom(atBottom), [setIsAtBottom]);
+  const [, setError] = useState<{ message: string; helpLink: string } | null>(null);
 
   // Set bootstrap token from update data
   useEffect(() => {
@@ -181,19 +189,10 @@ function ViewInstance() {
     if (newMode !== logMode) setLogMode(newMode);
   }, [isAtBottom, logMode, setLogMode]);
 
-  useEffect(() => {
-    if (currentTab === "logs" && canViewLogs) {
-      startStreaming();
-    } else {
-      stopStreaming();
-    }
-  }, [currentTab, canViewLogs, startStreaming, stopStreaming]);
-
   const handleCopyStatus = async () => {
     try {
-      const payload = updatePayload ?? status;
-      if (!payload) return;
-      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      if (!updatePayload) return;
+      await navigator.clipboard.writeText(JSON.stringify(updatePayload, null, 2));
     } catch {}
   };
 
@@ -545,7 +544,7 @@ function ViewInstance() {
                               await setupDnsAsync({ domain: domainInput, instanceId: instanceId! });
                               setDomainInput("");
                             } catch (error: any) {
-                              setError({ appError: { message: error?.response?.data?.error || "Failed to setup DNS", helpLink: "" } });
+                              setError({ message: error?.response?.data?.error || "Failed to setup DNS", helpLink: "" });
                             }
                           }}
                           disabled={isSettingUp || !domainInput.trim()}

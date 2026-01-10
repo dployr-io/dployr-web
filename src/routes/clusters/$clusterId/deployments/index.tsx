@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useUrlState } from "@/hooks/use-url-state";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import TimeAgo from "react-timeago";
-import { ArrowUpRightIcon, ChevronLeft, ChevronRight, CirclePlus, Factory, FileText, Rocket, Trash } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, ChevronRight, Factory, FileText, Rocket, Trash } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RxGithubLogo } from "react-icons/rx";
@@ -17,7 +17,6 @@ import { FaGitlab } from "react-icons/fa";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstances } from "@/hooks/use-instances";
-import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { useDeployments } from "@/hooks/use-deployments";
 import { useRemotes } from "@/hooks/use-remotes";
 import { ProtectedRoute } from "@/components/protected-route";
@@ -50,14 +49,12 @@ function Deployments() {
   const { useDeploymentsUrlState } = useUrlState();
   const [{ instance: selectedInstanceId, new: isCreatingFromUrl }, setInstanceFilter] = useDeploymentsUrlState();
   const { clusterId } = Route.useParams();
-  const { isConnected } = useInstanceStream();
   const [blueprintInstanceId, setBlueprintInstanceId] = useState<string>("");
   const [quickDeployInstanceId, setQuickDeployInstanceId] = useState<string>("");
 
   const {
     isCreating,
     setIsCreating,
-    lastDeployedInstance,
     showExitDialog,
     setShowExitDialog,
     showDrafts,
@@ -89,7 +86,18 @@ function Deployments() {
     syncDraftFromBlueprint,
   } = useDeploymentCreator();
 
-  const { deployments: allDeployments, refetchDeploymentList } = useDeployments(lastDeployedInstance);
+  // Use the fixed useDeployments hook - now properly aggregates from all instances
+  const {
+    paginatedDeployments,
+    deployments,
+    isLoading: isDeploymentsLoading,
+    currentPage,
+    totalPages,
+    paginationRange,
+    goToPage,
+    goToPreviousPage,
+    goToNextPage,
+  } = useDeployments(selectedInstanceId);
 
   // Sync URL 'new' parameter to isCreating state
   useEffect(() => {
@@ -116,78 +124,9 @@ function Deployments() {
       if (selectedInstanceId && selectedInstanceId !== 'all') {
         setInstanceFilter({ instance: 'all' });
       }
-      if (lastDeployedInstance) {
-        refetchDeploymentList();
-      }
     }
     prevIsCreatingRef.current = isCreating;
-  }, [isCreating, selectedInstanceId, setInstanceFilter, refetchDeploymentList, lastDeployedInstance]);
-
-  // Filter deployments by selected instance
-  const deployments = useMemo(() => {
-    if (selectedInstanceId === "all") return allDeployments;
-    return allDeployments.filter(d => (d as any)._instanceName === selectedInstanceId);
-  }, [allDeployments, selectedInstanceId]);
-  
-  const isDeploymentsLoading = !isConnected && deployments.length === 0;
-
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const totalPages = Math.max(1, Math.ceil(deployments.length / itemsPerPage));
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedDeployments = deployments.slice(startIndex, endIndex);
-
-  const paginationRange = useMemo(() => {
-    const totalPageNumbersToShow = 7;
-    if (totalPages <= totalPageNumbersToShow) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-
-    const current = currentPage;
-    const firstPage = 1;
-    const lastPage = totalPages;
-    const siblingCount = 1;
-    const leftSibling = Math.max(current - siblingCount, firstPage + 1);
-    const rightSibling = Math.min(current + siblingCount, lastPage - 1);
-
-    const showLeftDots = leftSibling > firstPage + 1;
-    const showRightDots = rightSibling < lastPage - 1;
-
-    const pages: (number | "dots")[] = [firstPage];
-
-    if (!showLeftDots && showRightDots) {
-      const leftRangeEnd = 3 + 2 * siblingCount;
-      for (let i = 2; i <= leftRangeEnd; i++) {
-        pages.push(i);
-      }
-      pages.push("dots");
-    } else if (showLeftDots && !showRightDots) {
-      pages.push("dots");
-      const rightRangeStart = totalPages - (3 + 2 * siblingCount) + 1;
-      for (let i = rightRangeStart; i < lastPage; i++) {
-        pages.push(i);
-      }
-    } else if (showLeftDots && showRightDots) {
-      pages.push("dots");
-      for (let i = leftSibling; i <= rightSibling; i++) {
-        pages.push(i);
-      }
-      pages.push("dots");
-    } else {
-      for (let i = 2; i < lastPage; i++) {
-        pages.push(i);
-      }
-    }
-
-    pages.push(lastPage);
-    return pages;
-  }, [currentPage, totalPages]);
-
-  const goToPage = (page: number) => setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  const goToPreviousPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
-  const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  }, [isCreating, selectedInstanceId, setInstanceFilter]);
 
   return (
     <ProtectedRoute>
@@ -296,19 +235,19 @@ function Deployments() {
                               <TableRow key={deployment.id} className="h-16 cursor-pointer">
                                 <TableCell className="h-16 w-60 overflow-hidden align-middle font-medium">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block truncate">
-                                    {String(deployment.config?.name || "-")}
+                                    {String(deployment.name || "-")}
                                   </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle whitespace-nowrap">
-                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }}><TimeAgo date={deployment.created_at} /></Link>
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }}><TimeAgo date={deployment.createdAt} /></Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block">
                                     {deployment.status === "completed" || deployment.status === "failed" ? (
-                                      deployment.updated_at && deployment.created_at ? (
+                                      deployment.updatedAt && deployment.createdAt ? (
                                         <span className="inline-block">
                                           {(() => {
-                                            const ms = new Date(deployment.updated_at).getTime() - new Date(deployment.created_at).getTime();
+                                            const ms = new Date(deployment.updatedAt).getTime() - new Date(deployment.createdAt).getTime();
                                             const seconds = Math.floor(ms / 1000);
                                             const minutes = Math.floor(seconds / 60);
                                             const hours = Math.floor(minutes / 60);
@@ -325,7 +264,7 @@ function Deployments() {
                                       )
                                     ) : (
                                       <>
-                                        <TimeAgo date={deployment.created_at} formatter={formatWithoutSuffix} />
+                                        <TimeAgo date={deployment.createdAt} formatter={formatWithoutSuffix} />
                                       </>
                                     )}
                                   </Link>
@@ -337,27 +276,27 @@ function Deployments() {
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex items-center gap-2">
-                                    {getRuntimeIcon(deployment.config?.runtime?.type || "custom")}
-                                    <span>{String(deployment.config?.runtime?.type || "-")}</span>
+                                    {getRuntimeIcon(deployment.runtime?.type || "custom")}
+                                    <span>{String(deployment.runtime?.type || "-")}</span>
                                   </Link>
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[320px] overflow-hidden align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                                    {!deployment.config?.remote?.url ? (
+                                    {!deployment.remote?.url ? (
                                       <div className="max-w-[320px] overflow-hidden align-middle">
                                         <Skeleton className="h-4 w-40" />
                                       </div>
                                     ) : (
                                       <>
-                                        {deployment.config?.remote?.url?.includes("github") ? <RxGithubLogo /> : <FaGitlab />}
-                                        <span className="truncate">{deployment.config?.remote ? deployment.config.remote.url?.replace(/^https?:\/\//, "") || "-" : "-"}</span>
+                                        {deployment.remote?.url?.includes("github") ? <RxGithubLogo /> : <FaGitlab />}
+                                        <span className="truncate">{deployment.remote ? deployment.remote.url?.replace(/^https?:\/\//, "") || "-" : "-"}</span>
                                       </>
                                     )}
                                   </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[200px] overflow-hidden text-right align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block truncate text-right font-mono text-sm text-muted-foreground">
-                                    {String(deployment.config?.run_cmd || "-")}
+                                    {String(deployment.runCmd || "-")}
                                   </Link>
                                 </TableCell>
                               </TableRow>
@@ -392,16 +331,11 @@ function Deployments() {
 
                     <div className="flex items-center justify-between px-2 py-4">
                       <div className="text-sm text-muted-foreground">
-                        {(() => {
-                          const totalItems = deployments?.length ?? 0;
-                          if (totalItems === 0) return "No deployments found";
-                          if (totalItems === 1) return "Showing 1 of 1 deployment";
-
-                          const start = (currentPage - 1) * itemsPerPage + 1;
-                          const end = Math.min(start + paginatedDeployments.length - 1, totalItems);
-
-                          return `Showing ${start} to ${end} of ${totalItems} deployments`;
-                        })()}
+                        {deployments.length === 0
+                          ? "No deployments found"
+                          : deployments.length === 1
+                            ? "Showing 1 of 1 deployment"
+                            : `Showing ${paginatedDeployments.length} of ${deployments.length} deployments`}
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button variant="outline" size="sm" onClick={goToPreviousPage} disabled={currentPage === 1} className="flex items-center gap-1">

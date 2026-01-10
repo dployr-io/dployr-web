@@ -3,9 +3,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Timer, Copy, Check, Trash2 } from "lucide-react";
-import type { ProxyApp } from "@/types";
-import { formatUptime } from "./utils";
+import { ExternalLink, Copy, Check, Trash2 } from "lucide-react";
+import type { NormalizedProxyRoute } from "@/types";
 
 export function DetailPanel({
   domain,
@@ -14,7 +13,7 @@ export function DetailPanel({
   onRemove,
 }: {
   domain: string;
-  app: ProxyApp;
+  app: NormalizedProxyRoute;
   onClose: () => void;
   onRemove?: () => void;
 }) {
@@ -53,16 +52,11 @@ export function DetailPanel({
           </code>
         </div>
 
-        {/* Uptime */}
-        {app.status?.uptime && app.status.uptime > 0 && (
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
-              <Timer className="h-3 w-3" />
-              Uptime
-            </span>
-            <span className="text-[10px] tabular-nums font-mono">{formatUptime(app.status.uptime)}</span>
-          </div>
-        )}
+        {/* Status */}
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-muted-foreground font-mono">Status</span>
+          <span className="text-[10px] tabular-nums font-mono">{app.status}</span>
+        </div>
 
         {/* Actions */}
         <div className="flex gap-2 pt-2 border-t">

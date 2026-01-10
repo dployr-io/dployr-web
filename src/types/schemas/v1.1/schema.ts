@@ -65,6 +65,10 @@ export function safeParseV1_1(data: unknown): InstanceStreamUpdateV1_1 | null {
  */
 export function isV1_1(data: unknown): data is InstanceStreamUpdateV1_1 {
   if (!data || typeof data !== "object") return false;
-  const result = instanceStreamUpdateV1_1Schema.safeParse(data);
-  return result.success;
+  try {
+    const result = instanceStreamUpdateV1_1Schema.safeParse(data);
+    return result.success;
+  } catch (error) {
+    return false;
+  }
 }

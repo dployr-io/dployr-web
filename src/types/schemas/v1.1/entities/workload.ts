@@ -96,7 +96,7 @@ export const serviceSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
-  source: z.string(),
+  source: z.string().optional(),
   runtime: z.string(),
   runtime_version: z.string().optional(),
   run_cmd: z.string().optional(),

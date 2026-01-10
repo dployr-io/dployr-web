@@ -4,7 +4,7 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import { type BreadcrumbItem, type BlueprintFormat, type Runtime, type NormalizedService, denormalize, type InstanceStreamUpdateV1_1, type NormalizedInstanceData } from "@/types";
+import { type BreadcrumbItem, type BlueprintFormat, type Runtime, type NormalizedService, denormalize, type InstanceStreamUpdateV1_1 } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
 import { ArrowUpRightIcon, ChevronLeft, Edit2, FileX2, Globe, Loader2, Save, StopCircle, X } from "lucide-react";
@@ -15,7 +15,6 @@ import { ConfigTable } from "@/components/config-table";
 import { useServiceEnv } from "@/hooks/use-service-env";
 import { useServiceEditor } from "@/hooks/use-service-editor";
 import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
-import { useUrlState } from "@/hooks/use-url-state";
 import { MetricCard } from "@/components/metric-card";
 import TimeAgo from "react-timeago";
 import { Input } from "@/components/ui/input";
@@ -30,8 +29,7 @@ import { BlueprintSection } from "@/components/blueprint";
 import { toJson, toYaml } from "@/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
-import { useInstances } from "@/hooks/use-instances";
-import { useQueryClient } from "@tanstack/react-query";
+import { useServiceTabs } from "@/hooks/use-standardized-tabs";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
@@ -54,29 +52,16 @@ const viewServiceBreadcrumbs = (service: NormalizedService | null, clusterId?: s
 
 function ViewService() {
   const router = useRouter();
-  const { selectedService: service, isLoading } = useServices();
-  const { instances } = useInstances();
-  const queryClient = useQueryClient();
+  // useServices now includes selectedInstanceName from the aggregated data
+  const { selectedService: service, selectedInstanceName, isLoading } = useServices();
   const { handleStartCreate } = useDeploymentCreator();
   const { clusterId, userCluster } = useClusters();
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
-  const { useServiceTabsState } = useUrlState();
-  const [{ tab }, setTabState] = useServiceTabsState();
-  const currentTab = (tab || "overview") as "overview" | "logs" | "env" | "settings";
+  
+  // Use standardized tabs hook
+  const { currentTab, setTabState } = useServiceTabs();
   const navigate = useNavigate();
   const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("yaml");
-
-  // Find the instance that contains this service
-  const instance = useMemo(() => {
-    if (!service?.id || !instances) return null;
-    for (const inst of instances) {
-      const cachedData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", inst.id]);
-      if (cachedData?.workloads?.services?.some(s => s.id === service.id)) {
-        return inst;
-      }
-    }
-    return null;
-  }, [service?.id, instances, queryClient]);
 
   const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useServiceEnv(service);
 
@@ -89,14 +74,14 @@ function ViewService() {
     handleStartEdit,
     handleCancelEdit,
     handleSave: handleSaveEdit,
-  } = useServiceEditor(service, clusterId || "", instance?.tag || "");
+  } = useServiceEditor(service, clusterId || "", selectedInstanceName || "");
 
   const {
     handleRemoveService,
   } = useServiceRemove();
 
-  // Get normalized data and denormalize to get blueprint structure
-  const { update } = useInstanceStatus();
+  // Get instance status for blueprint - now using the instance name from useServices
+  const { update } = useInstanceStatus(selectedInstanceName);
   const denormalizedData = useMemo(() => denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null, [update]);
 
   const yamlConfig = useMemo(() => {

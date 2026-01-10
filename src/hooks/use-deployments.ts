@@ -1,47 +1,87 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState } from "react";
-import { useInstanceStatus } from "@/hooks/use-instance-status";
+import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInstances } from "@/hooks/use-instances";
+import { useInstanceStream } from "@/hooks/use-instance-stream";
+import { usePagination } from "@/hooks/use-standardized-pagination";
+import type { NormalizedInstanceData, NormalizedDeployment } from "@/types";
 
-export function useDeployments(instanceName?: string | null) {
-  const { update } = useInstanceStatus();
-  const deployments = update?.workloads?.deployments || [];
-  
-  const id = window.location.pathname.split("/")[2];
-  const selectedDeployment = deployments?.find(deployment => deployment.id === id) || null;
-  const selectedInstanceName = selectedDeployment ? (selectedDeployment as any)._instanceName : undefined;
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const totalPages = Math.ceil((deployments?.length ?? 0) / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedDeployments = Array.isArray(deployments) ? deployments.slice(startIndex, endIndex) : [];
+export interface DeploymentWithInstance extends NormalizedDeployment {
+  _instanceName: string;
+  _instanceId: string;
+}
 
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
+export function useDeployments(filterInstanceName?: string | null) {
+  const queryClient = useQueryClient();
+  const { instances } = useInstances();
+  const { isConnected } = useInstanceStream();
 
-  const goToPreviousPage = () => {
-    setCurrentPage(prev => Math.max(1, prev - 1));
-  };
+  // Aggregate deployments from all instances in the query cache
+  const allDeployments = useMemo(() => {
+    const deployments: DeploymentWithInstance[] = [];
 
-  const goToNextPage = () => {
-    setCurrentPage(prev => Math.min(totalPages, prev + 1));
-  };
+    for (const instance of instances) {
+      const instanceData = queryClient.getQueryData<NormalizedInstanceData>(
+        ["instance-status", instance.tag]
+      );
+
+      if (instanceData?.workloads?.deployments) {
+        for (const deployment of instanceData.workloads.deployments) {
+          deployments.push({
+            ...deployment,
+            _instanceName: instance.tag,
+            _instanceId: instance.id,
+          });
+        }
+      }
+    }
+
+    // Sort by createdAt descending (newest first)
+    return deployments.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [instances, queryClient]);
+
+  // Filter by instance if specified
+  const deployments = useMemo(() => {
+    if (!filterInstanceName || filterInstanceName === "all") {
+      return allDeployments;
+    }
+    return allDeployments.filter(d => d._instanceName === filterInstanceName);
+  }, [allDeployments, filterInstanceName]);
+
+  // Use standardized pagination
+  const pagination = usePagination(deployments);
+
+  // Get selected deployment from URL
+  const selectedDeployment = useMemo(() => {
+    const pathSegments = window.location.pathname.split("/");
+    const deploymentsIndex = pathSegments.indexOf("deployments");
+    const id = deploymentsIndex >= 0 ? pathSegments[deploymentsIndex + 1] : null;
+    
+    if (!id) return null;
+    return allDeployments.find(d => d.id === id) || null;
+  }, [allDeployments]);
+
+  const selectedInstanceName = selectedDeployment?._instanceName;
+
+  // Loading state: not connected AND no deployments cached
+  const isLoading = !isConnected && allDeployments.length === 0;
 
   return {
+    // Data
+    deployments,
+    allDeployments,
     selectedDeployment,
     selectedInstanceName,
-    deployments,
-    paginatedDeployments,
-    currentPage,
-    totalPages,
-    startIndex,
-    endIndex,
-
-    goToPage,
-    goToNextPage,
-    goToPreviousPage,
+    isLoading,
+    isConnected,
+    // Pagination (spread from standardized hook)
+    ...pagination,
+    paginatedDeployments: pagination.paginatedItems,
   };
 }

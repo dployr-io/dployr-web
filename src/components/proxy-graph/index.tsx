@@ -11,9 +11,8 @@ import {
   ZoomOut,
   Maximize2,
   Plus,
-  Network,
 } from "lucide-react";
-import type { ProxyApp, ProxyApps, Service, InstanceStream } from "@/types";
+import type { NormalizedService, InstanceStream, NormalizedProxyRoute } from "@/types";
 import { StatusDot } from "./status-dot";
 import { ConnectionPath } from "./connection-path";
 import { InstanceNode } from "./instance-node";
@@ -27,12 +26,11 @@ import { useQueryClient } from "@tanstack/react-query";
 
 interface ProxyGraphVisualizerProps {
   proxyStatus: "running" | "stopped" | "error" | "unknown";
-  apps: ProxyApps | null;
-  services?: Service[];
+  apps: NormalizedProxyRoute[] | null;
+  services?: NormalizedService[];
   instances?: Array<{ id: string; name: string; status?: string }>;
   isLoading?: boolean;
-  onRefresh?: () => void;
-  onSelectApp?: (domain: string, app: ProxyApp) => void;
+  onSelectApp?: (domain: string, app: NormalizedProxyRoute) => void;
   onSelectInstance?: (instance: { id: string; name: string; status?: string }) => void;
   onAddRoute?: () => void;
   onRemoveRoute?: (domain: string) => Promise<void>;
@@ -49,7 +47,6 @@ export function ProxyGraphVisualizer({
   services = [],
   instances = [],
   isLoading,
-  onRefresh,
   onSelectApp,
   onSelectInstance,
   onAddRoute,
@@ -64,7 +61,7 @@ export function ProxyGraphVisualizer({
   const queryClient = useQueryClient();
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [selectedApp, setSelectedApp] = useState<{ domain: string; app: ProxyApp } | null>(null);
+  const [selectedApp, setSelectedApp] = useState<{ domain: string; app: NormalizedProxyRoute } | null>(null);
   const [selectedInstance, setSelectedInstance] = useState<{ id: string; name: string; status?: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -94,18 +91,18 @@ export function ProxyGraphVisualizer({
     
     // Build service list with proxy status
     const serviceNodes = services.map((service) => {
-      const proxyEntry = apps ? Object.entries(apps).find(([domain, app]) => {
-        const upstreamPort = app.upstream?.match(/:(\d+)/)?.[1];
-        return domain.includes(service.name) || 
-               app.upstream?.includes(service.name) ||
+      const proxyRoute = apps?.find((route) => {
+        const upstreamPort = route.upstream?.match(/:(\d+)/)?.[1];
+        return route.domain.includes(service.name) || 
+               route.upstream?.includes(service.name) ||
                upstreamPort === String(service.port);
-      }) : null;
+      }) || null;
 
       return {
         service,
-        proxyApp: proxyEntry ? proxyEntry[1] : null,
-        domain: proxyEntry ? proxyEntry[0] : null,
-        isProxied: !!proxyEntry,
+        proxyApp: proxyRoute,
+        domain: proxyRoute?.domain || null,
+        isProxied: !!proxyRoute,
       };
     });
 
@@ -167,7 +164,7 @@ export function ProxyGraphVisualizer({
   }, []);
 
   // Node click handlers
-  const handleServiceClick = useCallback((domain: string | null, app: ProxyApp | null) => {
+  const handleServiceClick = useCallback((domain: string | null, app: NormalizedProxyRoute | null) => {
     if (domain && app) {
       setSelectedApp({ domain, app });
       setSelectedInstance(null);
@@ -175,7 +172,6 @@ export function ProxyGraphVisualizer({
     } else {
       // Service is not proxied - trigger add route with prefilled data
       onAddRoute?.();
-      // Note: The parent component should handle prefilling the form with service data
     }
   }, [onSelectApp, onAddRoute]);
 
@@ -214,7 +210,7 @@ export function ProxyGraphVisualizer({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-stone-300 border border-stone-400 dark:bg-stone-800 dark:border-stone-700">
               <StatusDot status={proxyStatus} />
-              <span className="text-xs font-mono">· {layout.proxyRouteCount} {layout.proxyRouteCount === 1 ? 'service' : 'services'}</span>
+              <span className="text-xs font-mono">· {services?.length} {services?.length === 1 ? 'service' : 'services'}</span>
             </div>
           </div>
 
@@ -422,23 +418,6 @@ export function ProxyGraphVisualizer({
             </g>
           </svg>
         </div>
-
-        {/* Empty State */}
-        {layout.services.length === 0 && layout.instances.length === 0 && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90">
-            <Network className="h-12 w-12 text-slate-600 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-1">No Resources Found</h3>
-            <p className="text-sm text-slate-400 mb-4 text-center max-w-sm">
-              Deploy instances and services to see them on the graph
-            </p>
-            {onRefresh && (
-              <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading} className="border-stone-700 text-slate-300">
-                <RefreshCcw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-                Refresh
-              </Button>
-            )}
-          </div>
-        )}
 
         {/* Detail Panel */}
         {selectedApp && (

@@ -5,9 +5,8 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, InstanceStream, NormalizedService } from "@/types";
+import type { BreadcrumbItem } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
-import { useQueryClient } from "@tanstack/react-query";
 import { ProxyGraphVisualizer } from "@/components/proxy-graph/index";
 import { ProxyAddDialog } from "@/components/proxy-add-dialog";
 import {
@@ -26,6 +25,7 @@ import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { useProxyOperations } from "@/hooks/use-proxy-operations";
 import { useUrlState } from "@/hooks/use-url-state";
 import { toast } from "@/lib/toast";
+import { useServices } from "@/hooks/use-services";
 
 export const Route = createFileRoute("/clusters/$clusterId/graph")({
   component: GraphPage,
@@ -79,17 +79,10 @@ function GraphPage() {
     restart,
     addService,
     removeService,
-  } = useProxyOperations(currentInstance?.tag);
+  } = useProxyOperations();
 
-  // Get services from instance stream to show all services on graph
-  const queryClient = useQueryClient();
-  const services = useMemo(() => {
-    if (!currentInstance?.tag) return [];
-    
-    const data = queryClient.getQueryData<InstanceStream>(["instance-status", currentInstance.tag]);
-    const update = data?.update as any;
-    return (update?.services || []) as NormalizedService[];
-  }, [currentInstance?.tag, queryClient]);
+
+  const { services } = useServices();
 
   const _services = useMemo(() => {
     return services.map((service) => ({
@@ -110,12 +103,6 @@ function GraphPage() {
       });
     }
   }, [proxyError, setAppError]);
-
-  // Handlers
-  const handleRefresh = useCallback(async () => {
-    // Proxy data refreshes automatically from instance stream
-    toast.success("Proxy status refreshed");
-  }, []);
 
   const handleRestart = useCallback(async () => {
     if (!currentInstance) return;
@@ -242,7 +229,6 @@ function GraphPage() {
             services={services}
             instances={instances?.map(i => ({ id: i.id, name: i.tag, status: "running" })) ?? []}
             isLoading={proxyLoading}
-            onRefresh={handleRefresh}
             onSelectApp={(domain: string, app: any) => {
               console.log("Selected:", domain, app);
             }}

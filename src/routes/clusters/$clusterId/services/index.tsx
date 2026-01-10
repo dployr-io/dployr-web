@@ -4,19 +4,17 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem, Service } from "@/types";
+import type { BreadcrumbItem } from "@/types";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRightIcon, BoxesIcon, ChevronLeft, ChevronRight, CirclePlus, Globe } from "lucide-react";
+import { ArrowUpRightIcon, BoxesIcon, ChevronLeft, ChevronRight, Globe } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Skeleton } from "@/components/ui/skeleton";
 import TimeAgo from "react-timeago";
-import { useMemo } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { useClusters } from "@/hooks/use-clusters";
-import { useInstances } from "@/hooks/use-instances";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/")({
   component: Services,
@@ -29,31 +27,21 @@ const breadcrumbs: BreadcrumbItem[] = [
   },
 ];
 
-// Extended service type with instance info
-interface ServiceWithInstance extends Service {
-  instanceId?: string;
-  instanceTag?: string;
-}
-
 function Services() {
-  const { services, paginatedServices, currentPage, totalPages, startIndex, endIndex, isLoading, goToPage, goToPreviousPage, goToNextPage } = useServices();
+  // Use the fixed useServices hook - now properly aggregates from all instances
+  const {
+    paginatedServices,
+    services,
+    isLoading,
+    currentPage,
+    totalPages,
+    goToPage,
+    goToPreviousPage,
+    goToNextPage,
+  } = useServices();
+  
   const { clusterId, userCluster } = useClusters();
   const router = useRouter();
-  const { instances } = useInstances();
-
-  // Map services to their instances using the _instanceId field from useServices
-  const servicesWithInstances = useMemo(() => {
-    return paginatedServices.map(service => {
-      const instanceId = (service as any)._instanceId;
-      const instanceTag = instances.find(i => i.tag === instanceId)?.tag || instanceId;
-      
-      return {
-        ...service,
-        instanceId,
-        instanceTag,
-      } as ServiceWithInstance;
-    });
-  }, [paginatedServices, instances]);
 
   return (
     <ProtectedRoute>
@@ -110,8 +98,8 @@ function Services() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {!isLoading && servicesWithInstances.length > 0
-                      ? servicesWithInstances.map(service => {
+                    {!isLoading && paginatedServices.length > 0
+                      ? paginatedServices.map(service => {
                           return (
                             <TableRow 
                               key={service.id} 
@@ -124,15 +112,15 @@ function Services() {
                                 </div>
                               </TableCell>
                               <TableCell className="h-16 max-w-[100px] align-middle">
-                                {service.status ? <StatusBadge status={service.status} variant="compact" /> : <span className="text-xs text-muted-foreground">—</span>}
+                                <StatusBadge status="running" variant="compact" />
                               </TableCell>
                               <TableCell className="h-16 max-w-[80px] align-middle">
-                                <span className="font-mono text-sm">{service.blueprint?.port || "—"}</span>
+                                <span className="font-mono text-sm">{service.port ?? "—"}</span>
                               </TableCell>
                               <TableCell className="h-16 align-middle">
-                                {service.instanceTag ? (
+                                {service._instanceName ? (
                                   <span className="inline-flex items-center rounded-full border border-sidebar-border px-2 py-0.5 text-xs font-mono text-muted-foreground">
-                                    {service.instanceTag}
+                                    {service._instanceName}
                                   </span>
                                 ) : (
                                   <span className="text-xs text-muted-foreground">—</span>
@@ -141,11 +129,11 @@ function Services() {
                               <TableCell className="h-16 align-middle">
                                 <div className="flex items-center gap-2">
                                   <Globe className="h-4 w-4 text-muted-foreground" />
-                                  <span className="truncate text-xs font-mono text-muted-foreground">{service.domain ? service.domain : `${service.name}.${userCluster?.name}.dployr.io`}</span>
+                                  <span className="truncate text-xs font-mono text-muted-foreground">{`${service.name}.${userCluster?.name}.dployr.io`}</span>
                                 </div>
                               </TableCell>
                               <TableCell className="h-16 w-[140px] text-right align-middle">
-                                <TimeAgo date={service.updated_at} />
+                                <TimeAgo date={service.updatedAt} />
                               </TableCell>
                             </TableRow>
                           );
@@ -181,7 +169,7 @@ function Services() {
                       ? "No services found"
                       : services.length === 1
                         ? "Showing 1 of 1 service"
-                        : `Showing ${startIndex + 1} to ${Math.min(endIndex, services.length)} of ${services.length} services`}
+                        : `Showing ${paginatedServices.length} of ${services.length} services`}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button variant="outline" size="sm" onClick={goToPreviousPage} disabled={currentPage === 1} className="flex items-center gap-1">

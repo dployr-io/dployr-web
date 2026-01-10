@@ -30,6 +30,146 @@ import { StatusBadge } from "@/components/status-badge";
 import { DiskBrowserDialog } from "@/components/disk-browser";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
 
+// Component to render instance row with its own status hook
+function InstanceRow({ 
+  instance, 
+  clusterId, 
+  navigate, 
+  twoFactor, 
+  deleteInstance 
+}: { 
+  instance: Instance; 
+  clusterId: string | undefined;
+  navigate: any;
+  twoFactor: any;
+  deleteInstance: any;
+}) {
+  const { update } = useInstanceStatus(instance.tag);
+  const servicesCount = update?.workloads?.services?.length ?? 0;
+  const hasFs = !!update?.filesystem;
+  const disks = update?.resources?.disks;
+  const fs = update?.filesystem;
+
+  return (
+    <TableRow
+      key={instance.id}
+      className="h-16 cursor-pointer"
+      onClick={() => {
+        if (!clusterId) return;
+        navigate({
+          to: "/clusters/$clusterId/instances/$id",
+          params: { clusterId, id: instance.id },
+        });
+      }}
+    >
+      <TableCell className="h-16 max-w-[200px] align-middle font-medium">
+        <div className="flex flex-col gap-0.5">
+          <span className="truncate text-sm font-semibold">{instance.tag}</span>
+          <span className="truncate font-mono text-[11px] text-muted-foreground">{instance.address}</span>
+        </div>
+      </TableCell>
+      <TableCell className="h-16 max-w-[100px] align-middle">
+        {update ? (
+          <StatusBadge status={update.health?.overall || "-"} variant="compact" />
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="h-16 max-w-[100px] align-middle">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1.5">
+              <Boxes className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm">{servicesCount}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {servicesCount === 0 ? "No services running" : `${servicesCount} service${servicesCount > 1 ? "s" : ""} running`}
+          </TooltipContent>
+        </Tooltip>
+      </TableCell>
+      <TableCell className="h-16 max-w-[120px] align-middle">
+        <span className="text-sm text-muted-foreground">
+          {(() => {
+            if (!instance.createdAt) return "N/A";
+            const createdDate = new Date(Number(instance.createdAt));
+            if (Number.isNaN(createdDate.getTime())) return "N/A";
+            return <TimeAgo date={createdDate} formatter={formatWithoutSuffix} />;
+          })()}
+        </span>
+      </TableCell>
+      <TableCell className="h-16 max-w-[60px] align-middle text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={e => {
+                e.stopPropagation();
+                if (!clusterId) return;
+                navigate({
+                  to: "/clusters/$clusterId/instances/$id",
+                  params: { clusterId, id: instance.id },
+                  search: { tab: "settings" },
+                });
+              }}
+              className="cursor-pointer"
+            >
+              <Settings2 className="h-4 w-4 text-foreground" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {}} className="cursor-pointer">
+              <RotateCcw className="h-4 w-4 text-foreground" />
+              Restart
+            </DropdownMenuItem>
+            {(hasFs || (disks && disks.length > 0)) && (
+              <DropdownMenuItem
+                onClick={e => {
+                  e.stopPropagation();
+                }}
+                className="cursor-pointer p-0"
+                asChild
+              >
+                <div>
+                  <DiskBrowserDialog
+                    disks={disks}
+                    fs={fs}
+                    trigger={
+                      <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
+                        <HardDrive className="h-4 w-4 text-foreground" />
+                        Browse Files
+                      </button>
+                    }
+                  />
+                </div>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={e => {
+                e.stopPropagation();
+                twoFactor.requireAuth(async () => {
+                  try {
+                    await deleteInstance.mutateAsync({ id: instance.id });
+                  } catch {
+                    // Error handling is managed by the mutation's onError
+                  }
+                });
+              }}
+              className="cursor-pointer text-red-600 focus:text-red-600"
+            >
+              <Trash2 className="h-4 w-4 text-red-600" />
+              Remove
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export const Route = createFileRoute("/clusters/$clusterId/instances/")({
   component: Instances,
 });
@@ -52,9 +192,7 @@ function Instances() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [createdInstanceData, setCreatedInstanceData] = useState<{ tag: string; token: string } | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<"linux" | "windows">("linux");
-  const [copied, setCopied] = useState(false);
-  
-  const { update, isConnected, error } = useInstanceStatus(); 
+  const [copied, setCopied] = useState(false); 
 
   async function handleCreateInstance() {
     const data = getFormData();
@@ -201,133 +339,16 @@ function Instances() {
                         </TableCell>
                       </TableRow>
                     ))
-                  : paginatedInstances.map((instance: Instance) => {
-                      const servicesCount = update?.workloads?.services?.length ?? 0;
-                      const hasFs = !!update?.filesystem;
-                      const disks = update?.resources?.disks;
-                      const fs = update?.filesystem;
-                      
-                      return (
-                      <TableRow
+                  : paginatedInstances.map((instance: Instance) => (
+                      <InstanceRow
                         key={instance.id}
-                        className="h-16 cursor-pointer"
-                        onClick={() => {
-                          if (!clusterId) return;
-                          navigate({
-                            to: "/clusters/$clusterId/instances/$id",
-                            params: { clusterId, id: instance.id },
-                          });
-                        }}
-                      >
-                        <TableCell className="h-16 max-w-[200px] align-middle font-medium">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="truncate text-sm font-semibold">{instance.tag}</span>
-                            <span className="truncate font-mono text-[11px] text-muted-foreground">{instance.address}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="h-16 max-w-[100px] align-middle">
-                          {update ? (
-                            <StatusBadge status={update.health?.overall || "-"} variant="compact" />
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="h-16 max-w-[100px] align-middle">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-1.5">
-                                <Boxes className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-sm">{servicesCount}</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              {servicesCount === 0 ? "No services running" : `${servicesCount} service${servicesCount > 1 ? "s" : ""} running`}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell className="h-16 max-w-[120px] align-middle">
-                          <span className="text-sm text-muted-foreground">
-                            {(() => {
-                              if (!instance.createdAt) return "N/A";
-
-                              const createdDate = new Date(Number(instance.createdAt));
-                              if (Number.isNaN(createdDate.getTime())) return "N/A";
-
-                              return <TimeAgo date={createdDate} formatter={formatWithoutSuffix} />;
-                            })()}
-                          </span>
-                        </TableCell>
-                        <TableCell className="h-16 max-w-[60px] align-middle text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  if (!clusterId) return;
-                                  navigate({
-                                    to: "/clusters/$clusterId/instances/$id",
-                                    params: { clusterId, id: instance.id },
-                                    search: { tab: "settings" },
-                                  });
-                                }}
-                                className="cursor-pointer"
-                              >
-                                <Settings2 className="h-4 w-4 text-foreground" />
-                                Settings
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => {}} className="cursor-pointer">
-                                <RotateCcw className="h-4 w-4 text-foreground" />
-                                Restart
-                              </DropdownMenuItem>
-                              {(hasFs || (disks && disks.length > 0)) && (
-                                <DropdownMenuItem
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                  }}
-                                  className="cursor-pointer p-0"
-                                  asChild
-                                >
-                                  <div>
-                                    <DiskBrowserDialog
-                                      disks={disks}
-                                      fs={fs}
-                                      trigger={
-                                        <button className="flex w-full items-center gap-2 px-2 py-1.5 text-sm">
-                                          <HardDrive className="h-4 w-4 text-foreground" />
-                                          Browse Files
-                                        </button>
-                                      }
-                                    />
-                                  </div>
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  twoFactor.requireAuth(async () => {
-                                    try {
-                                      await deleteInstance.mutateAsync({ id: instance.id });
-                                    } catch {
-                                      // Error handling is managed by the mutation's onError
-                                    }
-                                  });
-                                }}
-                                className="cursor-pointer text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 text-red-600" />
-                                Remove
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                        instance={instance}
+                        clusterId={clusterId}
+                        navigate={navigate}
+                        twoFactor={twoFactor}
+                        deleteInstance={deleteInstance}
+                      />
+                    ))}
 
                 {!isLoading && instances.length === 0 && (
                   <TableRow>

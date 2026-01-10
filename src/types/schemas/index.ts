@@ -107,7 +107,6 @@ export function detectSchemaVersion(data: unknown): SchemaVersion | null {
  */
 export function parseAndNormalize(data: unknown): NormalizedInstanceData | null {
   if (!data) {
-    console.debug("[parseAndNormalize] No data provided");
     return null;
   }
 

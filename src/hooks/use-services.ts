@@ -1,54 +1,86 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState } from "react";
+import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInstances } from "@/hooks/use-instances";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
-import { useInstanceStatus } from "./use-instance-status";
+import { usePagination } from "@/hooks/use-standardized-pagination";
+import type { NormalizedInstanceData, NormalizedService } from "@/types";
 
-export function useServices() {
-  const { update } = useInstanceStatus();
+export interface ServiceWithInstance extends NormalizedService {
+  _instanceName: string;
+  _instanceId: string;
+}
+
+export function useServices(filterInstanceName?: string | null) {
+  const queryClient = useQueryClient();
+  const { instances } = useInstances();
   const { isConnected, error: streamError } = useInstanceStream();
 
-  const pathSegments = window.location.pathname.split("/");
-  const id = pathSegments[pathSegments.indexOf("services") + 1];
-  const services = update?.workloads?.services || [];
-  const isLoading = !isConnected && services.length === 0;
-  const selectedService = id ? services?.find(service => service.id === id) || null : null;
+  // Aggregate services from all instances in the query cache
+  const allServices = useMemo(() => {
+    const services: ServiceWithInstance[] = [];
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const totalPages = Math.ceil((services?.length ?? 0) / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedServices = Array.isArray(services) ? services.slice(startIndex, endIndex) : [];
+    for (const instance of instances) {
+      const instanceData = queryClient.getQueryData<NormalizedInstanceData>(
+        ["instance-status", instance.tag]
+      );
 
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
+      if (instanceData?.workloads?.services) {
+        for (const service of instanceData.workloads.services) {
+          services.push({
+            ...service,
+            _instanceName: instance.tag,
+            _instanceId: instance.id,
+          });
+        }
+      }
+    }
 
-  const goToPreviousPage = () => {
-    setCurrentPage(prev => Math.max(1, prev - 1));
-  };
+    // Sort by updatedAt descending (most recently updated first)
+    return services.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || 0).getTime();
+      return dateB - dateA;
+    });
+  }, [instances, queryClient]);
 
-  const goToNextPage = () => {
-    setCurrentPage(prev => Math.min(totalPages, prev + 1));
-  };
+  // Filter by instance if specified
+  const services = useMemo(() => {
+    if (!filterInstanceName || filterInstanceName === "all") {
+      return allServices;
+    }
+    return allServices.filter(s => s._instanceName === filterInstanceName);
+  }, [allServices, filterInstanceName]);
+
+  // Use standardized pagination
+  const pagination = usePagination(services);
+
+  // Get selected service from URL
+  const selectedService = useMemo(() => {
+    const pathSegments = window.location.pathname.split("/");
+    const servicesIndex = pathSegments.indexOf("services");
+    const id = servicesIndex >= 0 ? pathSegments[servicesIndex + 1] : null;
+    
+    if (!id) return null;
+    return allServices.find(s => s.id === id) || null;
+  }, [allServices]);
+
+  const selectedInstanceName = selectedService?._instanceName;
+
+  const isLoading = !isConnected && allServices.length === 0;
 
   return {
-    selectedService,
+    // Data
     services,
-    paginatedServices,
-    currentPage,
-    totalPages,
-    startIndex,
-    endIndex,
+    allServices,
+    selectedService,
+    selectedInstanceName,
     isLoading,
     isConnected,
     error: streamError,
-
-    goToPage,
-    goToNextPage,
-    goToPreviousPage,
+    ...pagination,
+    paginatedServices: pagination.paginatedItems,
   };
 }

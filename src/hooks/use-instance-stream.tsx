@@ -152,7 +152,7 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
             const instancesData = queryClient.getQueryData<any>(["instances", clusterId, 1, 8]);
             const instance = instancesData?.items?.find((i: any) => i.tag === instanceId);
             const normalizedUpdate = normalizeInstanceUpdate(update);
-            
+
             // Ensure we have a complete normalized object and add instance information
             if (normalizedUpdate) {
               const updateWithInstance: NormalizedInstanceData = {

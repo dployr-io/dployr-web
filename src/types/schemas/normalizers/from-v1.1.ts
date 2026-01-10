@@ -14,6 +14,7 @@ import type {
   NormalizedFilesystem,
   NormalizedDiagnostics,
   NormalizedFsNode,
+  SchemaVersion,
 } from "../normalized";
 import {
   defaultAgent,
@@ -296,7 +297,7 @@ function normalizeDiagnostics(
  */
 export function normalizeFromV1_1(update: InstanceStreamUpdateV1_1): NormalizedInstanceData {
   return {
-    schema: "v1.1",
+    schema: "v1.1" as SchemaVersion,
     instance: {
       tag: update.instance_id || update.instance?.tag || "",
     },

@@ -8,10 +8,7 @@ import { type BreadcrumbItem, type BlueprintFormat, denormalize, type InstanceSt
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
 import { toJson, toYaml } from "@/lib/utils";
-import { useLogs } from "@/hooks/use-instance-logs";
-import { useUrlState } from "@/hooks/use-url-state";
-import type { LogLevel, LogTimeRange } from "@/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { LogsWindow } from "@/components/logs-window";
 import { BlueprintSection } from "@/components/blueprint";
 import { useDeployments } from "@/hooks/use-deployments";
@@ -19,6 +16,8 @@ import { ArrowUpRightIcon, ChevronLeft, FileX2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
+import { useDeploymentTabs } from "@/hooks/use-standardized-tabs";
+import { useDeploymentLogs } from "@/hooks/use-standardized-logs";
 export const Route = createFileRoute("/clusters/$clusterId/deployments/$id")({
   component: ViewDeployment,
 });
@@ -44,16 +43,18 @@ function ViewDeployment() {
   const { selectedDeployment: deployment, selectedInstanceName } = useDeployments();
   const breadcrumbs = viewDeploymentBreadcrumbs(clusterId, deployment?.id, deployment?.name);
 
-  const { useDeploymentTabsState } = useUrlState();
-  const [{ tab, logRange, logLevel, duration }, setTabState] = useDeploymentTabsState();
-  const currentTab = (tab || "logs") as "logs" | "blueprint";
-  const logTimeRange = (logRange || "live") as LogTimeRange;
-  const selectedLogLevel = (logLevel || "ALL") as "ALL" | LogLevel;
-  const logDuration = (duration || logRange || "live") as LogTimeRange;
+  // Use standardized tabs hook - manages tab state via URL
+  const {
+    currentTab,
+    logTimeRange,
+    selectedLogLevel,
+    logDuration,
+    setTabState,
+  } = useDeploymentTabs();
   
-  const [isAtBottom, setIsAtBottom] = useState(true);
   const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("yaml");
-  const logMode = isAtBottom ? "tail" : "historical";
+
+  // Use standardized logs hook - handles streaming lifecycle automatically
   const {
     logs,
     filteredLogs,
@@ -61,42 +62,29 @@ function ViewDeployment() {
     logsEndRef,
     isStreaming,
     setSearchQuery,
-    startStreaming,
-    stopStreaming,
-  } = useLogs({
-    instanceName: selectedInstanceName,
-    path: deployment?.id || "",
-    initialMode: logMode,
-    duration: logDuration,
-    selectedLevel: selectedLogLevel,
+    handleScrollPositionChange,
+  } = useDeploymentLogs(deployment?.id, selectedInstanceName, {
+    currentTab,
+    logTimeRange,
+    selectedLogLevel,
+    logDuration,
   });
 
-
-  const { update } = useInstanceStatus();
-  const config = denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null;
-
-  const yamlConfig = config ? toYaml(config) : "";
-  const jsonConfig = config ? toJson(config) : "";
-
-  const handleScrollPositionChange = useCallback(
-    (atBottom: boolean) => {
-      setIsAtBottom(atBottom);
-    },
-    [setIsAtBottom]
+  // Get instance status for blueprint
+  const { update } = useInstanceStatus(selectedInstanceName);
+  
+  const config = useMemo(
+    () => denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null,
+    [update]
   );
+
+  const yamlConfig = useMemo(() => config ? toYaml(config) : "", [config]);
+  const jsonConfig = useMemo(() => config ? toJson(config) : "", [config]);
 
   const handleBlueprintCopy = useCallback(() => {
     const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
     navigator.clipboard.writeText(content);
   }, [blueprintFormat, yamlConfig, jsonConfig]);
-
-  useEffect(() => {
-    if (currentTab === "logs" && deployment?.id) {
-      startStreaming();
-    } else {
-      stopStreaming();
-    }
-  }, [currentTab, deployment?.id, startStreaming, stopStreaming]);
 
   if (!deployment) {
     return (
