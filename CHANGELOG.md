@@ -1,3 +1,8 @@
+## [0.1.34] - 2026-01-11
+
+### 🚜 Refactor
+
+- *(hooks)* Add comprehensive debug logging for WebSocket instance update flow
 ## [0.1.31] - 2026-01-10
 
 ### 🚜 Refactor
