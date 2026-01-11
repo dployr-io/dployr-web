@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KeyValueEditorModal } from "@/components/key-value-editor-modal";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Link } from "@tanstack/react-router";
 import { RemoteSelector } from "@/components/remote-selector";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import type { Remote, Runtime, ServiceSource } from "@/types";
 import { runtimes } from "@/types/runtimes";
-import { Rocket, ExternalLink } from "lucide-react";
+import { Rocket, ExternalLink, Info } from "lucide-react";
 
 interface DomainOption {
   domain: string;
@@ -201,7 +203,32 @@ export function CreateServiceForm({
         </div>
 
         <div className="grid gap-2 md:col-span-2">
-          <Label htmlFor="domain">Domain</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="domain">Domain</Label>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button type="button" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                  <Info className="h-4 w-4 text-blue-500" />
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Domain Configuration</DialogTitle>
+                  <DialogDescription>
+                    You can configure domains in your cluster's instance settings.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end">
+                  <Link to="/clusters/$clusterId/instances/$id" params={{ clusterId: "01KBWM5KKBFCCB8VS0WFQH1GE7", id: "01KD86P1HTWZMTNQ2DE02B60ZQ" }} search={{ tab: "config" }}>
+                    <Button variant="outline" size="sm">
+                      <ExternalLink className="h-4 w-4" />
+                      Configure new domain
+                    </Button>
+                  </Link>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           <Select value={domain || ""} onValueChange={(value: string) => setField("domain", value)} disabled={processing || isLoadingDomains || availableDomains.length === 0}>
             <SelectTrigger id="domain">
               <SelectValue placeholder={isLoadingDomains ? "Loading..." : availableDomains.length === 0 ? "No domains available" : "Select domain"} />
