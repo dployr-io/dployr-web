@@ -144,8 +144,6 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
         }
         
         if (message.kind === "update") {
-          console.log("[WebSocket] Update message received:", message);
-
           const data = message as InstanceStream;
           const update = data.update;
           const instanceId = update?.instance_id;
