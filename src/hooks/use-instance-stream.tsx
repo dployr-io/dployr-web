@@ -150,10 +150,17 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
           const update = data.update;
           const instanceId = update?.instance_id;
           
+          console.log("[WebSocket] Extracted instanceId:", instanceId);
+          
           if (instanceId) {
             const instancesData = queryClient.getQueryData<any>(["instances", clusterId, 1, 8]);
+            console.log("[WebSocket] Retrieved instances data:", instancesData);
+            
             const instance = instancesData?.items?.find((i: any) => i.tag === instanceId);
+            console.log("[WebSocket] Found instance:", instance);
+            
             const normalizedUpdate = normalizeInstanceUpdate(update);
+            console.log("[WebSocket] Normalized update:", normalizedUpdate);
 
             // Ensure we have a complete normalized object and add instance information
             if (normalizedUpdate) {
@@ -164,16 +171,25 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
                 }
               };
               
+              console.log("[WebSocket] Setting query data for instance-status:", instanceId, updateWithInstance);
               queryClient.setQueryData<NormalizedInstanceData | null>(["instance-status", instanceId], updateWithInstance);
+            } else {
+              console.error("[WebSocket] Invalid update message received:", message);
             }
             
             // Debounce cache persistence
-            if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
+            if (persistTimeoutRef.current) {
+              console.log("[WebSocket] Clearing previous persist timeout");
+              clearTimeout(persistTimeoutRef.current);
+            }
             persistTimeoutRef.current = setTimeout(() => {
+              console.log("[WebSocket] Persisting cache to storage");
               persistCacheToStorage(queryClient);
               persistMemoryProfiles();
               persistTimeoutRef.current = null;
             }, 500);
+          } else {
+            console.warn("[WebSocket] No instanceId found in update message");
           }
         }
         
