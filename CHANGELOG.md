@@ -1,3 +1,8 @@
+## [0.1.36] - 2026-01-13
+
+### 🚜 Refactor
+
+- *(dns)* Consolidate domain queries and remove provider display for unknown providers
 ## [0.1.35] - 2026-01-13
 
 ### 🚜 Refactor
