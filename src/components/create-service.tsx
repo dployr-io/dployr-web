@@ -87,8 +87,8 @@ export function CreateServiceForm({
   portError,
   domain,
   domainError,
-  availableDomains = [],
-  isLoadingDomains = false,
+  availableDomains,
+  isLoadingDomains,
   envVars = {},
   secrets = {},
   instanceId,
@@ -222,23 +222,25 @@ export function CreateServiceForm({
                   <Link to="/clusters/$clusterId/instances/$id" params={{ clusterId: "01KBWM5KKBFCCB8VS0WFQH1GE7", id: "01KD86P1HTWZMTNQ2DE02B60ZQ" }} search={{ tab: "config" }}>
                     <Button variant="outline" size="sm">
                       <ExternalLink className="h-4 w-4" />
-                      Configure new domain
+                      Configure domain
                     </Button>
                   </Link>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
-          <Select value={domain || ""} onValueChange={(value: string) => setField("domain", value)} disabled={processing || isLoadingDomains || availableDomains.length === 0}>
+          <Select value={domain || ""} onValueChange={(value: string) => setField("domain", value)} disabled={processing || isLoadingDomains || availableDomains?.length === 0}>
             <SelectTrigger id="domain">
-              <SelectValue placeholder={isLoadingDomains ? "Loading..." : availableDomains.length === 0 ? "No domains available" : "Select domain"} />
+              <SelectValue placeholder={isLoadingDomains ? "Loading..." : availableDomains?.length === 0 ? "No domains available" : "Select domain"} />
             </SelectTrigger>
             <SelectContent>
-              {availableDomains.map(d => (
+              {availableDomains?.map(d => (
                 <SelectItem key={d.domain} value={d.domain}>
                   <div className="flex items-center gap-2">
                     <span>{d.domain}</span>
-                    <span className="text-xs text-muted-foreground">({d.provider})</span>
+                    {d.provider && d.provider !== "unknown" && (
+                      <span className="text-xs text-muted-foreground">({d.provider})</span>
+                    )}
                   </div>
                 </SelectItem>
               ))}

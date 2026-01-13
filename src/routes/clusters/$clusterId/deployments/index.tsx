@@ -67,8 +67,8 @@ function Deployments() {
     blueprintContent,
     blueprintFormat,
     schemaErrors,
-    allActiveDomains,
-    isLoadingAllDomains,
+    domains,
+    isLoadingDomains,
     handleStartCreate,
     handleBack,
     handleSaveAndExit,
@@ -84,7 +84,7 @@ function Deployments() {
     resetBlueprint,
     syncBlueprintFromDraft,
     syncDraftFromBlueprint,
-  } = useDeploymentCreator();
+  } = useDeploymentCreator(quickDeployInstanceId);
 
   // Use the fixed useDeployments hook - now properly aggregates from all instances
   const {
@@ -440,8 +440,8 @@ function Deployments() {
                         portError={validationErrors.port || ""}
                         domain={currentDraft?.domain || ""}
                         domainError={validationErrors.domain || ""}
-                        availableDomains={allActiveDomains.map(d => ({ domain: d.domain, provider: d.provider }))}
-                        isLoadingDomains={isLoadingAllDomains}
+                        availableDomains={domains?.map(d => ({ domain: d.domain, provider: d.provider }))}
+                        isLoadingDomains={isLoadingDomains}
                         envVars={currentDraft?.env_vars || {}}
                         secrets={currentDraft?.secrets || {}}
                         instanceId={quickDeployInstanceId}

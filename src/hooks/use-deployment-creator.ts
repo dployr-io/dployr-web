@@ -21,14 +21,14 @@ import { ulid } from "ulid";
  * Hook for managing deployment creation state and navigation.
  * Can be used from any page to start the deployment creation flow.
  */
-export function useDeploymentCreator() {
+export function useDeploymentCreator(instanceId?: string) {
   const clusterId = useClusterId();
   const { useDeploymentsTabsState, useAppError } = useUrlState();
   const [{ tab }, setTab] = useDeploymentsTabsState();
   const [, setAppError] = useAppError();
   const currentTab = (tab || "quick") as "quick" | "blueprint-editor";
 
-  const { allActiveDomains, isLoadingAllDomains } = useDns();
+  const { domains, isLoadingDomains } = useDns(instanceId);
 
   // WebSocket connection
   const { sendJson, isConnected: wsConnected } = useInstanceStream();
@@ -381,8 +381,8 @@ export function useDeploymentCreator() {
     schemaErrors,
 
     // Domain state
-    allActiveDomains,
-    isLoadingAllDomains,
+    domains,
+    isLoadingDomains,
 
     // Handlers
     handleStartCreate,

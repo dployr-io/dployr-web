@@ -53,27 +53,6 @@ export function useDns(instanceId?: string) {
   const [verifySetupDetails, setVerifySetupDetails] = useState<DnsSetupResponse | null>(null);
   const [verifyCooldowns, setVerifyCooldowns] = useState<Map<string, number>>(new Map());
 
-  // Get all active domains across all instances (for domain dropdown)
-  const { data: allDomains, isLoading: isLoadingAllDomains } = useQuery<DnsDomain[]>({
-    queryKey: ["dns-all-domains", instanceId],
-    queryFn: async (): Promise<DnsDomain[]> => {
-      if (!instanceId) return [];
-
-      try {
-        const response = await axios.get<ApiSuccessResponse<DnsListResponse>>(`${import.meta.env.VITE_BASE_URL}/v1/domains/instance/${encodeURIComponent(instanceId)}`, {
-          params: { clusterId },
-          withCredentials: true,
-        });
-        // Filter to only active domains
-        return (response.data.data.domains || []).filter(d => d.status === "active");
-      } catch (error) {
-        console.error("Failed to fetch all domains:", error);
-        return [];
-      }
-    },
-    enabled: Boolean(clusterId),
-  });
-
   // Get all DNS domains for an instance
   const { data: dnsList, isLoading: isLoadingDomains } = useQuery<DnsListResponse | null>({
     queryKey: ["dns-domains", instanceId, clusterId],
@@ -215,10 +194,8 @@ export function useDns(instanceId?: string) {
   };
 
   return {
-    dnsList: dnsList?.domains ?? [],
+    domains: dnsList?.domains ?? [],
     isLoadingDomains,
-    allActiveDomains: allDomains ?? [],
-    isLoadingAllDomains,
     setupDns: setupDnsMutation.mutate,
     setupDnsAsync: setupDnsMutation.mutateAsync,
     isSettingUp: setupDnsMutation.isPending,

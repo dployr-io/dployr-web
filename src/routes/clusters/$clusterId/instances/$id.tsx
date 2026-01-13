@@ -166,7 +166,7 @@ function ViewInstance() {
   const updatePayload = update ?? null;
   const [isCertOpen, setIsCertOpen] = useState(false);
   const [domainInput, setDomainInput] = useState("");
-  const { dnsList, setupDnsAsync, isSettingUp, deleteDnsAsync, isDeleting, verifyDomain, isVerifying, getVerifyCooldown, verifySetupDetails, clearVerifySetupDetails } = useDns(instanceId);
+  const { domains, setupDnsAsync, isSettingUp, deleteDnsAsync, isDeleting, verifyDomain, isVerifying, getVerifyCooldown, verifySetupDetails, clearVerifySetupDetails } = useDns(instanceId);
   const [, setError] = useState<{ message: string; helpLink: string } | null>(null);
 
   // Set bootstrap token from update data
@@ -510,9 +510,9 @@ function ViewInstance() {
                       {/* Domains section - keeping existing implementation */}
                       <div>
                         <span className="text-xs text-muted-foreground">Domains</span>
-                        {dnsList && dnsList.length > 0 ? (
+                        {domains && domains.length > 0 ? (
                           <div className="mt-2 space-y-1">
-                            {dnsList.map(d => {
+                            {domains.map(d => {
                               const cooldown = getVerifyCooldown(d.domain);
                               return (
                                 <div key={d.id} className="flex items-center justify-between py-1">
