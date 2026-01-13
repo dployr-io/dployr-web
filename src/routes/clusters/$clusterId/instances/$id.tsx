@@ -6,7 +6,7 @@ import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Cog, Copy, Cpu, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
+import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Cog, Copy, Cpu, ExternalLink, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/metric-card";
 import { StatusBadge } from "@/components/status-badge";
@@ -166,7 +166,7 @@ function ViewInstance() {
   const updatePayload = update ?? null;
   const [isCertOpen, setIsCertOpen] = useState(false);
   const [domainInput, setDomainInput] = useState("");
-  const { dnsList, setupDnsAsync, isSettingUp, deleteDnsAsync, isDeleting } = useDns(instanceId);
+  const { dnsList, setupDnsAsync, isSettingUp, deleteDnsAsync, isDeleting, verifyDomain, isVerifying, getVerifyCooldown, verifySetupDetails, clearVerifySetupDetails } = useDns(instanceId);
   const [, setError] = useState<{ message: string; helpLink: string } | null>(null);
 
   // Set bootstrap token from update data
@@ -512,23 +512,45 @@ function ViewInstance() {
                         <span className="text-xs text-muted-foreground">Domains</span>
                         {dnsList && dnsList.length > 0 ? (
                           <div className="mt-2 space-y-1">
-                            {dnsList.map(d => (
-                              <div key={d.id} className="flex items-center justify-between py-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono text-sm">{d.domain}</span>
-                                  <StatusBadge status={d.status} variant="compact" />
+                            {dnsList.map(d => {
+                              const cooldown = getVerifyCooldown(d.domain);
+                              return (
+                                <div key={d.id} className="flex items-center justify-between py-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono text-sm">{d.domain}</span>
+                                    <StatusBadge status={d.status} variant="compact" />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {d.status === "pending" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2"
+                                        onClick={() => verifyDomain(d.domain)}
+                                        disabled={isVerifying || cooldown > 0}
+                                      >
+                                        {isVerifying ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : cooldown > 0 ? (
+                                          `Check Status (${cooldown}s)`
+                                        ) : (
+                                          "Check Status"
+                                        )}
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-destructive hover:text-destructive"
+                                      onClick={() => deleteDnsAsync(d.domain)}
+                                      disabled={isDeleting}
+                                    >
+                                      {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
+                                    </Button>
+                                  </div>
                                 </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2 text-destructive hover:text-destructive"
-                                  onClick={() => deleteDnsAsync(d.domain)}
-                                  disabled={isDeleting}
-                                >
-                                  {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
-                                </Button>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className="text-sm text-muted-foreground">No domains configured</div>
@@ -556,6 +578,137 @@ function ViewInstance() {
                       </div>
                     </div>
                   </div>
+
+                  {/* DNS Setup Instructions Dialog */}
+                  <Dialog open={!!verifySetupDetails} onOpenChange={(open) => !open && clearVerifySetupDetails()}>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Configuration Required</DialogTitle>
+                        <DialogDescription>
+                          Please configure the DNS records below for <span className="font-semibold font-mono">{verifySetupDetails?.domain}</span>
+                        </DialogDescription>
+                      </DialogHeader>
+                      {verifySetupDetails && (
+                        <div className="space-y-4">
+                          <div className="space-y-3">
+                            {verifySetupDetails.record && (
+                              <div>
+                                <div className="text-sm font-semibold mb-2">DNS Record (A Record)</div>
+                                <div className="rounded-lg border p-3 space-y-2 bg-muted/50">
+                                  <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <div className="font-medium">Name</div>
+                                    <div className="font-medium">Value</div>
+                                    <div className="font-medium">TTL</div>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 text-xs font-mono">
+                                    <div className="flex items-center gap-1">
+                                      <span className="break-all">{verifySetupDetails?.record?.name}</span>
+                                      <button
+                                        onClick={() => navigator.clipboard.writeText(verifySetupDetails?.record?.name || "")}
+                                        className="shrink-0 p-1 hover:bg-muted rounded"
+                                        title="Copy name"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="break-all">{verifySetupDetails?.record?.value}</span>
+                                      <button
+                                        onClick={() => navigator.clipboard.writeText(verifySetupDetails?.record?.value || "")}
+                                        className="shrink-0 p-1 hover:bg-muted rounded"
+                                        title="Copy value"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                    <div>{verifySetupDetails.record.ttl}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {verifySetupDetails.verification && (
+                              <div>
+                                <div className="text-sm font-semibold mb-2">Verification Record (TXT Record)</div>
+                                <div className="rounded-lg border p-3 space-y-2 bg-muted/50">
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="font-medium">Name</div>
+                                    <div className="font-medium">Value</div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                                    <div className="flex items-center gap-1">
+                                      <span className="break-all">{verifySetupDetails.verification.name}</span>
+                                      <button
+                                        onClick={() => navigator.clipboard.writeText(verifySetupDetails?.verification?.name || "")}
+                                        className="shrink-0 p-1 hover:bg-muted rounded"
+                                        title="Copy name"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span className="break-all">{verifySetupDetails.verification.value}</span>
+                                      <button
+                                        onClick={() => navigator.clipboard.writeText(verifySetupDetails?.verification?.value || "")}
+                                        className="shrink-0 p-1 hover:bg-muted rounded"
+                                        title="Copy value"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-2">
+                            <div className="flex items-center gap-2">
+                              {verifySetupDetails.autoSetupUrl && (
+                                <Button variant="default" size="sm" asChild>
+                                  <a href={verifySetupDetails.autoSetupUrl} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="h-4 w-4" />
+                                    Auto Setup
+                                  </a>
+                                </Button>
+                              )}
+                              {verifySetupDetails.manualGuideUrl && (
+                                <Button variant="outline" size="sm" asChild>
+                                  <a href={verifySetupDetails.manualGuideUrl} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="h-4 w-4" />
+                                    Manual Guide
+                                  </a>
+                                </Button>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => {
+                                  const domain = verifySetupDetails.domain;
+                                  clearVerifySetupDetails();
+                                  verifyDomain(domain);
+                                }}
+                                disabled={isVerifying || getVerifyCooldown(verifySetupDetails.domain) > 0}
+                              >
+                                {isVerifying ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : getVerifyCooldown(verifySetupDetails.domain) > 0 ? (
+                                  `Check Status (${getVerifyCooldown(verifySetupDetails.domain)}s)`
+                                ) : (
+                                  "Check Status"
+                                )}
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => clearVerifySetupDetails()}>
+                                Close
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </TabsContent>
               )}
 

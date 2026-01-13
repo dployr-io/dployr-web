@@ -6,7 +6,7 @@ import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClusterId } from "@/hooks/use-cluster-id";
 import { useUrlState } from "@/hooks/use-url-state";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export interface DnsDomain {
   id: string;
@@ -25,19 +25,23 @@ export interface DnsSetupResponse {
   domain: string;
   provider: "cloudflare" | "route53" | "digitalocean";
   hasOAuth: boolean;
-  record: {
+  status: "pending" | "active" | "failed";
+  instanceId: string;
+  createdAt: number;
+  activatedAt: number;
+  record?: {
     type: string;
     name: string;
     value: string;
     ttl: number;
   };
-  verification: {
+  verification?: {
     type: string;
     name: string;
     value: string;
   };
-  autoSetupUrl: string;
-  manualGuideUrl: string;
+  autoSetupUrl?: string;
+  manualGuideUrl?: string;
 }
 
 export function useDns(instanceId?: string) {
@@ -46,6 +50,8 @@ export function useDns(instanceId?: string) {
   const { useAppError } = useUrlState();
   const [, setError] = useAppError();
   const [setupDetails, setSetupDetails] = useState<DnsSetupResponse | null>(null);
+  const [verifySetupDetails, setVerifySetupDetails] = useState<DnsSetupResponse | null>(null);
+  const [verifyCooldowns, setVerifyCooldowns] = useState<Map<string, number>>(new Map());
 
   // Get all active domains across all instances (for domain dropdown)
   const { data: allDomains, isLoading: isLoadingAllDomains } = useQuery<DnsDomain[]>({
@@ -54,15 +60,10 @@ export function useDns(instanceId?: string) {
       if (!instanceId) return [];
 
       try {
-        const response = await axios.get<ApiSuccessResponse<DnsListResponse>>(
-          `${import.meta.env.VITE_BASE_URL}/v1/domains/instance/${encodeURIComponent(
-            instanceId,
-          )}`,
-          {
-            params: { clusterId },
-            withCredentials: true,
-          }
-        );
+        const response = await axios.get<ApiSuccessResponse<DnsListResponse>>(`${import.meta.env.VITE_BASE_URL}/v1/domains/instance/${encodeURIComponent(instanceId)}`, {
+          params: { clusterId },
+          withCredentials: true,
+        });
         // Filter to only active domains
         return (response.data.data.domains || []).filter(d => d.status === "active");
       } catch (error) {
@@ -80,13 +81,10 @@ export function useDns(instanceId?: string) {
       if (!instanceId || !clusterId) return null;
 
       try {
-        const response = await axios.get<ApiSuccessResponse<DnsListResponse>>(
-          `${import.meta.env.VITE_BASE_URL}/v1/domains/instance/${instanceId}`,
-          {
-            params: { clusterId },
-            withCredentials: true,
-          }
-        );
+        const response = await axios.get<ApiSuccessResponse<DnsListResponse>>(`${import.meta.env.VITE_BASE_URL}/v1/domains/instance/${instanceId}`, {
+          params: { clusterId },
+          withCredentials: true,
+        });
         return response.data.data;
       } catch (error) {
         console.error("Failed to fetch DNS domains:", error);
@@ -96,32 +94,56 @@ export function useDns(instanceId?: string) {
     enabled: Boolean(instanceId && clusterId),
   });
 
-  // Determine which domain to poll from dnsList
-  const pendingDomain = dnsList?.domains?.find((d: DnsDomain) => d.status === "pending")?.domain;
+  // Cooldown timer effect
+  useEffect(() => {
+    const activeCooldowns = Array.from(verifyCooldowns.entries()).filter(([, time]) => time > 0);
 
-  // Poll domain status until active
-  const { data: domainStatus } = useQuery({
-    queryKey: ["dns-status", pendingDomain, clusterId],
-    queryFn: async () => {
-      if (!pendingDomain || !clusterId) return null;
+    if (activeCooldowns.length > 0) {
+      const timer = setTimeout(() => {
+        setVerifyCooldowns(prev => {
+          const next = new Map(prev);
+          activeCooldowns.forEach(([domain]) => {
+            const current = next.get(domain) || 0;
+            if (current > 0) {
+              next.set(domain, current - 1);
+            }
+          });
+          return next;
+        });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [verifyCooldowns]);
 
-      try {
-        const response = await axios.get<ApiSuccessResponse<any>>(
-          `${import.meta.env.VITE_BASE_URL}/v1/domains/status/${pendingDomain}`,
-          {
-            params: { clusterId },
-            withCredentials: true,
-          }
-        );
-        return response.data.data;
-      } catch (error) {
-        console.error("Failed to fetch domain status:", error);
-        return null;
+  // Verify domain status mutation
+  const verifyDomainMutation = useMutation({
+    mutationFn: async (domain: string) => {
+      if (!clusterId) {
+        throw new Error("Cluster ID is required to verify domain");
       }
+      const response = await axios.post<ApiSuccessResponse<any>>(
+        `${import.meta.env.VITE_BASE_URL}/v1/domains/${domain}/verify?clusterId=${clusterId}`,
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+      return response.data.data;
     },
-    enabled: Boolean(pendingDomain && clusterId),
-    refetchInterval: pendingDomain ? 5000 : false,
-    refetchIntervalInBackground: true,
+    onSuccess: (_, domain) => {
+      queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
+      setVerifyCooldowns(prev => new Map(prev).set(domain, 10));
+    },
+    onError: async (_, domain) => {
+      const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/domains/${domain}`, {
+        withCredentials: true,
+      });
+      
+      setVerifySetupDetails((response?.data?.data as DnsSetupResponse) || null);
+
+      // Set cooldown even on error
+      setVerifyCooldowns(prev => new Map(prev).set(domain, 10));
+    },
   });
 
   // Setup DNS for a domain
@@ -138,63 +160,17 @@ export function useDns(instanceId?: string) {
           withCredentials: true,
         }
       );
+
+      queryClient.invalidateQueries({ queryKey: ["dns-domains", instanceId, clusterId] });
       return response.data.data;
     },
-    onSuccess: (data) => {
+    onSuccess: data => {
       // Store setup details
       setSetupDetails(data);
     },
     onError: (error: any) => {
       const errorData = error?.response?.data?.error;
       const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while setting up domain.";
-      const helpLink = error?.response?.data?.error?.helpLink;
-
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
-    },
-  });
-
-  // Get domain status with setup details
-  const getDomainStatus = async (domain: string) => {
-    if (!clusterId) {
-      throw new Error("Cluster ID is required");
-    }
-    const response = await axios.get<ApiSuccessResponse<DnsSetupResponse & { status: string }>>(
-      `${import.meta.env.VITE_BASE_URL}/v1/domains/status/${domain}`,
-      {
-        params: { clusterId },
-        withCredentials: true,
-      }
-    );
-    return response.data.data;
-  };
-
-  // Request domain verification
-  const requestVerificationMutation = useMutation({
-    mutationFn: async ({ domain }: { domain: string; }) => {
-      if (!instanceId) {
-        throw new Error("Instance ID is required to request verification");
-      }
-      const response = await axios.post<ApiSuccessResponse<DnsSetupResponse>>(
-        `${import.meta.env.VITE_BASE_URL}/v1/domains/${domain}/verify`,
-        { domain },
-        {
-          params: { instanceId },
-          withCredentials: true,
-        }
-      );
-      return response.data.data;
-    },
-    onSuccess: (data) => {
-      setSetupDetails(data);
-    },
-    onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while requesting verification.";
       const helpLink = error?.response?.data?.error?.helpLink;
 
       setError({
@@ -218,7 +194,7 @@ export function useDns(instanceId?: string) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
+      queryClient.invalidateQueries({ queryKey: ["dns-domains", instanceId, clusterId] });
     },
     onError: (error: any) => {
       const errorData = error?.response?.data?.error;
@@ -238,12 +214,6 @@ export function useDns(instanceId?: string) {
     setSetupDetails(null);
   };
 
-  // Stop polling when domain becomes active
-  if (domainStatus?.status === "active" && pendingDomain) {
-    queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
-    stopPolling();
-  }
-
   return {
     dnsList: dnsList?.domains ?? [],
     isLoadingDomains,
@@ -254,14 +224,14 @@ export function useDns(instanceId?: string) {
     isSettingUp: setupDnsMutation.isPending,
     setupError: setupDnsMutation.error,
     setupDetails,
-    domainStatus,
-    isPolling: Boolean(pendingDomain),
     stopPolling,
-    getDomainStatus,
-    requestVerification: requestVerificationMutation.mutate,
-    requestVerificationAsync: requestVerificationMutation.mutateAsync,
-    isRequestingVerification: requestVerificationMutation.isPending,
-    requestVerificationError: requestVerificationMutation.error,
+    verifyDomain: verifyDomainMutation.mutate,
+    verifyDomainAsync: verifyDomainMutation.mutateAsync,
+    isVerifying: verifyDomainMutation.isPending,
+    verifyError: verifyDomainMutation.error,
+    verifySetupDetails,
+    clearVerifySetupDetails: () => setVerifySetupDetails(null),
+    getVerifyCooldown: (domain: string) => verifyCooldowns.get(domain) || 0,
     deleteDns: deleteDnsMutation.mutate,
     deleteDnsAsync: deleteDnsMutation.mutateAsync,
     isDeleting: deleteDnsMutation.isPending,
