@@ -1,3 +1,9 @@
+## [0.1.35] - 2026-01-13
+
+### 🚜 Refactor
+
+- *(create-service)* Add domain configuration info dialog
+- *(dns)* Replace polling with manual verification and add cooldown mechanism
 ## [0.1.34] - 2026-01-11
 
 ### 🚜 Refactor
