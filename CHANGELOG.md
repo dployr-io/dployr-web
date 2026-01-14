@@ -1,3 +1,8 @@
+## [0.1.37] - 2026-01-14
+
+### 🚜 Refactor
+
+- *(deployments)* Extract specific deployment blueprint from config
 ## [0.1.36] - 2026-01-13
 
 ### 🚜 Refactor
