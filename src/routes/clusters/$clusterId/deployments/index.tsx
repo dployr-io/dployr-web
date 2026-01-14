@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUrlState } from "@/hooks/use-url-state";
 import "@/css/app.css";
@@ -19,6 +19,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { useInstances } from "@/hooks/use-instances";
 import { useDeployments } from "@/hooks/use-deployments";
 import { useRemotes } from "@/hooks/use-remotes";
+import { useQueryClient } from "@tanstack/react-query";
 import { ProtectedRoute } from "@/components/protected-route";
 import { formatWithoutSuffix } from "@/lib/utils";
 import { APP_LINKS } from "@/lib/constants";
@@ -44,6 +45,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Deployments() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { instances } = useInstances();
   const { remotes, isLoading: isRemotesLoading } = useRemotes();
   const { useDeploymentsUrlState } = useUrlState();
@@ -241,7 +244,7 @@ function Deployments() {
                                 <TableCell className="h-16 w-[120px] align-middle whitespace-nowrap">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }}><TimeAgo date={deployment.createdAt} /></Link>
                                 </TableCell>
-                                <TableCell className="h-16 w-[120px] align-middle">
+                                <TableCell className="h-16 w-[120px] align-middle whitespace-nowrap">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block">
                                     {deployment.status === "completed" || deployment.status === "failed" ? (
                                       deployment.updatedAt && deployment.createdAt ? (
@@ -444,12 +447,27 @@ function Deployments() {
                         isLoadingDomains={isLoadingDomains}
                         envVars={currentDraft?.env_vars || {}}
                         secrets={currentDraft?.secrets || {}}
-                        instanceId={quickDeployInstanceId}
                         setField={setField}
                         onSourceValueChanged={value => updateDraft("source", value)}
                         onRuntimeValueChanged={value => updateDraft("runtime", value)}
-                        onDeploy={handleDeploy}
                       />
+                      <div className="flex justify-end">
+                        <Button onClick={() => {
+                          
+                          if (quickDeployInstanceId) {
+                            const instance = instances?.find(i => i.id === quickDeployInstanceId);
+                            console.log("Deploying...", instance?.tag);
+                            if (instance) {
+                              handleDeploy(instance.tag);
+                              navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
+                              queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] });
+                            }
+                          }
+                        }} disabled={!quickDeployInstanceId} size="lg">
+                          <Rocket className="h-4 w-4" />
+                          Deploy
+                        </Button>
+                      </div>
                     </div>
                   </TabsContent>
 
@@ -483,8 +501,10 @@ function Deployments() {
                       <Button onClick={() => {
                         if (blueprintInstanceId) {
                           const instance = instances?.find(i => i.id === blueprintInstanceId);
-                          if (instance?.tag) {
+                          if (instance) {
                             handleDeploy(instance.tag);
+                            navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
+                            queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] })
                           }
                         }
                       }} disabled={schemaErrors.length > 0 || !blueprintInstanceId} size="lg">

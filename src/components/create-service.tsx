@@ -12,7 +12,7 @@ import { RemoteSelector } from "@/components/remote-selector";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import type { Remote, Runtime, ServiceSource } from "@/types";
 import { runtimes } from "@/types/runtimes";
-import { Rocket, ExternalLink, Info } from "lucide-react";
+import { ExternalLink, Info } from "lucide-react";
 
 interface DomainOption {
   domain: string;
@@ -53,13 +53,11 @@ interface Props {
   isLoadingDomains?: boolean;
   envVars?: Record<string, string>;
   secrets?: Record<string, string>;
-  instanceId?: string;
 
   // Unified handlers
   setField: (field: string, value: unknown) => void;
   onSourceValueChanged: (arg0: ServiceSource) => void;
   onRuntimeValueChanged: (arg0: Runtime) => void;
-  onDeploy?: (instanceId: string) => void;
 }
 
 export function CreateServiceForm({
@@ -91,7 +89,6 @@ export function CreateServiceForm({
   isLoadingDomains,
   envVars = {},
   secrets = {},
-  instanceId,
   remote,
   remotes,
   isRemotesLoading,
@@ -99,7 +96,6 @@ export function CreateServiceForm({
   setField,
   onSourceValueChanged,
   onRuntimeValueChanged,
-  onDeploy,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -331,16 +327,6 @@ export function CreateServiceForm({
           </div>
         </div>
       </div>
-
-      {/* Deploy button */}
-      {onDeploy && instanceId && (
-        <div className="flex justify-end pt-4">
-          <Button onClick={() => onDeploy(instanceId)} disabled={processing} size="lg">
-            <Rocket className="h-4 w-4" />
-            Deploy
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

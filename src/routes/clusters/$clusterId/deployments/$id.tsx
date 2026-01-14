@@ -76,10 +76,11 @@ function ViewDeployment() {
   const config = useMemo(
     () => denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null,
     [update]
-  );
+  );  
 
-  const yamlConfig = useMemo(() => config ? toYaml(config) : "", [config]);
-  const jsonConfig = useMemo(() => config ? toJson(config) : "", [config]);
+  const deploymentBlueprint = useMemo(() => config?.workloads?.deployments?.find((d) => d?.id === deployment?.id), [config, deployment?.id]);
+  const yamlConfig = useMemo(() => deploymentBlueprint ? toYaml(deploymentBlueprint) : "", [deploymentBlueprint]);
+  const jsonConfig = useMemo(() => deploymentBlueprint ? toJson(deploymentBlueprint) : "", [deploymentBlueprint]);
 
   const handleBlueprintCopy = useCallback(() => {
     const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
