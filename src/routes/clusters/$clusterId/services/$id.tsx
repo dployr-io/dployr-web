@@ -7,7 +7,7 @@ import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem, type BlueprintFormat, type Runtime, type NormalizedService, denormalize, type InstanceStreamUpdateV1_1 } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronLeft, Edit2, FileX2, Globe, Loader2, Save, StopCircle, X } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, Edit2, ExternalLink, FileX2, Globe, Loader2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
@@ -18,9 +18,7 @@ import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
 import { MetricCard } from "@/components/metric-card";
 import TimeAgo from "react-timeago";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useClusters } from "@/hooks/use-clusters";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { useServiceRemove } from "@/hooks/use-service-remove";
@@ -30,6 +28,9 @@ import { toJson, toYaml } from "@/lib/utils";
 import { useCallback, useMemo, useState } from "react";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
 import { useServiceTabs } from "@/hooks/use-standardized-tabs";
+import { useQueryClient } from "@tanstack/react-query";
+import type { NormalizedInstanceData } from "@/types";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
@@ -52,12 +53,13 @@ const viewServiceBreadcrumbs = (service: NormalizedService | null, clusterId?: s
 
 function ViewService() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   // useServices now includes selectedInstanceName from the aggregated data
   const { selectedService: service, selectedInstanceName, isLoading } = useServices();
   const { handleStartCreate } = useDeploymentCreator();
   const { clusterId, userCluster } = useClusters();
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
-  
+
   // Use standardized tabs hook
   const { currentTab, setTabState } = useServiceTabs();
   const navigate = useNavigate();
@@ -76,13 +78,30 @@ function ViewService() {
     handleSave: handleSaveEdit,
   } = useServiceEditor(service, clusterId || "", selectedInstanceName || "");
 
-  const {
-    handleRemoveService,
-  } = useServiceRemove();
+  const { handleRemoveService } = useServiceRemove();
 
   // Get instance status for blueprint - now using the instance name from useServices
   const { update } = useInstanceStatus(selectedInstanceName);
   const denormalizedData = useMemo(() => denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null, [update]);
+
+  // Get proxy route for this service
+  const proxyRoute = useMemo(() => {
+    if (!selectedInstanceName || !service) return null;
+    const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", selectedInstanceName]);
+    if (!instanceData?.proxy?.routes) return null;
+
+    return (
+      instanceData.proxy.routes.find(route => {
+        const upstreamPort = route.upstream?.match(/:([\d]+)/)?.[1];
+        return route.domain.includes(service.name) || route.upstream?.includes(service.name) || upstreamPort === String(service.port);
+      }) || null
+    );
+  }, [selectedInstanceName, service, queryClient]);
+
+  const serviceDomain = useMemo(() => {
+    if (proxyRoute?.domain) return proxyRoute.domain;
+    return `${service?.name}.${userCluster?.name}.dployr.io`;
+  }, [proxyRoute, service?.name, userCluster?.name]);
 
   const yamlConfig = useMemo(() => {
     if (!denormalizedData?.workloads?.services?.length) return "";
@@ -120,9 +139,7 @@ function ViewService() {
               </EmptyHeader>
               <EmptyContent>
                 <div className="flex justify-center gap-2">
-                  <Button onClick={handleStartCreate}>
-                    Deploy Service
-                  </Button>
+                  <Button onClick={handleStartCreate}>Deploy Service</Button>
                   <Button variant="link" asChild className="text-muted-foreground" size="sm">
                     <a href="#">
                       Learn More <ArrowUpRightIcon />
@@ -187,10 +204,12 @@ function ViewService() {
                     <ChevronLeft /> Back
                   </Button>
 
-                  <Button size="sm" onClick={handleStartEdit}>
-                    <Edit2 className="h-4 w-4" />
-                    Edit
-                  </Button>
+                  {currentTab === "overview" && !isEditMode && (
+                    <Button size="sm" onClick={handleStartEdit}>
+                      <Edit2 className="h-4 w-4" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -213,93 +232,107 @@ function ViewService() {
                     </div>
 
                     {service.description && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-sm font-medium">Description</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                      <div className="rounded-xl border bg-background/40 p-2">
+                        <div className="px-2 py-1">
                           <p className="text-sm text-muted-foreground">{service.description}</p>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     )}
 
-                    <div className="rounded-xl border bg-background/40 p-4">
-                      <div className="space-y-2">
+                    <div className="rounded-xl border bg-background/40 p-2">
+                      <div className="p-1">
                         <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
                           <Globe className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-mono text-sm">{`${service.name}.${userCluster?.name}.dployr.io`}</span>
+                          <span className="font-mono text-sm flex-1">{serviceDomain}</span>
+                          <a
+                            href={`https://${serviceDomain}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
                         </div>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold">Edit</h2>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                          <X className="h-4 w-4" />
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={handleSaveEdit}>
-                          <Save className="h-4 w-4" />
-                          Save & Deploy
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Basic Information</CardTitle>
-                        <CardDescription>Update the service name and description</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="rounded-xl border bg-background/40 p-2">
+                      <div className="px-2 py-1 space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name">Service Name</Label>
+                          <Label htmlFor="name" className="text-muted-foreground">Name</Label>
                           <Input id="name" value={editedName} onChange={e => setEditedName(e.target.value)} placeholder="Enter service name" />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="description">Description</Label>
+                          <Label htmlFor="description" className="text-muted-foreground">Description</Label>
                           <Textarea id="description" value={editedDescription} onChange={e => setEditedDescription(e.target.value)} placeholder="Enter service description" rows={3} />
                         </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col gap-2">
-                            <CardTitle>Remove Service</CardTitle>
-                            <CardDescription>This will remove the service from the instance. This action cannot be undone.</CardDescription>
+                        {currentTab === "overview" && isEditMode && (
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                              Cancel
+                            </Button>
+                            <Button size="sm" onClick={handleSaveEdit}>
+                              Save
+                            </Button>
                           </div>
-                          <Button size="sm" variant="destructive" onClick={() => {
-                            const result = handleRemoveService(service?.name || "", ulid());
-                            if (result.success) {
-                              navigate({ to: "/clusters/$clusterId/services", params: { clusterId } });
-                            }
-                          }}>
-                            <StopCircle className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border bg-background/40 p-2">
+                      <div className="px-2 py-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-1">
+                            <div className="text-base font-semibold">Remove Service</div>
+                            <div className="text-sm text-muted-foreground">This will remove the service from the instance. This action cannot be undone.</div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              const result = handleRemoveService(service?.name || "", ulid());
+                              if (result.success) {
+                                navigate({ to: "/clusters/$clusterId/services", params: { clusterId } });
+                              }
+                            }}
+                          >
                             Stop & Remove
                           </Button>
                         </div>
-                      </CardHeader>
-               
-                    </Card>
-                  </>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </TabsContent>
 
               <TabsContent value="env" className="mt-4">
-                <ConfigTable
-                  config={config}
-                  editingKey={editingKey}
-                  editValue={editValue}
-                  setEditValue={setEditValue}
-                  handleEdit={handleEdit}
-                  handleSave={handleSave}
-                  handleKeyboardPress={handleKeyboardPress}
-                  handleCancel={handleCancel}
-                />
+                {config && Object.keys(config).length > 0 ? (
+                  <ConfigTable
+                    config={config}
+                    editingKey={editingKey}
+                    editValue={editValue}
+                    setEditValue={setEditValue}
+                    handleEdit={handleEdit}
+                    handleSave={handleSave}
+                    handleKeyboardPress={handleKeyboardPress}
+                    handleCancel={handleCancel}
+                  />
+                ) : (
+                  <div className="flex h-[400px] items-center justify-center">
+                    <Empty>
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <FileX2 />
+                        </EmptyMedia>
+                        <EmptyTitle>No Environment Variables</EmptyTitle>
+                        <EmptyDescription>This service doesn&apos;t have any environment variables configured yet.</EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="blueprint" className="mt-4">

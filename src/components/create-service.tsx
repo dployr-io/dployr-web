@@ -133,14 +133,30 @@ export function CreateServiceForm({
         {source === "remote" && <div className="grid gap-2"><RemoteSelector value={remote || null} remotes={remotes} isLoading={isRemotesLoading} error={remoteError} disabled={processing} onChange={remote => setField("remote", remote)} /></div>}
       </div>
 
+      <div className="grid gap-2">
+        <Label htmlFor="name">
+          Name <span className="text-destructive">*</span>
+        </Label>
+        <Input id="name" name="name" placeholder="My awesome project" value={name} onChange={e => setField("name", e.target.value)} disabled={processing} />
+        {(nameError || errors.name) && <div className="text-sm text-destructive">{nameError || errors.name}</div>}
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="grid gap-2 md:col-span-1">
-          <Label htmlFor="name">
-            Name <span className="text-destructive">*</span>
-          </Label>
-          <Input id="name" name="name" placeholder="My awesome project" value={name} onChange={e => setField("name", e.target.value)} disabled={processing} />
-          {(nameError || errors.name) && <div className="text-sm text-destructive">{nameError || errors.name}</div>}
-        </div>
+        {source === "remote" && (
+          <div className="grid gap-2 md:col-span-1">
+            <Label htmlFor="branch">
+              Branch <span className="text-destructive">*</span>
+            </Label>
+            <Input 
+              id="branch" 
+              name="branch" 
+              placeholder="main" 
+              value={remote?.branch || "main"} 
+              onChange={e => setField("remote", { ...remote, url: remote?.url || "", branch: e.target.value, commit_hash: remote?.commit_hash || "", avatar_url: remote?.avatar_url || "" })} 
+              disabled={processing || !remote?.url} 
+            />
+          </div>
+        )}
 
         <div className="grid gap-2 md:col-span-1">
           <Label htmlFor="runtime">

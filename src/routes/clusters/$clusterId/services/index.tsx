@@ -6,7 +6,7 @@ import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRightIcon, BoxesIcon, ChevronLeft, ChevronRight, Globe } from "lucide-react";
+import { ArrowUpRightIcon, BoxesIcon, ChevronLeft, ChevronRight, ExternalLink, Globe } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import TimeAgo from "react-timeago";
 import { StatusBadge } from "@/components/status-badge";
 import { useClusters } from "@/hooks/use-clusters";
+import { useQueryClient } from "@tanstack/react-query";
+import type { NormalizedInstanceData } from "@/types";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/")({
   component: Services,
@@ -28,7 +30,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Services() {
-  // Use the fixed useServices hook - now properly aggregates from all instances
   const {
     paginatedServices,
     services,
@@ -42,6 +43,23 @@ function Services() {
   
   const { clusterId, userCluster } = useClusters();
   const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const getServiceDomain = (service: any) => {
+    if (!service._instanceName) return `${service.name}.${userCluster?.name}.dployr.io`;
+    
+    const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", service._instanceName]);
+    if (!instanceData?.proxy?.routes) return `${service.name}.${userCluster?.name}.dployr.io`;
+    
+    const proxyRoute = instanceData.proxy.routes.find(route => {
+      const upstreamPort = route.upstream?.match(/:(\d+)/)?.[1];
+      return route.domain.includes(service.name) || 
+             route.upstream?.includes(service.name) ||
+             upstreamPort === String(service.port);
+    });
+    
+    return proxyRoute?.domain || `${service.name}.${userCluster?.name}.dployr.io`;
+  };
 
   return (
     <ProtectedRoute>
@@ -119,7 +137,7 @@ function Services() {
                               </TableCell>
                               <TableCell className="h-16 align-middle">
                                 {service._instanceName ? (
-                                  <span className="inline-flex items-center rounded-full border border-sidebar-border px-2 py-0.5 text-xs font-mono text-muted-foreground">
+                                  <span className="inline-flex items-center rounded-full border border-sidebar-border px-2 py-0.5 text-xs font-mono text-muted-foreground whitespace-nowrap">
                                     {service._instanceName}
                                   </span>
                                 ) : (
@@ -129,10 +147,19 @@ function Services() {
                               <TableCell className="h-16 align-middle">
                                 <div className="flex items-center gap-2">
                                   <Globe className="h-4 w-4 text-muted-foreground" />
-                                  <span className="truncate text-xs font-mono text-muted-foreground">{`${service.name}.${userCluster?.name}.dployr.io`}</span>
+                                  <span className="truncate text-xs font-mono text-muted-foreground flex-1">{getServiceDomain(service)}</span>
+                                  <a
+                                    href={`https://${getServiceDomain(service)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-muted-foreground hover:text-foreground transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                  </a>
                                 </div>
                               </TableCell>
-                              <TableCell className="h-16 w-[140px] text-right align-middle">
+                              <TableCell className="h-16 w-[140px] text-right align-middle whitespace-nowrap">
                                 <TimeAgo date={service.updatedAt} />
                               </TableCell>
                             </TableRow>
