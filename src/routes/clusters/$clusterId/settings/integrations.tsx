@@ -80,21 +80,16 @@ function Integrations() {
   };
 
   const sections = [
-    {
-      title: "Email & Notifications",
-      description: "Configure email and notification services",
-      integrations: integrations.filter(i => i.category === "notifications"),
-    },
+    // {
+    //   title: "Email & Notifications",
+    //   description: "Configure email and notification services",
+    //   integrations: integrations.filter(i => i.category === "notifications"),
+    // },
     {
       title: "Remotes",
       description: "Connect your version control repositories",
       integrations: integrations.filter(i => i.category === "remote"),
-    },
-    {
-      title: "Domains",
-      description: "Manage your domain and DNS providers",
-      integrations: integrations.filter(i => i.category === "domain"),
-    },
+    }
   ];
 
   return (

@@ -41,11 +41,6 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
       icon: null,
     },
     {
-      title: "Configuration",
-      href: clusterId ? "/clusters/$clusterId/settings/config" : "/settings/config",
-      icon: null,
-    },
-    {
       title: "Integrations",
       href: clusterId ? "/clusters/$clusterId/settings/integrations" : "/settings/integrations",
       icon: null,

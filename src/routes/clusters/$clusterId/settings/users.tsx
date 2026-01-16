@@ -384,12 +384,10 @@ function Profile() {
                                 className="h-8 px-3 cursor-pointer"
                                 aria-label="Send reminder"
                               >
-                                <Activity className="h-4 w-4" />
                                 Remind
                               </Button>
 
                               <Button size="sm" variant="destructive" onClick={() => handleRemoveConfirm(user)} className="h-8 px-3 hover:bg-red-500 cursor-pointer" aria-label="Cancel invite">
-                                <X className="h-4 w-4" />
                                 Withdraw
                               </Button>
                             </div>
