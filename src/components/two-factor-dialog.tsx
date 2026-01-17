@@ -48,7 +48,6 @@ export function TwoFactorDialog({ open, onOpenChange, onVerify, email, isSubmitt
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow only alphanumeric characters
     const sanitized = value.replace(/[^a-zA-Z0-9]/g, "");
     setCode(sanitized);
     setError(null);
@@ -59,11 +58,10 @@ export function TwoFactorDialog({ open, onOpenChange, onVerify, email, isSubmitt
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Verify Code</DialogTitle>
-          <DialogDescription>{email ? `Enter the 2FA code sent to ${email}` : "Enter the 2FA code from your authenticator app"}</DialogDescription>
+          <DialogDescription className="text-xs">{email ? `Enter the 2FA code sent to ${email}` : "Enter the 2FA code from your authenticator app"}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <Field>
-            <FieldLabel htmlFor="code">Code</FieldLabel>
             <Input
               id="code"
               type="text"
@@ -73,17 +71,17 @@ export function TwoFactorDialog({ open, onOpenChange, onVerify, email, isSubmitt
               autoComplete="one-time-code"
               autoFocus
               disabled={isSubmitting}
-              className="text-center text-lg tracking-widest font-mono"
+              className="h-8 text-center text-lg tracking-widest font-mono"
               maxLength={20}
             />
-            {error && <FieldError errors={[{ message: error }]} />}
+            {error && <FieldError errors={[{ message: error }]} className="text-[10px]" />}
           </Field>
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <DialogFooter className="mt-6 gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="h-8 text-xs mr-2">
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !code.trim()}>
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            <Button type="submit" size="sm" disabled={isSubmitting || !code.trim()} className="h-8 text-xs">
+              {isSubmitting && <Loader2 className="h-3 w-3 animate-spin" />}
               Verify
             </Button>
           </DialogFooter>

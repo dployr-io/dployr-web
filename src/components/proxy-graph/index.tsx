@@ -38,6 +38,9 @@ interface ProxyGraphVisualizerProps {
   onInstanceRestart?: (instanceName: string) => void;
   onInstanceReboot?: (instanceName: string) => void;
   onOpenInstance?: (instanceId: string) => void;
+  onInstanceSettings?: (instanceId: string) => void;
+  onInstanceBrowseFiles?: (instanceId: string) => void;
+  onInstanceRemove?: (instanceId: string) => void;
   className?: string;
 }
 
@@ -53,8 +56,9 @@ export function ProxyGraphVisualizer({
   onRemoveRoute,
   onRestart,
   onInstanceRestart,
-  onInstanceReboot,
-  onOpenInstance,
+  onInstanceSettings,
+  onInstanceBrowseFiles,
+  onInstanceRemove,
   className,
 }: ProxyGraphVisualizerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -436,8 +440,9 @@ export function ProxyGraphVisualizer({
             instanceStatus={queryClient.getQueryData<InstanceStream>(["instance-status", selectedInstance.name])}
             onClose={() => setSelectedInstance(null)}
             onRestart={onInstanceRestart ? () => onInstanceRestart(selectedInstance.name) : undefined}
-            onReboot={onInstanceReboot ? () => onInstanceReboot(selectedInstance.name) : undefined}
-            onOpenInstance={onOpenInstance ? () => onOpenInstance(selectedInstance.id) : undefined}
+            onSettings={onInstanceSettings ? () => onInstanceSettings(selectedInstance.id) : undefined}
+            onBrowseFiles={onInstanceBrowseFiles ? () => onInstanceBrowseFiles(selectedInstance.id) : undefined}
+            onRemove={onInstanceRemove ? () => onInstanceRemove(selectedInstance.id) : undefined}
           />
         )}
 

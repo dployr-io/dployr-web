@@ -219,6 +219,26 @@ function GraphPage() {
     [router, clusterId]
   );
 
+  const handleInstanceSettings = useCallback(
+    (instanceId: string) => {
+      router.navigate({ 
+        to: `/clusters/${clusterId}/instances/${instanceId}`,
+        search: (prev) => ({ ...prev, tab: "config" })
+      });
+    },
+    [router, clusterId]
+  );
+
+  const handleInstanceBrowseFiles = useCallback(
+    (instanceId: string) => {
+      router.navigate({ 
+        to: `/clusters/${clusterId}/instances/${instanceId}`,
+        search: (prev) => ({ ...prev, tab: "files" })
+      });
+    },
+    [router, clusterId]
+  );
+
   return (
     <ProtectedRoute>
       <AppLayout breadcrumbs={graphBreadcrumbs(clusterId)}>
@@ -240,6 +260,8 @@ function GraphPage() {
             onInstanceRestart={handleInstanceRestart}
             onInstanceReboot={handleInstanceReboot}
             onOpenInstance={handleOpenInstance}
+            onInstanceSettings={handleInstanceSettings}
+            onInstanceBrowseFiles={handleInstanceBrowseFiles}
             className="flex-1"
           />
         </div>
@@ -255,18 +277,18 @@ function GraphPage() {
 
         {/* Restart Confirmation Dialog */}
         <AlertDialog open={restartDialogOpen && !instanceRestartTarget} onOpenChange={setRestartDialogOpen}>
-          <AlertDialogContent>
+          <AlertDialogContent className="sm:max-w-md">
             <AlertDialogHeader>
               <AlertDialogTitle>Restart proxy server?</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogDescription className="text-xs">
                 This will briefly interrupt all proxy routes on{" "}
-                <strong className="font-medium text-foreground">{currentInstance?.tag}</strong>. Active connections may be dropped.
+                <strong className="font-medium text-foreground">{currentInstance?.tag}</strong>. <br /> Active connections may be dropped for a few seconds.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isRestarting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleRestart} disabled={isRestarting}>
-                {isRestarting && <RotateCcw className="h-4 w-4 mr-2 animate-spin" />}
+            <AlertDialogFooter className="gap-2 sm:gap-0">
+              <AlertDialogCancel disabled={isRestarting} className="h-8 text-xs">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRestart} disabled={isRestarting} className="h-8 text-xs">
+                {isRestarting && <RotateCcw className="h-3 w-3 mr-2 animate-spin" />}
                 {isRestarting ? "Restarting..." : "Restart"}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -278,8 +300,8 @@ function GraphPage() {
           <AlertDialogContent className="sm:max-w-md">
             <AlertDialogHeader>
               <AlertDialogTitle>Restart Instance Daemon</AlertDialogTitle>
-              <AlertDialogDescription>
-                Restart the dployr daemon on <strong className="font-medium text-foreground">{instanceRestartTarget}</strong>. The connection will briefly drop, this won't affect your deployed services.
+              <AlertDialogDescription className="text-xs">
+                Restart the dployr daemon on <strong className="font-medium text-foreground">{instanceRestartTarget}</strong>. <br /> The connection will briefly drop, this won't affect your deployed services.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-4 py-2">
@@ -291,12 +313,12 @@ function GraphPage() {
                   onChange={e => setForceInstanceRestart(e.target.checked)} 
                   className="h-4 w-4 rounded border-input" 
                 />
-                <label htmlFor="force-restart" className="text-sm text-muted-foreground">
+                <label htmlFor="force-restart" className="text-xs text-muted-foreground">
                   Force restart (skip pending tasks check)
                 </label>
               </div>
             </div>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="gap-2 sm:gap-0">
               <AlertDialogCancel 
                 disabled={isRestarting}
                 onClick={() => {
@@ -304,11 +326,12 @@ function GraphPage() {
                   setInstanceRestartTarget(null);
                   setForceInstanceRestart(false);
                 }}
+                className="h-8 text-xs"
               >
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction onClick={handleInstanceRestartSubmit} disabled={isRestarting}>
-                {isRestarting && <RotateCcw className="h-4 w-4 mr-2 animate-spin" />}
+              <AlertDialogAction onClick={handleInstanceRestartSubmit} disabled={isRestarting} className="h-8 text-xs">
+                {isRestarting && <RotateCcw className="h-3 w-3 mr-2 animate-spin" />}
                 {isRestarting ? "Restarting..." : "Restart Daemon"}
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -320,8 +343,8 @@ function GraphPage() {
           <AlertDialogContent className="sm:max-w-md">
             <AlertDialogHeader>
               <AlertDialogTitle>Reboot Instance</AlertDialogTitle>
-              <AlertDialogDescription>
-                Reboot the instance OS on <strong className="font-medium text-foreground">{instanceRestartTarget}</strong>. Connections and services will be briefly unavailable, so prefer low-traffic periods.
+              <AlertDialogDescription className="text-xs">
+                Reboot the instance OS on <strong className="font-medium text-foreground">{instanceRestartTarget}</strong>. <br /> Connections and services will be briefly unavailable, so prefer low-traffic periods.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-4 py-2">
@@ -333,12 +356,12 @@ function GraphPage() {
                   onChange={e => setForceInstanceReboot(e.target.checked)} 
                   className="h-4 w-4 rounded border-input" 
                 />
-                <label htmlFor="force-reboot" className="text-sm text-muted-foreground">
+                <label htmlFor="force-reboot" className="text-xs text-muted-foreground">
                   Force reboot (skip pending tasks check)
                 </label>
               </div>
             </div>
-            <AlertDialogFooter>
+            <AlertDialogFooter className="gap-2 sm:gap-0">
               <AlertDialogCancel 
                 disabled={isRestarting}
                 onClick={() => {
@@ -346,11 +369,12 @@ function GraphPage() {
                   setInstanceRestartTarget(null);
                   setForceInstanceReboot(false);
                 }}
+                className="h-8 text-xs"
               >
                 Cancel
               </AlertDialogCancel>
-              <AlertDialogAction onClick={handleInstanceRebootSubmit} disabled={isRestarting}>
-                {isRestarting && <RotateCcw className="h-4 w-4 mr-2 animate-spin" />}
+              <AlertDialogAction onClick={handleInstanceRebootSubmit} disabled={isRestarting} className="h-8 text-xs">
+                {isRestarting && <RotateCcw className="h-3 w-3 mr-2 animate-spin" />}
                 {isRestarting ? "Rebooting..." : "Reboot Instance"}
               </AlertDialogAction>
             </AlertDialogFooter>

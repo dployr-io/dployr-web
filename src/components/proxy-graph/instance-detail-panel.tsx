@@ -3,7 +3,8 @@
 
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, Server, Activity, HardDrive, Cpu, ExternalLink, RotateCcw, Power } from "lucide-react";
+import { Copy, Check, Server, Activity, HardDrive, Cpu, Settings, RotateCcw, FolderOpen, Trash2, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import type { InstanceStream, InstanceStreamUpdateV1, InstanceStreamUpdateV1_1 } from "@/types";
 
 // Normalize instance update data to handle both v1 and v1.1 formats
@@ -63,15 +64,17 @@ export function InstanceDetailPanel({
   instanceStatus,
   onClose,
   onRestart,
-  onReboot,
-  onOpenInstance,
+  onSettings,
+  onBrowseFiles,
+  onRemove,
 }: {
   instance: { id: string; name: string; status?: string };
   instanceStatus?: InstanceStream | null;
   onClose: () => void;
   onRestart?: () => void;
-  onReboot?: () => void;
-  onOpenInstance?: () => void;
+  onSettings?: () => void;
+  onBrowseFiles?: () => void;
+  onRemove?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -183,21 +186,42 @@ export function InstanceDetailPanel({
           <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={handleCopy} title="Copy instance name">
             {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
           </Button>
-          {onOpenInstance && (
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={onOpenInstance} title="Open instance details">
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          )}
-          {onRestart && (
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={onRestart} title="Restart daemon">
-              <RotateCcw className="h-4 w-4" />
-            </Button>
-          )}
-          {onReboot && (
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={onReboot} title="Reboot instance">
-              <Power className="h-4 w-4" />
-            </Button>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {onSettings && (
+                <DropdownMenuItem onClick={onSettings}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
+              )}
+              {onRestart && (
+                <DropdownMenuItem onClick={onRestart}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Restart
+                </DropdownMenuItem>
+              )}
+              {onBrowseFiles && (
+                <DropdownMenuItem onClick={onBrowseFiles}>
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Browse Files
+                </DropdownMenuItem>
+              )}
+              {onRemove && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onRemove} className="text-destructive focus:text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remove
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
