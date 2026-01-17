@@ -190,7 +190,7 @@ function Console() {
                         </SelectContent>
                       </Select>
                       <Badge variant={isOpen ? "default" : "secondary"} className="text-xs">
-                        {state === "opening" ? "Opening..." : isOpen ? "Open" : "Closed"}
+                        {state === "opening" ? "Connecting..." : isOpen ? "Connected" : "Closed"}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1">

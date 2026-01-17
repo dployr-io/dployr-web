@@ -80,14 +80,9 @@ function Integrations() {
   };
 
   const sections = [
-    // {
-    //   title: "Email & Notifications",
-    //   description: "Configure email and notification services",
-    //   integrations: integrations.filter(i => i.category === "notifications"),
-    // },
     {
       title: "Remotes",
-      description: "Connect your version control repositories",
+      description: "Connect and manage your version control repositories",
       integrations: integrations.filter(i => i.category === "remote"),
     }
   ];
