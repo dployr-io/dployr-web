@@ -296,7 +296,7 @@ function Instances() {
                   </div>
                 </div>
                 <DialogFooter className="gap-2 sm:gap-0">
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setInstancesDialog({ new: false })} className="h-8 text-xs">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setInstancesDialog({ new: false })} className="h-8 text-xs mr-2">
                     Cancel
                   </Button>
                   <Button type="button" size="sm" onClick={handleCreateInstance} className="h-8 text-xs">
@@ -416,7 +416,7 @@ function Instances() {
           />
 
           <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-            <DialogContent className="sm:max-w-3xl">
+            <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Instance Created Successfully</DialogTitle>
                 <DialogDescription>
@@ -424,47 +424,48 @@ function Instances() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-6 py-4">
+              <div className="space-y-4 py-4">
                 {/* Platform Selector */}
                 <div className="flex items-center gap-4">
-                  <Label className="text-sm font-medium min-w-[80px]">Platform</Label>
+                  <Label className="text-xs font-medium min-w-[80px]">Platform</Label>
                   <Select value={selectedPlatform} onValueChange={(value: "linux" | "windows") => setSelectedPlatform(value)}>
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-[160px] h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="linux">Linux / macOS</SelectItem>
-                      <SelectItem value="windows">Windows</SelectItem>
+                      <SelectItem value="linux" className="text-xs">Linux / macOS</SelectItem>
+                      <SelectItem value="windows" className="text-xs">Windows</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Install Command */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Install Command</Label>
+                    <Label className="text-xs font-medium">Install Command</Label>
                     <Button
                       type="button"
                       variant={copied ? "default" : "outline"}
                       size="sm"
                       onClick={handleCopyInstallCommand}
+                      className="h-8 text-xs"
                     >
                       {copied ? (
                         <>
-                          <Check className="mr-2 h-4 w-4" />
+                          <Check className="mr-2 h-3 w-3" />
                           Copied
                         </>
                       ) : (
                         <>
-                          <Copy className="mr-2 h-4 w-4" />
+                          <Copy className="mr-2 h-3 w-3" />
                           Copy
                         </>
                       )}
                     </Button>
                   </div>
                   
-                  <div className="w-full overflow-x-auto rounded-md border bg-muted p-4">
-                    <pre className="font-mono text-sm whitespace-pre-wrap break-all">
+                  <div className="w-full overflow-x-auto rounded-md border bg-muted p-3">
+                    <pre className="font-mono text-xs whitespace-pre-wrap break-all">
                       {selectedPlatform === "linux" ? (
                         <code>curl -sSL https://raw.githubusercontent.com/dployr-io/dployr/master/install.sh | sudo bash -s -- --token "{createdInstanceData?.token}" --instance "{createdInstanceData?.tag}"</code>
                       ) : (
@@ -478,8 +479,8 @@ function Instances() {
                 </div>
               </div>
 
-              <DialogFooter>
-                <Button type="button" onClick={() => setShowSuccessDialog(false)}>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" size="sm" onClick={() => setShowSuccessDialog(false)} className="h-8 text-xs">
                   Done
                 </Button>
               </DialogFooter>

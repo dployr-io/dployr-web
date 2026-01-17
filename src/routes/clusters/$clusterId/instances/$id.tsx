@@ -603,7 +603,7 @@ function ViewInstance() {
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Configuration Required</DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className="text-xs">
                           Please configure the DNS records below for <span className="font-semibold font-mono">{verifySetupDetails?.domain}</span>
                         </DialogDescription>
                       </DialogHeader>
@@ -612,7 +612,7 @@ function ViewInstance() {
                           <div className="space-y-3">
                             {verifySetupDetails.record && (
                               <div>
-                                <div className="text-sm font-semibold mb-2">DNS Record (A Record)</div>
+                                <div className="text-xs font-semibold mb-2">DNS Record (A Record)</div>
                                 <div className="rounded-lg border p-3 space-y-2 bg-muted/50">
                                   <div className="grid grid-cols-3 gap-2 text-xs">
                                     <div className="font-medium">Name</div>
@@ -648,7 +648,7 @@ function ViewInstance() {
 
                             {verifySetupDetails.verification && (
                               <div>
-                                <div className="text-sm font-semibold mb-2">Verification Record (TXT Record)</div>
+                                <div className="text-xs font-semibold mb-2">Verification Record (TXT Record)</div>
                                 <div className="rounded-lg border p-3 space-y-2 bg-muted/50">
                                   <div className="grid grid-cols-2 gap-2 text-xs">
                                     <div className="font-medium">Name</div>
@@ -684,17 +684,17 @@ function ViewInstance() {
                           <div className="flex items-center justify-between gap-2 pt-2">
                             <div className="flex items-center gap-2">
                               {verifySetupDetails.autoSetupUrl && (
-                                <Button variant="default" size="sm" asChild>
+                                <Button variant="default" size="sm" asChild className="h-8 text-xs">
                                   <a href={verifySetupDetails.autoSetupUrl} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4" />
+                                    <ExternalLink className="h-3 w-3" />
                                     Auto Setup
                                   </a>
                                 </Button>
                               )}
                               {verifySetupDetails.manualGuideUrl && (
-                                <Button variant="outline" size="sm" asChild>
+                                <Button variant="outline" size="sm" asChild className="h-8 text-xs">
                                   <a href={verifySetupDetails.manualGuideUrl} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-4 w-4" />
+                                    <ExternalLink className="h-3 w-3" />
                                     Manual Guide
                                   </a>
                                 </Button>
@@ -710,16 +710,17 @@ function ViewInstance() {
                                   verifyDomain(domain);
                                 }}
                                 disabled={isVerifying || getVerifyCooldown(verifySetupDetails.domain) > 0}
+                                className="h-8 text-xs"
                               >
                                 {isVerifying ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : getVerifyCooldown(verifySetupDetails.domain) > 0 ? (
                                   `Check Status (${getVerifyCooldown(verifySetupDetails.domain)}s)`
                                 ) : (
                                   "Check Status"
                                 )}
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => clearVerifySetupDetails()}>
+                              <Button variant="outline" size="sm" onClick={() => clearVerifySetupDetails()} className="h-8 text-xs">
                                 Close
                               </Button>
                             </div>
@@ -796,26 +797,26 @@ function ViewInstance() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Rotate bootstrap token</DialogTitle>
-                  <DialogDescription>Enter your new bootstrap token.</DialogDescription>
+                  <DialogDescription className="text-xs">Enter your new bootstrap token.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <Field>
-                    <FieldLabel htmlFor="rotate-bootstrap-token">Bootstrap token</FieldLabel>
+                    <FieldLabel htmlFor="rotate-bootstrap-token" className="text-xs">Bootstrap token</FieldLabel>
                     <textarea
                       id="rotate-bootstrap-token"
                       value={rotateValue}
                       onChange={e => setRotateValue(e.target.value)}
                       autoComplete="off"
                       placeholder={bootstrapToken ? `${bootstrapToken}...` : ""}
-                      className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="block w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       rows={3}
                     />
-                    {rotateError && <FieldError errors={[{ message: rotateError }]} />}
+                    {rotateError && <FieldError errors={[{ message: rotateError }]} className="text-[10px]" />}
                   </Field>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" size="sm" onClick={() => { setRotateOpen(false); setRotateValue(""); setRotateError(""); }} disabled={isRotating}>Cancel</Button>
-                  <Button size="sm" onClick={handleRotateSubmit} disabled={isRotating || !rotateValue.trim()}>{isRotating ? "Rotating..." : "Rotate"}</Button>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button variant="ghost" size="sm" onClick={() => { setRotateOpen(false); setRotateValue(""); setRotateError(""); }} disabled={isRotating} className="h-8 text-xs mr-2">Cancel</Button>
+                  <Button size="sm" onClick={handleRotateSubmit} disabled={isRotating || !rotateValue.trim()} className="h-8 text-xs">{isRotating ? "Rotating..." : "Rotate"}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -824,7 +825,7 @@ function ViewInstance() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Bootstrap token rotated</DialogTitle>
-                  <DialogDescription>This token will not be shown again. Store it securely.</DialogDescription>
+                  <DialogDescription className="text-xs">This token will not be shown again. Store it securely.</DialogDescription>
                 </DialogHeader>
                 {rotatedToken && (
                   <div className="mt-4 flex items-center justify-between rounded-md bg-muted px-3 py-2 font-mono text-xs">
@@ -834,8 +835,8 @@ function ViewInstance() {
                     </Button>
                   </div>
                 )}
-                <DialogFooter>
-                  <Button size="sm" onClick={() => setShowBootstrapInfo(false)}>Got it</Button>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button size="sm" onClick={() => setShowBootstrapInfo(false)} className="h-8 text-xs">Got it</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -844,18 +845,18 @@ function ViewInstance() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Restart Instance</DialogTitle>
-                  <DialogDescription>Restart the dployr daemon. Connection will briefly drop.</DialogDescription>
+                  <DialogDescription className="text-xs">Restart the dployr daemon. Connection will briefly drop.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="flex items-center space-x-2">
                     <input type="checkbox" id="force-restart" checked={forceRestart} onChange={e => setForceRestart(e.target.checked)} className="h-4 w-4 rounded border-input" />
-                    <label htmlFor="force-restart" className="text-sm text-muted-foreground">Force restart (skip pending tasks)</label>
+                    <label htmlFor="force-restart" className="text-xs text-muted-foreground">Force restart (skip pending tasks)</label>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" size="sm" onClick={() => { setRestartOpen(false); setForceRestart(false); }} disabled={isRestarting}>Cancel</Button>
-                  <Button size="sm" onClick={handleRestartSubmit} disabled={isRestarting}>
-                    {isRestarting && <Loader2 className="h-4 w-4 animate-spin" />} Restart
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button variant="ghost" size="sm" onClick={() => { setRestartOpen(false); setForceRestart(false); }} disabled={isRestarting} className="h-8 text-xs mr-2">Cancel</Button>
+                  <Button size="sm" onClick={handleRestartSubmit} disabled={isRestarting} className="h-8 text-xs">
+                    {isRestarting && <Loader2 className="h-3 w-3 animate-spin" />} Restart
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -865,18 +866,18 @@ function ViewInstance() {
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Reboot Instance</DialogTitle>
-                  <DialogDescription>Reboot the instance OS. Services will be briefly unavailable.</DialogDescription>
+                  <DialogDescription className="text-xs">Reboot the instance OS. Services will be briefly unavailable.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <div className="flex items-center space-x-2">
                     <input type="checkbox" id="force-reboot" checked={forceReboot} onChange={e => setForceReboot(e.target.checked)} className="h-4 w-4 rounded border-input" />
-                    <label htmlFor="force-reboot" className="text-sm text-muted-foreground">Force reboot (skip pending tasks)</label>
+                    <label htmlFor="force-reboot" className="text-xs text-muted-foreground">Force reboot (skip pending tasks)</label>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" size="sm" onClick={() => { setRebootOpen(false); setForceReboot(false); }} disabled={isRestarting}>Cancel</Button>
-                  <Button size="sm" onClick={handleRebootSubmit} disabled={isRestarting}>
-                    {isRestarting && <Loader2 className="h-4 w-4 animate-spin" />} Reboot
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button variant="ghost" size="sm" onClick={() => { setRebootOpen(false); setForceReboot(false); }} disabled={isRestarting} className="h-8 text-xs mr-2">Cancel</Button>
+                  <Button size="sm" onClick={handleRebootSubmit} disabled={isRestarting} className="h-8 text-xs">
+                    {isRestarting && <Loader2 className="h-3 w-3 animate-spin" />} Reboot
                   </Button>
                 </DialogFooter>
               </DialogContent>
