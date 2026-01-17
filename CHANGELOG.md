@@ -1,3 +1,10 @@
+## [0.1.40] - 2026-01-17
+
+### 🚜 Refactor
+
+- *(graph)* Consolidate instance actions into dropdown menu and improve dialog styling
+- *(instances)* Add sudo to Linux installation command for elevated privileges
+- *(instances)* Reduce dialog sizing and improve visual consistency
 ## [0.1.39] - 2026-01-17
 
 ### 🚜 Refactor
