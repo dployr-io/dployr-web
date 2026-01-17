@@ -463,7 +463,7 @@ function ViewInstance() {
               {update?.filesystem && (
                 <TabsContent value="files" className="mt-4 flex min-h-0 flex-1 flex-col">
                   <div className="flex-1 rounded-xl border bg-background/40 overflow-hidden" style={{ minHeight: "500px" }}>
-                    <FileSystemBrowser instanceId={instanceId} clusterId={clusterId} fs={update.filesystem} className="h-full" />
+                    <FileSystemBrowser instanceId={instance?.tag || ""} clusterId={clusterId} fs={update.filesystem} className="h-full" />
                   </div>
                 </TabsContent>
               )}

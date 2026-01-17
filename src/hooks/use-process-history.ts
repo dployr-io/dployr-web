@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import { ulid } from "ulid";
 import type { ProcessSnapshot } from "@/types";
 import { useInstanceStream } from "./use-instance-stream";

@@ -278,6 +278,12 @@ export function useUrlState() {
         });
     }
 
+    function useConsoleUrlState() {
+        return useQueryStates({
+            fullscreen: parseAsBoolean.withDefault(false),
+        });
+    }
+
     /**
      * URL state management for auth errors
      * Error captured during oAuth redirects
@@ -373,6 +379,7 @@ export function useUrlState() {
         useDeploymentsUrlState,
         useDeploymentTabsState,
         useServiceTabsState,
+        useConsoleUrlState,
         useAuthError,
         useAppError,
         useAppNotification,
