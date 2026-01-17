@@ -1,3 +1,10 @@
+## [0.1.38] - 2026-01-17
+
+### 🚜 Refactor
+
+- *(settings)* Remove configuration page and clean up integrations sections
+- *(services)* Add branch selector in create domain form
+- *(console)* Add terminal session management with instance selection and fullscreen mode
 ## [0.1.37] - 2026-01-14
 
 ### 🚜 Refactor
