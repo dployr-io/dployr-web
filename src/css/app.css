@@ -283,6 +283,12 @@
   button {
     @apply cursor-pointer;
     }
+
+  /* Remove outline from recharts SVG elements */
+  .recharts-wrapper svg,
+  .recharts-surface {
+    outline: none !important;
+    }
 }
 
 @keyframes shimmerSpinZoom {

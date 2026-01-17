@@ -21,6 +21,8 @@ interface InstanceViewState {
   logType: LogType;
   logMode: LogStreamMode;
   isAtBottom: boolean;
+  lockedTimestamp: number | null;
+  isHistoricalMode: boolean;
 }
 
 type InstanceViewAction =
@@ -47,6 +49,8 @@ const initialState: InstanceViewState = {
   logType: "app",
   logMode: "historical",
   isAtBottom: true,
+  lockedTimestamp: null,
+  isHistoricalMode: false,
 };
 
 function instanceViewStateReducer(state: InstanceViewState, action: InstanceViewAction): InstanceViewState {
@@ -149,6 +153,16 @@ export function useInstanceViewState(overrides: Partial<InstanceViewState> = {})
   const setLogType = useCallback((value: LogType) => setField("logType", value), [setField]);
   const setLogMode = useCallback((value: LogStreamMode) => setField("logMode", value), [setField]);
   const setIsAtBottom = useCallback((value: boolean) => setField("isAtBottom", value), [setField]);
+  const setLockedTimestamp = useCallback((value: number | null) => setField("lockedTimestamp", value), [setField]);
+  const setIsHistoricalMode = useCallback((value: boolean) => setField("isHistoricalMode", value), [setField]);
+  
+  const lockToTimestamp = useCallback((timestamp: number) => {
+    setFields({ lockedTimestamp: timestamp, isHistoricalMode: true });
+  }, [setFields]);
+  
+  const returnToLive = useCallback(() => {
+    setFields({ lockedTimestamp: null, isHistoricalMode: false });
+  }, [setFields]);
 
   return {
     ...state,
@@ -168,5 +182,9 @@ export function useInstanceViewState(overrides: Partial<InstanceViewState> = {})
     setLogType,
     setLogMode,
     setIsAtBottom,
+    setLockedTimestamp,
+    setIsHistoricalMode,
+    lockToTimestamp,
+    returnToLive,
   } as const;
 }

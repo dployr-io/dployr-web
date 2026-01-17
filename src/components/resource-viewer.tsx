@@ -7,7 +7,7 @@ import { Activity, Clock, ChevronDown, ChevronUp, Cpu, MemoryStick, Loader2, Tre
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Area, AreaChart, ResponsiveContainer,  YAxis } from "recharts";
-import type { NormalizedProcess, ProcessSnapshot, ProcessTimeWindow, ProcessV1_1 } from "@/types";
+import type { NormalizedProcess, ProcessSnapshot, ProcessTimeWindow } from "@/types";
 import type { NormalizedProcessSummary } from "@/types/schemas/normalized/entities/";
 import type { Process } from "@/types/schemas/v1.1";
 
@@ -34,6 +34,9 @@ interface ProcessViewerProps {
   onTimeWindowChange?: (window: ProcessTimeWindow) => void;
   isLoadingHistory?: boolean;
   className?: string;
+  lockedTimestamp?: number | null;
+  isHistoricalMode?: boolean;
+  onReturnToLive?: () => void;
 }
 
 export function ProcessViewer({
@@ -44,6 +47,9 @@ export function ProcessViewer({
   onTimeWindowChange,
   isLoadingHistory = false,
   className,
+  lockedTimestamp = null,
+  isHistoricalMode = false,
+  onReturnToLive,
 }: ProcessViewerProps) {
   const [sortField, setSortField] = useState<SortField>("cpu");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -51,10 +57,48 @@ export function ProcessViewer({
   const [selectedSnapshotIndex, setSelectedSnapshotIndex] = useState<number>(0);
   const [showHistoricalChart, setShowHistoricalChart] = useState(true);
 
-  const displayProcesses = useMemo(() => {
-    if (!processes) return [];
+  // Find snapshot for locked timestamp
+  const lockedSnapshot = useMemo(() => {
+    if (!lockedTimestamp || !historySnapshots.length) return null;
     
-    const sortedProcesses = [...processes];
+    let closest = historySnapshots[0];
+    let minDiff = Math.abs(lockedTimestamp - closest.timestamp);
+    
+    for (const snapshot of historySnapshots) {
+      const diff = Math.abs(lockedTimestamp - snapshot.timestamp);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = snapshot;
+      }
+    }
+    
+    return closest;
+  }, [lockedTimestamp, historySnapshots]);
+
+  // Convert locked snapshot processes to NormalizedProcess format
+  const lockedProcesses = useMemo(() => {
+    if (!lockedSnapshot?.data?.list) return null;
+    
+    const procs = lockedSnapshot.data.list as Process[];
+    return procs.map(p => ({
+      pid: p.pid,
+      user: p.user,
+      command: p.command,
+      cpuPercent: p.cpu_percent || 0,
+      memPercent: p.memory_percent || 0,
+      resMem: p.resident_memory_bytes || 0,
+      virtMem: p.virtual_memory_bytes || 0,
+      state: p.state || 'unknown',
+      time: p.cpu_time || '-',
+    }));
+  }, [lockedSnapshot]);
+
+  const displayProcesses = useMemo(() => {
+    // Use locked processes if in historical mode, otherwise use live processes
+    const sourceProcesses = isHistoricalMode && lockedProcesses ? lockedProcesses : processes;
+    if (!sourceProcesses) return [];
+    
+    const sortedProcesses = [...sourceProcesses];
     sortedProcesses.sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
@@ -67,7 +111,7 @@ export function ProcessViewer({
     });
 
     return sortedProcesses;
-  }, [processes, sortField, sortDirection]);
+  }, [isHistoricalMode, lockedProcesses, processes, sortField, sortDirection]);
 
   const visibleProcesses = expanded ? displayProcesses : displayProcesses?.slice(0, 5);
 
@@ -139,9 +183,36 @@ export function ProcessViewer({
   }, [historySnapshots]);
 
   return (
-    <div className={cn("rounded-xl border bg-background/40", className)}>
+    <div className={cn(
+      "rounded-xl border bg-background/40 transition-all",
+      isHistoricalMode && "opacity-90",
+      className
+    )}>
       <div className="flex items-center justify-between border-b border-border/50 px-4 py-3">
-        <p className="text-xs text-muted-foreground">Process Activity</p>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {isHistoricalMode && (
+              <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+            )}
+            <p className="text-xs text-muted-foreground">Process Activity</p>
+          </div>
+          {isHistoricalMode && lockedTimestamp && (
+            <>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium font-mono">
+                {new Date(lockedTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={onReturnToLive}
+                className="h-6 px-2 text-[11px] text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+              >
+                Back to Live
+                <kbd className="hidden sm:inline-block ml-1.5 px-1 py-0.5 text-[9px] font-mono bg-blue-500/20 rounded border border-blue-500/30">ESC</kbd>
+              </Button>
+            </>
+          )}
+        </div>
 
         <div className="flex items-center gap-3 text-xs">
           {processSummary && (

@@ -87,10 +87,11 @@ function ViewInstance() {
     bootstrapToken, rotateOpen, rotateValue, rotateError, isRotating, rotatedToken,
     showBootstrapInfo, isInstalling, isRestarting, restartOpen, rebootOpen,
     forceRestart, forceReboot, logType, logMode, isAtBottom,
+    lockedTimestamp, isHistoricalMode,
     setBootstrapToken, setRotateOpen, setRotateValue, setRotateError, setIsRotating,
     setRotatedToken, setShowBootstrapInfo, setIsInstalling, setIsRestarting,
     setRestartOpen, setRebootOpen, setForceRestart, setForceReboot,
-    setLogType, setLogMode,
+    setLogType, setLogMode, lockToTimestamp, returnToLive,
   } = useInstanceViewState();
 
   // Process history hook
@@ -188,6 +189,18 @@ function ViewInstance() {
     const newMode: LogStreamMode = isAtBottom ? "tail" : "historical";
     if (newMode !== logMode) setLogMode(newMode);
   }, [isAtBottom, logMode, setLogMode]);
+
+  // ESC key to return to live view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isHistoricalMode) {
+        returnToLive();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isHistoricalMode, returnToLive]);
 
   const handleCopyStatus = async () => {
     try {
@@ -371,7 +384,10 @@ function ViewInstance() {
               <TabsContent value="system" className="mt-4 space-y-4">
                 <InstanceMetricsChart 
                   data={metricsChartData.length > 0 ? metricsChartData : getMemoryProfile(instanceId)} 
-                  height={140} 
+                  height={140}
+                  processSnapshots={processSnapshots}
+                  onTimestampClick={lockToTimestamp}
+                  lockedTimestamp={lockedTimestamp}
                 />
 
                 <ProcessViewer
@@ -379,6 +395,9 @@ function ViewInstance() {
                   processSummary={update?.processes.summary || undefined}
                   historySnapshots={processSnapshots}
                   isLoadingHistory={isLoadingProcessHistory}
+                  lockedTimestamp={lockedTimestamp}
+                  isHistoricalMode={isHistoricalMode}
+                  onReturnToLive={returnToLive}
                 />
 
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
