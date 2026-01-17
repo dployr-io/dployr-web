@@ -1,3 +1,9 @@
+## [0.1.39] - 2026-01-17
+
+### 🚜 Refactor
+
+- *(metrics)* Add interactive chart with process snapshot tooltips and timestamp locking
+- *(console)* Update connection status labels and rephrase description
 ## [0.1.38] - 2026-01-17
 
 ### 🚜 Refactor
