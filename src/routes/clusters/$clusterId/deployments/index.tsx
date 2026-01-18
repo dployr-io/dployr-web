@@ -172,13 +172,15 @@ function Deployments() {
                 {/* Drafts Section */}
                 {showDrafts && drafts.length > 0 && (
                   <div className="rounded-lg border bg-muted/30 p-4">
-                    <h3 className="mb-3 text-sm font-medium">Saved Drafts</h3>
                     <div className="space-y-2">
                       {drafts.map(draft => (
                         <div
                           key={draft.id}
                           className="flex items-center justify-between rounded-md border bg-background p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                          onClick={() => handleLoadDraft(draft.id)}
+                          onClick={() => {
+                            handleLoadDraft(draft.id);
+                            setInstanceFilter({ new: true });
+                          }}
                         >
                           <div className="flex flex-col gap-0.5">
                             <span className="font-medium">{draft.name || "Untitled"}</span>
