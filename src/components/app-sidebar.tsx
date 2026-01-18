@@ -89,7 +89,7 @@ export function AppSidebar() {
     },
     {
       title: "Support",
-      href: "https://discord.gg/RdJdctub",
+      href: "https://discord.gg/tY8ZbjvrSZ",
       icon: MessageCircleQuestion,
     },
   ];

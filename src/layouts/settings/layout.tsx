@@ -141,7 +141,7 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
               Docs
             </a>
             <span className="text-border">•</span>
-            <a href="https://discord.gg/RdJdctub" className="hover:underline">
+            <a href="https://discord.gg/tY8ZbjvrSZ" className="hover:underline">
               Support
             </a>
           </div>
