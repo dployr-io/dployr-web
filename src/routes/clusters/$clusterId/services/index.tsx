@@ -30,34 +30,23 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Services() {
-  const {
-    paginatedServices,
-    services,
-    isLoading,
-    currentPage,
-    totalPages,
-    goToPage,
-    goToPreviousPage,
-    goToNextPage,
-  } = useServices();
-  
+  const { paginatedServices, services, isLoading, currentPage, totalPages, goToPage, goToPreviousPage, goToNextPage } = useServices();
+
   const { clusterId, userCluster } = useClusters();
   const router = useRouter();
   const queryClient = useQueryClient();
 
   const getServiceDomain = (service: any) => {
     if (!service._instanceName) return `${service.name}.${userCluster?.name}.dployr.io`;
-    
+
     const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", service._instanceName]);
     if (!instanceData?.proxy?.routes) return `${service.name}.${userCluster?.name}.dployr.io`;
-    
+
     const proxyRoute = instanceData.proxy.routes.find(route => {
       const upstreamPort = route.upstream?.match(/:(\d+)/)?.[1];
-      return route.domain.includes(service.name) || 
-             route.upstream?.includes(service.name) ||
-             upstreamPort === String(service.port);
+      return route.domain.includes(service.name) || route.upstream?.includes(service.name) || upstreamPort === String(service.port);
     });
-    
+
     return proxyRoute?.domain || `${service.name}.${userCluster?.name}.dployr.io`;
   };
 
@@ -90,9 +79,7 @@ function Services() {
                   </EmptyHeader>
                   <EmptyContent>
                     <div className="flex justify-center gap-2">
-                      <Button onClick={() => router.navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId }, search: { new: true } })}>
-                        Deploy Service
-                      </Button>
+                      <Button onClick={() => router.navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId }, search: { new: true } })}>Deploy Service</Button>
                       <Button variant="link" asChild className="text-muted-foreground" size="sm">
                         <a href="https://dployr.io/docs">
                           Learn More <ArrowUpRightIcon />
@@ -119,8 +106,8 @@ function Services() {
                     {!isLoading && paginatedServices.length > 0
                       ? paginatedServices.map(service => {
                           return (
-                            <TableRow 
-                              key={service.id} 
+                            <TableRow
+                              key={service.id}
                               className="h-16 cursor-pointer"
                               onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.id } })}
                             >
@@ -145,18 +132,20 @@ function Services() {
                                 )}
                               </TableCell>
                               <TableCell className="h-16 align-middle">
-                                <div className="flex items-center gap-2">
-                                  <Globe className="h-4 w-4 text-muted-foreground" />
-                                  <span className="truncate text-xs font-mono text-muted-foreground flex-1">{getServiceDomain(service)}</span>
-                                  <a
-                                    href={`https://${getServiceDomain(service)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-muted-foreground hover:text-foreground transition-colors"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                  </a>
+                                <div className="flex gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <Globe className="h-4 w-4 text-muted-foreground" />
+                                    <span className="truncate text-xs font-mono text-muted-foreground flex-1">{getServiceDomain(service)}</span>
+                                    <a
+                                      href={`https://${getServiceDomain(service)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-muted-foreground hover:text-foreground transition-colors"
+                                      onClick={e => e.stopPropagation()}
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                    </a>
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell className="h-16 w-[140px] text-right align-middle whitespace-nowrap">
@@ -192,11 +181,7 @@ function Services() {
 
                 <div className="flex items-center justify-between px-2 py-4">
                   <div className="text-sm text-muted-foreground">
-                    {services.length === 0
-                      ? "No services found"
-                      : services.length === 1
-                        ? "Showing 1 of 1 service"
-                        : `Showing ${paginatedServices.length} of ${services.length} services`}
+                    {services.length === 0 ? "No services found" : services.length === 1 ? "Showing 1 of 1 service" : `Showing ${paginatedServices.length} of ${services.length} services`}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button variant="outline" size="sm" onClick={goToPreviousPage} disabled={currentPage === 1} className="flex items-center gap-1">
