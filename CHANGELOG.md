@@ -1,3 +1,9 @@
+## [0.1.41] - 2026-01-18
+
+### 🚜 Refactor
+
+- *(dashboard)* Add comprehensive overview with service cards, stats, and empty state
+- *(deployments)* Auto-select new instances
 ## [0.1.40] - 2026-01-17
 
 ### 🚜 Refactor
