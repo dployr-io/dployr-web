@@ -1,3 +1,9 @@
+## [0.1.42] - 2026-01-18
+
+### 🚜 Refactor
+
+- *(links)* Update Discord invite URL
+- *(services)* Improve code formatting and consistency
 ## [0.1.41] - 2026-01-18
 
 ### 🚜 Refactor
