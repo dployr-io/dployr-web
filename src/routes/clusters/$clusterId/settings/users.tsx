@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ProtectedRoute } from "@/components/protected-route";
 import { useInitials } from "@/hooks/use-initials";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Crown, Trash2, ChevronLeft, ChevronRight, Check, X, UserPlus2, Activity } from "lucide-react";
+import { Crown, Trash2, ChevronLeft, ChevronRight, Check, X, UserPlus2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tooltip } from "@radix-ui/react-tooltip";
@@ -40,7 +40,7 @@ function Profile() {
   const getInitials = useInitials();
 
   const { useAppError, useAppNotification } = useUrlState();
-  const [{ appError }, setError] = useAppError();
+  const [{ appError },] = useAppError();
   const [, setAppNotification] = useAppNotification();
   const confirmation = useConfirmation();
   const { setPendingAction } = confirmation;

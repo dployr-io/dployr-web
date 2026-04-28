@@ -4,7 +4,7 @@
 import type { InstanceStreamUpdateV1_1 } from "../v1.1";
 import type {
   NormalizedInstanceData,
-  NormalizedAgent,
+  NormalizedNode,
   NormalizedStatus,
   NormalizedHealth,
   NormalizedResources,
@@ -16,29 +16,21 @@ import type {
   NormalizedFsNode,
   SchemaVersion,
 } from "../normalized";
-import {
-  defaultAgent,
-  defaultStatus,
-  defaultHealth,
-  defaultResources,
-  defaultWorkloads,
-  defaultProcesses,
-  defaultDiagnostics,
-} from "../normalized";
+import { defaultNode, defaultStatus, defaultHealth, defaultResources, defaultWorkloads, defaultProcesses, defaultDiagnostics } from "../normalized";
 import type { FsNode } from "../v1.1/entities";
 
 /**
- * Normalize agent from v1.1 format
+ * Normalize node from v1.1 format
  */
-function normalizeAgent(agent: InstanceStreamUpdateV1_1["agent"]): NormalizedAgent {
-  if (!agent) return { ...defaultAgent };
+function normalizeNode(node: InstanceStreamUpdateV1_1["node"]): NormalizedNode {
+  if (!node) return { ...defaultNode };
   return {
-    version: agent.version,
-    commit: agent.commit,
-    buildDate: agent.build_date,
-    goVersion: agent.go_version,
-    os: agent.os,
-    arch: agent.arch,
+    version: node.version,
+    commit: node.commit,
+    buildDate: node.build_date,
+    goVersion: node.go_version,
+    os: node.os,
+    arch: node.arch,
   };
 }
 
@@ -90,24 +82,26 @@ function normalizeResources(resources: InstanceStreamUpdateV1_1["resources"]): N
             : undefined,
         }
       : null,
-    memory: resources.memory && resources.memory.total_bytes !== undefined
-      ? {
-          totalBytes: resources.memory.total_bytes,
-          usedBytes: resources.memory.used_bytes,
-          freeBytes: resources.memory.free_bytes,
-          availableBytes: resources.memory.available_bytes,
-          bufferCacheBytes: resources.memory.buffer_cache_bytes,
-        }
-      : null,
-    swap: resources.swap && resources.swap.total_bytes !== undefined
-      ? {
-          totalBytes: resources.swap.total_bytes,
-          usedBytes: resources.swap.used_bytes,
-          freeBytes: resources.swap.free_bytes,
-          availableBytes: resources.swap.available_bytes,
-        }
-      : null,
-    disks: (resources.disks || []).map((d) => ({
+    memory:
+      resources.memory && resources.memory.total_bytes !== undefined
+        ? {
+            totalBytes: resources.memory.total_bytes,
+            usedBytes: resources.memory.used_bytes,
+            freeBytes: resources.memory.free_bytes,
+            availableBytes: resources.memory.available_bytes,
+            bufferCacheBytes: resources.memory.buffer_cache_bytes,
+          }
+        : null,
+    swap:
+      resources.swap && resources.swap.total_bytes !== undefined
+        ? {
+            totalBytes: resources.swap.total_bytes,
+            usedBytes: resources.swap.used_bytes,
+            freeBytes: resources.swap.free_bytes,
+            availableBytes: resources.swap.available_bytes,
+          }
+        : null,
+    disks: (resources.disks || []).map(d => ({
       filesystem: d.filesystem,
       mountPoint: d.mount_point,
       totalBytes: d.total_bytes,
@@ -123,7 +117,7 @@ function normalizeResources(resources: InstanceStreamUpdateV1_1["resources"]): N
 function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workloads"]): NormalizedWorkloads {
   if (!workloads) return { ...defaultWorkloads };
   return {
-    services: (workloads.services || []).map((s) => ({
+    services: (workloads.services || []).map(s => ({
       id: s.id,
       name: s.name || "",
       description: s.description || null,
@@ -149,7 +143,7 @@ function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workloads"]): N
       createdAt: s.created_at,
       updatedAt: s.updated_at,
     })),
-    deployments: (workloads.deployments || []).map((d) => ({
+    deployments: (workloads.deployments || []).map(d => ({
       id: d.id,
       userId: d.user_id || null,
       name: d.name || "",
@@ -189,7 +183,7 @@ function normalizeProxy(proxy: InstanceStreamUpdateV1_1["proxy"]): NormalizedPro
     type: proxy.type,
     status: proxy.status,
     version: proxy.version || null,
-    routes: (proxy.routes || []).map((r) => ({
+    routes: (proxy.routes || []).map(r => ({
       domain: r.domain,
       upstream: r.upstream,
       template: r.template,
@@ -214,7 +208,7 @@ function normalizeProcesses(processes: InstanceStreamUpdateV1_1["processes"]): N
           zombie: processes.summary.zombie,
         }
       : null,
-    list: (processes.list || []).map((p) => ({
+    list: (processes.list || []).map(p => ({
       pid: p.pid,
       user: p.user,
       priority: p.priority,
@@ -234,7 +228,7 @@ function normalizeProcesses(processes: InstanceStreamUpdateV1_1["processes"]): N
 /**
  * Normalize filesystem node from v1.1 format
  */
-function normalizeFsNode(node: FsNode): NormalizedFsNode {
+export function normalizeFsNode(node: FsNode): NormalizedFsNode {
   return {
     path: node.path,
     name: node.name,
@@ -262,9 +256,7 @@ function normalizeFsNode(node: FsNode): NormalizedFsNode {
 /**
  * Normalize filesystem from v1.1 format
  */
-function normalizeFilesystem(
-  filesystem: InstanceStreamUpdateV1_1["filesystem"]
-): NormalizedFilesystem | null {
+function normalizeFilesystem(filesystem: InstanceStreamUpdateV1_1["filesystem"]): NormalizedFilesystem | null {
   if (!filesystem) return null;
   return {
     generatedAt: filesystem.generated_at,
@@ -275,9 +267,7 @@ function normalizeFilesystem(
 /**
  * Normalize diagnostics from v1.1 format
  */
-function normalizeDiagnostics(
-  diagnostics: InstanceStreamUpdateV1_1["diagnostics"]
-): NormalizedDiagnostics {
+function normalizeDiagnostics(diagnostics: InstanceStreamUpdateV1_1["diagnostics"]): NormalizedDiagnostics {
   if (!diagnostics) return { ...defaultDiagnostics };
   return {
     bootstrapTokenPreview: diagnostics.auth?.bootstrap_token_preview || null,
@@ -301,7 +291,7 @@ export function normalizeFromV1_1(update: InstanceStreamUpdateV1_1): NormalizedI
     instance: {
       tag: update.instance_id || update.instance?.tag || "",
     },
-    agent: normalizeAgent(update.agent),
+    node: normalizeNode(update.node),
     status: normalizeStatus(update.status),
     health: normalizeHealth(update.health),
     resources: normalizeResources(update.resources),

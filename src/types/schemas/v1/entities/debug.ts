@@ -47,8 +47,8 @@ export const tasksDebugSchema = z.object({
  * Auth debug schema
  */
 export const authDebugSchema = z.object({
-  agent_token_age_s: z.number(),
-  agent_token_expires_in_s: z.number(),
+  node_token_age_s: z.number(),
+  node_token_expires_in_s: z.number(),
   bootstrap_token: z.string().optional(),
 });
 

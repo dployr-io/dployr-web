@@ -71,7 +71,7 @@ function ViewInstance() {
   const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
   const { update, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instance?.tag);
-  const { compatibility } = useVersion({ currentVersion: update?.agent.version });
+  const { compatibility } = useVersion({ currentVersion: update?.node.version });
     
   const breadcrumbs = viewInstanceBreadcrumbs(clusterId, instanceId, instance?.tag);
   const { user } = useAuth();
@@ -323,14 +323,14 @@ function ViewInstance() {
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="mt-4 space-y-4">
-                {/* Agent Info */}
+                {/* Node Info */}
                 <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
                   <MetricCard label="Uptime" value={uptime} />
                   <MetricCard
                     label="Version"
                     value={
                       <VersionSelector
-                        currentVersion={update?.agent.version || "-"}
+                        currentVersion={update?.node.version || "-"}
                         latestVersion={compatibility?.latestVersion}
                         upgradeLevel={compatibility?.upgradeLevel}
                         onInstall={handleInstallVersion}
@@ -338,7 +338,7 @@ function ViewInstance() {
                       />
                     }
                   />
-                  <MetricCard label="Platform" value={`${update?.agent.os || "-"} · ${update?.agent.arch || "-"}`} />
+                  <MetricCard label="Platform" value={`${update?.node.os || "-"} · ${update?.node.arch || "-"}`} />
                 </div>
 
                 {/* Status & Workloads */}

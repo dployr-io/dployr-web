@@ -4,9 +4,9 @@
 import { z } from "zod";
 
 /**
- * Normalized agent information
+ * Normalized node information
  */
-export const normalizedAgentSchema = z.object({
+export const normalizedNodeSchema = z.object({
   version: z.string(),
   commit: z.string(),
   buildDate: z.string(),
@@ -15,9 +15,9 @@ export const normalizedAgentSchema = z.object({
   arch: z.string(),
 });
 
-export type NormalizedAgent = z.infer<typeof normalizedAgentSchema>;
+export type NormalizedNode = z.infer<typeof normalizedNodeSchema>;
 
-export const defaultAgent: NormalizedAgent = {
+export const defaultNode: NormalizedNode = {
   version: "-",
   commit: "-",
   buildDate: "-",

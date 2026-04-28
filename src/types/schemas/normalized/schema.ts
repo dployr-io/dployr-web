@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import {
-  normalizedAgentSchema,
+  normalizedNodeSchema,
   normalizedStatusSchema,
   normalizedHealthSchema,
   normalizedResourcesSchema,
@@ -12,7 +12,7 @@ import {
   normalizedProcessesSchema,
   normalizedFilesystemSchema,
   normalizedDiagnosticsSchema,
-  defaultAgent,
+  defaultNode,
   defaultStatus,
   defaultHealth,
   defaultResources,
@@ -31,7 +31,7 @@ export const schemaVersionSchema = z.enum(["v1", "v1.1"]);
 export type SchemaVersion = z.infer<typeof schemaVersionSchema>;
 
 export const instanceSchema = z.object({
-  tag: z.string()
+  tag: z.string(),
 });
 
 /**
@@ -41,7 +41,7 @@ export const instanceSchema = z.object({
 export const normalizedInstanceDataSchema = z.object({
   schema: schemaVersionSchema,
   instance: instanceSchema,
-  agent: normalizedAgentSchema,
+  node: normalizedNodeSchema,
   status: normalizedStatusSchema,
   health: normalizedHealthSchema,
   resources: normalizedResourcesSchema,
@@ -61,7 +61,7 @@ export function createDefaultNormalizedData(schema: SchemaVersion = "v1.1"): Nor
   return {
     schema,
     instance: { ...defaultInstance },
-    agent: { ...defaultAgent },
+    node: { ...defaultNode },
     status: { ...defaultStatus },
     health: { ...defaultHealth },
     resources: { ...defaultResources },

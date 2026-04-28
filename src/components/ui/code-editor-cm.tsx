@@ -162,7 +162,6 @@ export function CodeEditor({
   disabled = false,
   minHeight = 400,
   onFormat,
-  onReset,
   onFormatChange,
   errors = [],
   showFormatSelector = false,

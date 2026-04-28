@@ -6,9 +6,7 @@ import {
   parseAsString,
   parseAsInteger,
   parseAsBoolean,
-  parseAsArrayOf,
   parseAsStringLiteral,
-  parseAsTimestamp,
   type inferParserType,
 } from 'nuqs'
 

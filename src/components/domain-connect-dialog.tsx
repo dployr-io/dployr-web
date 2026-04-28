@@ -40,7 +40,7 @@ export function DomainConnectDialog({ integration, open, onOpenChange }: Props) 
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <img src={integration.icon} alt={integration.name} className="h-5 w-5" />
+                        <integration.icon className="h-5 w-5" />
                         {integration.name}
                     </DialogTitle>
                     <DialogDescription>Add these CNAME records to your DNS provider</DialogDescription>

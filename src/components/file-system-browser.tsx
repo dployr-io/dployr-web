@@ -74,7 +74,6 @@ export function FileSystemBrowser({ instanceId, fs, className }: FileSystemBrows
   // Use WebSocket-based file system with map and watching
   const {
     map,
-    rootNode,
     mapLoading,
     isWatching,
     updateCount,

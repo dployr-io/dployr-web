@@ -22,7 +22,7 @@ interface UseProxyOperationsOptions {
  * Reads proxy apps from instance stream cache (like services/deployments)
  * Provides operations: restart, add, remove
  */
-export function useProxyOperations(instanceTag?: string, options: UseProxyOperationsOptions = {}) {
+export function useProxyOperations(_instanceTag?: string, options: UseProxyOperationsOptions = {}) {
   const { timeout = 30000 } = options;
   const { sendOperation, isConnected } = useWebSocketOperation({ timeout });
   const { error: streamError } = useInstanceStream();

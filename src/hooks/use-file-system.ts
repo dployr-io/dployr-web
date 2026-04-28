@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useInstanceStream } from "./use-instance-stream";
-import type { FsTaskRequest, NormalizedFilesystem, FileUpdateEvent, FileWatchCallback } from "@/types";
+import type { FsTaskRequest, FileUpdateEvent, FileWatchCallback } from "@/types";
 import { ulid } from "ulid";
 import type { FsNode } from "@/types/schemas/v1.1";
 
@@ -46,8 +46,8 @@ interface QueuedRequest {
 const RETRYABLE_ERRORS = [
   "RATE_LIMITED",
   "TOO_MANY_PENDING",
-  "AGENT_DISCONNECTED",
-  "AGENT_TIMEOUT",
+  "NODE_DISCONNECTED",
+  "NODE_TIMEOUT",
 ];
 
 export function useFileSystem({ 

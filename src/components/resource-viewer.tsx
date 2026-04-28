@@ -44,7 +44,6 @@ export function ProcessViewer({
   processSummary,
   historySnapshots = [],
   timeWindow = "live",
-  onTimeWindowChange,
   isLoadingHistory = false,
   className,
   lockedTimestamp = null,

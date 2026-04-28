@@ -90,17 +90,7 @@ function Deployments() {
   } = useDeploymentCreator(quickDeployInstanceId);
 
   // Use the fixed useDeployments hook - now properly aggregates from all instances
-  const {
-    paginatedDeployments,
-    deployments,
-    isLoading: isDeploymentsLoading,
-    currentPage,
-    totalPages,
-    paginationRange,
-    goToPage,
-    goToPreviousPage,
-    goToNextPage,
-  } = useDeployments(selectedInstanceId);
+  const { paginatedDeployments, deployments, isLoading: isDeploymentsLoading, currentPage, totalPages, paginationRange, goToPage, goToPreviousPage, goToNextPage } = useDeployments(selectedInstanceId);
 
   // Sync URL 'new' parameter to isCreating state
   useEffect(() => {
@@ -121,11 +111,11 @@ function Deployments() {
 
   // Track previous isCreating state to detect when deployment widget gets disabled
   const prevIsCreatingRef = useRef(isCreating);
-  
+
   useEffect(() => {
     if (prevIsCreatingRef.current === true && isCreating === false) {
-      if (selectedInstanceId && selectedInstanceId !== 'all') {
-        setInstanceFilter({ instance: 'all' });
+      if (selectedInstanceId && selectedInstanceId !== "all") {
+        setInstanceFilter({ instance: "all" });
       }
     }
     prevIsCreatingRef.current = isCreating;
@@ -144,7 +134,7 @@ function Deployments() {
                     <p className="text-sm font-normal text-muted-foreground">Manage your deployments here</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Select value={selectedInstanceId} onValueChange={(value) => setInstanceFilter({ instance: value })}>
+                    <Select value={selectedInstanceId} onValueChange={value => setInstanceFilter({ instance: value })}>
                       <SelectTrigger className="w-[200px]">
                         <SelectValue placeholder="Select instance" />
                       </SelectTrigger>
@@ -163,9 +153,7 @@ function Deployments() {
                         Drafts ({drafts.length})
                       </Button>
                     )}
-                    <Button onClick={() => setInstanceFilter({ new: true })}>
-                      Deploy Service
-                    </Button>
+                    <Button onClick={() => setInstanceFilter({ new: true })}>Deploy Service</Button>
                   </div>
                 </div>
 
@@ -209,9 +197,7 @@ function Deployments() {
                     </EmptyHeader>
                     <EmptyContent>
                       <div className="flex gap-2">
-                        <Button onClick={() => setInstanceFilter({ new: true })}>
-                          Deploy Service
-                        </Button>
+                        <Button onClick={() => setInstanceFilter({ new: true })}>Deploy Service</Button>
                         <Button variant="link" asChild className="text-muted-foreground" size="sm">
                           <a href={APP_LINKS.DOCS.DEPLOYMENTS}>
                             Learn More <ArrowUpRightIcon />
@@ -244,7 +230,9 @@ function Deployments() {
                                   </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle whitespace-nowrap">
-                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }}><TimeAgo date={deployment.createdAt} /></Link>
+                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }}>
+                                    <TimeAgo date={deployment.createdAt} />
+                                  </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle whitespace-nowrap">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block">
@@ -300,7 +288,11 @@ function Deployments() {
                                   </Link>
                                 </TableCell>
                                 <TableCell className="h-16 w-[200px] overflow-hidden text-right align-middle">
-                                  <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block truncate text-right font-mono text-sm text-muted-foreground">
+                                  <Link
+                                    to="/clusters/$clusterId/deployments/$id"
+                                    params={{ clusterId, id: deployment.id }}
+                                    className="block truncate text-right font-mono text-sm text-muted-foreground"
+                                  >
                                     {String(deployment.runCmd || "-")}
                                   </Link>
                                 </TableCell>
@@ -378,15 +370,19 @@ function Deployments() {
               </>
             ) : (
               <>
-                <Tabs value={currentTab} onValueChange={(value) => {
-                  const newTab = value as "quick" | "blueprint-editor";
-                  if (newTab === "blueprint-editor" && currentTab === "quick") {
-                    syncBlueprintFromDraft();
-                  } else if (newTab === "quick" && currentTab === "blueprint-editor") {
-                    syncDraftFromBlueprint();
-                  }
-                  setTab({ tab: newTab });
-                }} className="flex min-h-0 flex-1 flex-col w-full">
+                <Tabs
+                  value={currentTab}
+                  onValueChange={value => {
+                    const newTab = value as "quick" | "blueprint-editor";
+                    if (newTab === "blueprint-editor" && currentTab === "quick") {
+                      syncBlueprintFromDraft();
+                    } else if (newTab === "quick" && currentTab === "blueprint-editor") {
+                      syncDraftFromBlueprint();
+                    }
+                    setTab({ tab: newTab });
+                  }}
+                  className="flex min-h-0 flex-1 flex-col w-full"
+                >
                   <div className="flex items-center justify-between">
                     <TabsList className="flex justify-between w-auto">
                       <TabsTrigger value="quick">Quick Deploy</TabsTrigger>
@@ -454,18 +450,21 @@ function Deployments() {
                         onRuntimeValueChanged={value => updateDraft("runtime", value)}
                       />
                       <div className="flex justify-end">
-                        <Button onClick={() => {
-                          
-                          if (quickDeployInstanceId) {
-                            const instance = instances?.find(i => i.id === quickDeployInstanceId);
-                            console.log("Deploying...", instance?.tag);
-                            if (instance) {
-                              handleDeploy(instance.tag);
-                              navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
-                              queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] });
+                        <Button
+                          onClick={() => {
+                            if (quickDeployInstanceId) {
+                              const instance = instances?.find(i => i.id === quickDeployInstanceId);
+                              console.log("Deploying...", instance?.tag);
+                              if (instance) {
+                                handleDeploy(instance.tag);
+                                navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
+                                queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] });
+                              }
                             }
-                          }
-                        }} disabled={!quickDeployInstanceId} size="lg">
+                          }}
+                          disabled={!quickDeployInstanceId || Object.keys(validationErrors).length > 0}
+                          size="lg"
+                        >
                           <Rocket className="h-4 w-4" />
                           Deploy
                         </Button>
@@ -485,7 +484,7 @@ function Deployments() {
                       errors={schemaErrors}
                       showFormatSelector
                       instanceSelector={
-                        <Select value={blueprintInstanceId} onValueChange={(value) => setBlueprintInstanceId(value)}>
+                        <Select value={blueprintInstanceId} onValueChange={value => setBlueprintInstanceId(value)}>
                           <SelectTrigger className="h-6 w-[140px] bg-transparent border-neutral-600 text-xs text-neutral-300">
                             <SelectValue placeholder="Select instance" />
                           </SelectTrigger>
@@ -500,16 +499,20 @@ function Deployments() {
                       }
                     />
                     <div className="flex justify-end">
-                      <Button onClick={() => {
-                        if (blueprintInstanceId) {
-                          const instance = instances?.find(i => i.id === blueprintInstanceId);
-                          if (instance) {
-                            handleDeploy(instance.tag);
-                            navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
-                            queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] })
+                      <Button
+                        onClick={() => {
+                          if (blueprintInstanceId) {
+                            const instance = instances?.find(i => i.id === blueprintInstanceId);
+                            if (instance) {
+                              handleDeploy(instance.tag);
+                              navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });
+                              queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] });
+                            }
                           }
-                        }
-                      }} disabled={schemaErrors.length > 0 || !blueprintInstanceId} size="lg">
+                        }}
+                        disabled={schemaErrors.length > 0 || !blueprintInstanceId}
+                        size="lg"
+                      >
                         <Rocket className="h-4 w-4" />
                         Deploy
                       </Button>

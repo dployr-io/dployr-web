@@ -4,7 +4,7 @@
 import type { InstanceStreamUpdateV1 } from "../v1";
 import type {
   NormalizedInstanceData,
-  NormalizedAgent,
+  NormalizedNode,
   NormalizedStatus,
   NormalizedHealth,
   NormalizedResources,
@@ -16,24 +16,19 @@ import type {
   NormalizedFsNode,
   SchemaVersion,
 } from "../normalized";
-import {
-  defaultAgent,
-  defaultHealth,
-  defaultProcesses,
-  defaultDiagnostics,
-} from "../normalized";
+import { defaultNode, defaultHealth, defaultProcesses, defaultDiagnostics } from "../normalized";
 import type { FsNode } from "../v1/entities";
 
 // MB to bytes conversion factor
 const MB_TO_BYTES = 1024 * 1024;
 
 /**
- * Normalize agent from v1 format (build_info + platform)
+ * Normalize node from v1 format (build_info + platform)
  */
-function normalizeAgent(update: InstanceStreamUpdateV1): NormalizedAgent {
+function normalizeNode(update: InstanceStreamUpdateV1): NormalizedNode {
   const buildInfo = update.build_info;
   const platform = update.platform;
-  if (!buildInfo) return { ...defaultAgent };
+  if (!buildInfo) return { ...defaultNode };
   return {
     version: buildInfo.version,
     commit: buildInfo.commit,
@@ -101,8 +96,7 @@ function normalizeResources(update: InstanceStreamUpdateV1): NormalizedResources
           totalBytes: system.mem_total_bytes || 0,
           usedBytes: system.mem_used_bytes || 0,
           freeBytes: system.mem_free_bytes || 0,
-          availableBytes:
-            (system.mem_free_bytes || 0) + (top?.memory?.buffer_cache || 0) * MB_TO_BYTES,
+          availableBytes: (system.mem_free_bytes || 0) + (top?.memory?.buffer_cache || 0) * MB_TO_BYTES,
           bufferCacheBytes: (top?.memory?.buffer_cache || 0) * MB_TO_BYTES,
         }
       : null,
@@ -114,7 +108,7 @@ function normalizeResources(update: InstanceStreamUpdateV1): NormalizedResources
           availableBytes: (top.swap.available || 0) * MB_TO_BYTES,
         }
       : null,
-    disks: (system?.disks || []).map((d) => ({
+    disks: (system?.disks || []).map(d => ({
       filesystem: d.filesystem,
       mountPoint: d.mountpoint,
       totalBytes: d.size_bytes,
@@ -129,7 +123,7 @@ function normalizeResources(update: InstanceStreamUpdateV1): NormalizedResources
  */
 function normalizeWorkloads(update: InstanceStreamUpdateV1): NormalizedWorkloads {
   return {
-    services: (update.services || []).map((s) => ({
+    services: (update.services || []).map(s => ({
       id: s.id,
       name: s.name,
       description: s.description || null,
@@ -155,7 +149,7 @@ function normalizeWorkloads(update: InstanceStreamUpdateV1): NormalizedWorkloads
       createdAt: s.created_at,
       updatedAt: s.updated_at,
     })),
-    deployments: (update.deployments || []).map((d) => ({
+    deployments: (update.deployments || []).map(d => ({
       id: d.id,
       userId: d.user_id || null,
       name: d.config.name,
@@ -199,7 +193,7 @@ function normalizeProxy(update: InstanceStreamUpdateV1): NormalizedProxy | null 
     type: "caddy",
     status: proxyStatus || "-",
     version: null,
-    routes: (proxyApps || []).map((r) => ({
+    routes: (proxyApps || []).map(r => ({
       domain: r.domain,
       upstream: r.upstream,
       template: r.template,
@@ -226,7 +220,7 @@ function normalizeProcesses(update: InstanceStreamUpdateV1): NormalizedProcesses
           zombie: top.tasks.zombie || 0,
         }
       : null,
-    list: (top.processes || []).map((p) => ({
+    list: (top.processes || []).map(p => ({
       pid: p.pid,
       user: p.user,
       priority: p.priority,
@@ -275,9 +269,7 @@ function normalizeFsNode(node: FsNode): NormalizedFsNode {
 /**
  * Normalize filesystem from v1 format
  */
-function normalizeFilesystem(
-  filesystem: InstanceStreamUpdateV1["fs"]
-): NormalizedFilesystem | null {
+function normalizeFilesystem(filesystem: InstanceStreamUpdateV1["fs"]): NormalizedFilesystem | null {
   if (!filesystem) return null;
   return {
     generatedAt: filesystem.generated_at,
@@ -309,7 +301,7 @@ export function normalizeFromV1(update: InstanceStreamUpdateV1): NormalizedInsta
     instance: {
       tag: update.instance_id,
     },
-    agent: normalizeAgent(update),
+    node: normalizeNode(update),
     status: normalizeStatus(update),
     health: normalizeHealth(update.health),
     resources: normalizeResources(update),

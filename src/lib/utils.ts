@@ -26,7 +26,7 @@ export function toWordUpperCase(value: string) {
 
 export function toYaml(obj: Blueprint | Record<string, unknown>): string {
     // Parse nested JSON strings first
-    const parsed = JSON.parse(JSON.stringify(obj), (key, value) => {
+    const parsed = JSON.parse(JSON.stringify(obj), (_key, value) => {
         if (typeof value === 'string') {
             try {
                 return JSON.parse(value);
@@ -55,7 +55,7 @@ export function toYaml(obj: Blueprint | Record<string, unknown>): string {
 }
 
 export function toJson(obj: Blueprint | Record<string, unknown>): string {
-    const parsed = JSON.parse(JSON.stringify(obj), (key, value) => {
+    const parsed = JSON.parse(JSON.stringify(obj), (_key, value) => {
         if (typeof value === 'string') {
             try {
                 return JSON.parse(value);

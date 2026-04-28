@@ -7,7 +7,7 @@ import AppLayout from "@/layouts/app-layout";
 import { type BreadcrumbItem, type BlueprintFormat, type Runtime, type NormalizedService, denormalize, type InstanceStreamUpdateV1_1 } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronLeft, Edit2, ExternalLink, FileX2, Globe, Loader2, Save, X } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, Edit2, ExternalLink, FileX2, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";

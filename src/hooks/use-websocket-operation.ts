@@ -84,7 +84,7 @@ export function useWebSocketOperation<TResponse extends WebSocketResponse = WebS
       return new Promise((resolve, reject) => {
         if (!isConnected) {
           const error = new Error("WebSocket not connected");
-          (error as Error & { code: string }).code = "AGENT_DISCONNECTED";
+          (error as Error & { code: string }).code = "NODE_DISCONNECTED";
           reject(error);
           return;
         }

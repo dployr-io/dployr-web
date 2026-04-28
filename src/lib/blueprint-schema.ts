@@ -90,7 +90,6 @@ export function stringifyContent(data: unknown, format: BlueprintFormat): string
   }
 }
 
-
 /**
  * Validate blueprint schema
  */
@@ -111,6 +110,8 @@ export function validateBlueprint(data: unknown): ValidationResult {
     errors.push({ message: "name is required and must be a string", path: "name", severity: "error" });
   } else if (!/^[a-z0-9-]+$/.test(obj.name)) {
     errors.push({ message: "name must be lowercase alphanumeric with hyphens only", path: "name", severity: "error" });
+  } else if (obj.name.startsWith("-") || obj.name.endsWith("-")) {
+    errors.push({ message: "name cannot start or end with a hyphen", path: "name", severity: "error" });
   }
 
   // Required: source

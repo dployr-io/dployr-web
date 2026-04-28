@@ -56,13 +56,13 @@ const ERROR_MESSAGE_MAP: Record<string, { message: string; helpLink?: string }> 
     message: "Too many pending requests. Please wait a moment and try again.",
     helpLink: "/docs/errors/too-many-pending",
   },
-  AGENT_DISCONNECTED: {
+  NODE_DISCONNECTED: {
     message: "Instance is not available. Please try again later.",
-    helpLink: "/docs/errors/agent-disconnected",
+    helpLink: "/docs/errors/node-disconnected",
   },
-  AGENT_TIMEOUT: {
+  NODE_TIMEOUT: {
     message: "Request timed out. The instance may be overloaded. Please try again.",
-    helpLink: "/docs/errors/agent-timeout",
+    helpLink: "/docs/errors/node-timeout",
   },
   INTERNAL_ERROR: {
     message: "Server error occurred. Please try again later.",
@@ -150,8 +150,8 @@ export function isRetryableError(error: any): boolean {
   const retryableCodes = [
     "RATE_LIMITED",
     "TOO_MANY_PENDING",
-    "AGENT_DISCONNECTED",
-    "AGENT_TIMEOUT",
+    "NODE_DISCONNECTED",
+    "NODE_TIMEOUT",
   ];
 
   return retryableCodes.includes(code);

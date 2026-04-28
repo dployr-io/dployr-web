@@ -130,14 +130,34 @@ export function CreateServiceForm({
           </Select>
         </div>
 
-        {source === "remote" && <div className="grid gap-2"><RemoteSelector value={remote || null} remotes={remotes} isLoading={isRemotesLoading} error={remoteError} disabled={processing} onChange={remote => setField("remote", remote)} /></div>}
+        {source === "remote" && (
+          <div className="grid gap-2">
+            <RemoteSelector value={remote || null} remotes={remotes} isLoading={isRemotesLoading} error={remoteError} disabled={processing} onChange={remote => setField("remote", remote)} />
+          </div>
+        )}
       </div>
 
       <div className="grid gap-2">
         <Label htmlFor="name">
           Name <span className="text-destructive">*</span>
         </Label>
-        <Input id="name" name="name" placeholder="My awesome project" value={name} onChange={e => setField("name", e.target.value)} disabled={processing} />
+        <Input
+          id="name"
+          name="name"
+          placeholder="my-awesome-project"
+          value={name}
+          onChange={e =>
+            setField(
+              "name",
+              e.target.value
+                .toLowerCase()
+                .replace(/\s+/g, "-")
+                .replace(/[^a-z0-9-]/g, "")
+                .replace(/-+/g, "-")
+            )
+          }
+          disabled={processing}
+        />
         {(nameError || errors.name) && <div className="text-sm text-destructive">{nameError || errors.name}</div>}
       </div>
 
@@ -147,13 +167,13 @@ export function CreateServiceForm({
             <Label htmlFor="branch">
               Branch <span className="text-destructive">*</span>
             </Label>
-            <Input 
-              id="branch" 
-              name="branch" 
-              placeholder="main" 
-              value={remote?.branch || "main"} 
-              onChange={e => setField("remote", { ...remote, url: remote?.url || "", branch: e.target.value, commit_hash: remote?.commit_hash || "", avatar_url: remote?.avatar_url || "" })} 
-              disabled={processing || !remote?.url} 
+            <Input
+              id="branch"
+              name="branch"
+              placeholder="main"
+              value={remote?.branch || "main"}
+              onChange={e => setField("remote", { ...remote, url: remote?.url || "", branch: e.target.value, commit_hash: remote?.commit_hash || "", avatar_url: remote?.avatar_url || "" })}
+              disabled={processing || !remote?.url}
             />
           </div>
         )}
@@ -219,16 +239,17 @@ export function CreateServiceForm({
             <Label htmlFor="domain">Domain</Label>
             <Dialog>
               <DialogTrigger asChild>
-                <button type="button" className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                >
                   <Info className="h-4 w-4 text-blue-500" />
                 </button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Domain Configuration</DialogTitle>
-                  <DialogDescription>
-                    You can configure domains in your cluster's instance settings.
-                  </DialogDescription>
+                  <DialogDescription>You can configure domains in your cluster's instance settings.</DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-end">
                   <Link to="/clusters/$clusterId/instances/$id" params={{ clusterId: "01KBWM5KKBFCCB8VS0WFQH1GE7", id: "01KD86P1HTWZMTNQ2DE02B60ZQ" }} search={{ tab: "config" }}>
@@ -250,9 +271,7 @@ export function CreateServiceForm({
                 <SelectItem key={d.domain} value={d.domain}>
                   <div className="flex items-center gap-2">
                     <span>{d.domain}</span>
-                    {d.provider && d.provider !== "unknown" && (
-                      <span className="text-xs text-muted-foreground">({d.provider})</span>
-                    )}
+                    {d.provider && d.provider !== "unknown" && <span className="text-xs text-muted-foreground">({d.provider})</span>}
                   </div>
                 </SelectItem>
               ))}

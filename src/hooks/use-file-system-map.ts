@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFileSystem } from "./use-file-system";
 import { consolidateTree, applyFileUpdate, FileSystemQuery, type FileSystemMap } from "@/lib/file-system-map";
-import type { FileUpdateEvent, NormalizedFilesystem } from "@/types";
+import type { FileUpdateEvent, NormalizedFsNode } from "@/types";
+import { normalizeFsNode } from "@/types/schemas/normalizers/from-v1.1";
 
 interface UseFileSystemMapOptions {
   instanceId: string;
@@ -16,7 +17,7 @@ interface UseFileSystemMapOptions {
 
 interface FileSystemMapState {
   map: FileSystemMap | null;
-  rootNode: NormalizedFilesystem | null;
+  rootNode: NormalizedFsNode | null;
   isLoading: boolean;
   error: string | null;
   isWatching: boolean;
@@ -55,7 +56,7 @@ export function useFileSystemMap({
 
       try {
         const response = await fileSystem.listDirectory(path, { depth });
-        const rootNode = response.node;
+        const rootNode = normalizeFsNode(response.node);
         const map = consolidateTree(rootNode);
 
         setState((prev) => ({
@@ -92,7 +93,7 @@ export function useFileSystemMap({
 
       try {
         const response = await fileSystem.listDirectory(path, { depth });
-        const subtreeRoot = response.node;
+        const subtreeRoot = normalizeFsNode(response.node);
         const subtreeMap = consolidateTree(subtreeRoot);
 
         setState((prev) => {

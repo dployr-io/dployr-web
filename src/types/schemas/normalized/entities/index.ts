@@ -5,23 +5,11 @@
  * Re-export all normalized entity schemas and types
  */
 
-export {
-  normalizedAgentSchema,
-  defaultAgent,
-  type NormalizedAgent,
-} from "./agent";
+export { normalizedNodeSchema, defaultNode as defaultNode, type NormalizedNode as NormalizedNode } from "./node";
 
-export {
-  normalizedStatusSchema,
-  defaultStatus,
-  type NormalizedStatus,
-} from "./status";
+export { normalizedStatusSchema, defaultStatus, type NormalizedStatus } from "./status";
 
-export {
-  normalizedHealthSchema,
-  defaultHealth,
-  type NormalizedHealth,
-} from "./health";
+export { normalizedHealthSchema, defaultHealth, type NormalizedHealth } from "./health";
 
 export {
   normalizedLoadAverageSchema,
@@ -53,13 +41,7 @@ export {
   type NormalizedWorkloads,
 } from "./workload";
 
-export {
-  normalizedProxyRouteSchema,
-  normalizedProxySchema,
-  defaultProxy,
-  type NormalizedProxyRoute,
-  type NormalizedProxy,
-} from "./proxy";
+export { normalizedProxyRouteSchema, normalizedProxySchema, defaultProxy, type NormalizedProxyRoute, type NormalizedProxy } from "./proxy";
 
 export {
   normalizedProcessSummarySchema,
@@ -81,16 +63,6 @@ export {
   type NormalizedFilesystem,
 } from "./filesystem";
 
-export {
-  normalizedCertDiagnosticsSchema,
-  normalizedDiagnosticsSchema,
-  defaultDiagnostics,
-  type NormalizedCertDiagnostics,
-  type NormalizedDiagnostics,
-} from "./diagnostics";
+export { normalizedCertDiagnosticsSchema, normalizedDiagnosticsSchema, defaultDiagnostics, type NormalizedCertDiagnostics, type NormalizedDiagnostics } from "./diagnostics";
 
-export {
-  normalizedInstanceSchema,
-  defaultInstance,
-  type NormalizedInstance,
-} from "./instance";
+export { normalizedInstanceSchema, defaultInstance, type NormalizedInstance } from "./instance";

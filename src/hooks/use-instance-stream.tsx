@@ -40,7 +40,7 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
   const queryClient = useQueryClient();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
-  
+
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retriesRef = useRef(0);
@@ -58,7 +58,6 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
       reconnectTimeoutRef.current = null;
     }
   }, []);
-
 
   const sendJson = useCallback((data: unknown): boolean => {
     const socket = socketRef.current;
@@ -127,14 +126,14 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
       setState("open");
     };
 
-    socket.onmessage = (event) => {
+    socket.onmessage = event => {
       try {
         const message = JSON.parse(event.data as string);
 
         if (message.kind === "error") {
-          console.error('[WebSocket] Error message received:', message);
-          const errorMsg = message.message || 'An error occurred';
-          const errorCode = message.code ? `[${message.code}] ` : '';
+          console.error("[WebSocket] Error message received:", message);
+          const errorMsg = message.message || "An error occurred";
+          const errorCode = message.code ? `[${message.code}] ` : "";
           setAppError({
             appError: {
               message: `${errorCode}${errorMsg}`,
@@ -142,12 +141,12 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
             },
           });
         }
-        
+
         if (message.kind === "update") {
           const data = message as InstanceStream;
           const update = data.update;
           const instanceId = update?.instance_id;
-          
+
           if (instanceId) {
             const instancesData = queryClient.getQueryData<any>(["instances", clusterId, 1, 8]);
             const instance = instancesData?.items?.find((i: any) => i.tag === instanceId);
@@ -159,12 +158,12 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
                 ...normalizedUpdate,
                 instance: {
                   tag: instance?.tag || "",
-                }
+                },
               };
-              
+
               queryClient.setQueryData<NormalizedInstanceData | null>(["instance-status", instanceId], updateWithInstance);
             }
-            
+
             // Debounce cache persistence
             if (persistTimeoutRef.current) clearTimeout(persistTimeoutRef.current);
             persistTimeoutRef.current = setTimeout(() => {
@@ -174,8 +173,8 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
             }, 500);
           }
         }
-        
-        handlersRef.current.forEach((handler) => {
+
+        handlersRef.current.forEach(handler => {
           try {
             handler(message);
           } catch (handlerError) {
@@ -211,7 +210,7 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
         if (!closeRequestedRef.current && clusterId) {
           const reconnectSocket = new WebSocket(url);
           socketRef.current = reconnectSocket;
-          
+
           reconnectSocket.onopen = socket.onopen;
           reconnectSocket.onmessage = socket.onmessage;
           reconnectSocket.onerror = socket.onerror;
@@ -243,11 +242,7 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
     unsubscribe,
   };
 
-  return (
-    <InstanceStreamContext.Provider value={value}>
-      {children}
-    </InstanceStreamContext.Provider>
-  );
+  return <InstanceStreamContext.Provider value={value}>{children}</InstanceStreamContext.Provider>;
 }
 
 export function useInstanceStream() {

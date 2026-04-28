@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -57,18 +56,6 @@ const getTemplateIcon = (template: string) => {
   return templateIcons[template] || Code2;
 };
 
-const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (status) {
-    case "running":
-      return "default";
-    case "stopped":
-      return "secondary";
-    case "error":
-      return "destructive";
-    default:
-      return "outline";
-  }
-};
 
 export function ProxyServiceList({
   apps,

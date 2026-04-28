@@ -116,7 +116,7 @@ export type ProxyErrorCode =
   | "UNAUTHORIZED"
   | "NOT_FOUND"
   | "PERMISSION_DENIED"
-  | "AGENT_DISCONNECTED"
+  | "NODE_DISCONNECTED"
   | "TOO_MANY_PENDING";
 
 export type ProxyResponse =

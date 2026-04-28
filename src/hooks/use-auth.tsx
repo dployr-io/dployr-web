@@ -33,10 +33,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [verifyOTP, setVerifyOtp] = useState(false);
   const [otpValue, setOtpValue] = useState("");
-  const [email, setEmail] = useState("");
-  const { useAuthError, useAppNotification } = useUrlState();
-  const [{ authError }, setError] = useAuthError();
-  const [, setAppNotification] = useAppNotification();
+  const [, setEmail] = useState("");
+  const { useAuthError } = useUrlState();
+  const [, setError] = useAuthError();
 
   const {
     data: sessionData,

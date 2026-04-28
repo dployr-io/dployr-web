@@ -8,13 +8,7 @@ import { useDns } from "./use-dns";
 import { useUrlState } from "./use-url-state";
 import { useClusterId } from "./use-cluster-id";
 import { useInstanceStream } from "./use-instance-stream";
-import {
-  validateContent,
-  formatContent,
-  convertFormat,
-  getDefaultTemplate,
-  type SchemaError,
-} from "@/lib/blueprint-schema";
+import { validateContent, formatContent, convertFormat, getDefaultTemplate, type SchemaError } from "@/lib/blueprint-schema";
 import { ulid } from "ulid";
 
 /**
@@ -33,21 +27,7 @@ export function useDeploymentCreator(instanceId?: string) {
   // WebSocket connection
   const { sendJson, isConnected: wsConnected } = useInstanceStream();
 
-  const {
-    currentDraft,
-    drafts,
-    isDirty,
-    hasUnsavedChanges,
-    createDraft,
-    updateDraft,
-    saveDraft,
-    loadDraft,
-    deleteDraft,
-    discardDraft,
-    toBlueprint,
-    fromBlueprint,
-    validate,
-  } = useDeploymentDraft();
+  const { currentDraft, drafts, isDirty, hasUnsavedChanges, createDraft, updateDraft, saveDraft, loadDraft, deleteDraft, discardDraft, toBlueprint, fromBlueprint, validate } = useDeploymentDraft();
 
   const [isCreating, setIsCreating] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
@@ -59,6 +39,14 @@ export function useDeploymentCreator(instanceId?: string) {
   const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("json");
   const [schemaErrors, setSchemaErrors] = useState<SchemaError[]>([]);
   const lastSyncedDraftRef = useRef<string | null>(null);
+
+  // Sync validation errors from draft when draft is created or changes
+  useEffect(() => {
+    if (currentDraft) {
+      const result = validate();
+      setValidationErrors(result.errors);
+    }
+  }, [currentDraft, validate]);
 
   useEffect(() => {
     if (isCreating && !currentDraft) {
@@ -154,93 +142,98 @@ export function useDeploymentCreator(instanceId?: string) {
     const defaultContent = getDefaultTemplate(blueprintFormat);
     setBlueprintContent(defaultContent);
     if (currentDraft) {
-      fromBlueprint(JSON.stringify({
-        name: "",
-        description: "",
-        source: "remote",
-        runtime: { type: "nodejs", version: "22" },
-        port: 3000,
-        run_cmd: "",
-        build_cmd: "",
-        working_dir: "/app",
-        env_vars: {},
-        remote: { url: "", branch: "main" },
-      }));
+      fromBlueprint(
+        JSON.stringify({
+          name: "",
+          description: "",
+          source: "remote",
+          runtime: { type: "nodejs", version: "22" },
+          port: 3000,
+          run_cmd: "",
+          build_cmd: "",
+          working_dir: "/app",
+          env_vars: {},
+          remote: { url: "", branch: "main" },
+        })
+      );
     }
   }, [blueprintFormat, currentDraft, fromBlueprint]);
 
-  const handleDeploy = useCallback((instanceName: string) => {
-    if (currentTab === "blueprint-editor") {
-      syncDraftFromBlueprint();
-    }
+  const handleDeploy = useCallback(
+    (instanceName: string) => {
+      if (currentTab === "blueprint-editor") {
+        syncDraftFromBlueprint();
+      }
 
-    const result = validate();
-    if (!result.isValid) {
-      setValidationErrors(result.errors);
-      return;
-    }
+      const result = validate();
+      if (!result.isValid) {
+        setValidationErrors(result.errors);
+        return;
+      }
 
-    if (!currentDraft || !clusterId) {
-      setAppError({
-        appError: {
-          message: "Unable to start deployment. Please try again.",
-          helpLink: "",
-        },
+      if (!currentDraft || !clusterId) {
+        setAppError({
+          appError: {
+            message: "Unable to start deployment. Please try again.",
+            helpLink: "",
+          },
+        });
+        return;
+      }
+
+      const payload = {
+        name: currentDraft.name,
+        description: currentDraft.description || undefined,
+        source: currentDraft.source,
+        runtime: currentDraft.runtime,
+        version: currentDraft.version || undefined,
+        run_cmd: currentDraft.run_cmd || undefined,
+        build_cmd: currentDraft.build_cmd || undefined,
+        port: currentDraft.port ?? undefined,
+        working_dir: currentDraft.working_dir || undefined,
+        static_dir: currentDraft.static_dir || undefined,
+        image: currentDraft.image || undefined,
+        env_vars: Object.keys(currentDraft.env_vars).length > 0 ? currentDraft.env_vars : undefined,
+        secrets: Object.keys(currentDraft.secrets).length > 0 ? currentDraft.secrets : undefined,
+        remote: currentDraft.remote.url ? currentDraft.remote : undefined,
+        domain: currentDraft.domain || undefined,
+      };
+
+      if (!wsConnected) {
+        setAppError({
+          appError: {
+            message: "Not connected to deployment service. Please try again.",
+            helpLink: "",
+          },
+        });
+        return;
+      }
+
+      const sent = sendJson({
+        kind: "deploy",
+        instanceName,
+        payload,
+        requestId: ulid(),
       });
-      return;
-    }
 
-    const payload = {
-      name: currentDraft.name,
-      description: currentDraft.description || undefined,
-      source: currentDraft.source,
-      runtime: currentDraft.runtime,
-      version: currentDraft.version || undefined,
-      run_cmd: currentDraft.run_cmd || undefined,
-      build_cmd: currentDraft.build_cmd || undefined,
-      port: currentDraft.port ?? undefined,
-      working_dir: currentDraft.working_dir || undefined,
-      static_dir: currentDraft.static_dir || undefined,
-      image: currentDraft.image || undefined,
-      env_vars: Object.keys(currentDraft.env_vars).length > 0 ? currentDraft.env_vars : undefined,
-      secrets: Object.keys(currentDraft.secrets).length > 0 ? currentDraft.secrets : undefined,
-      remote: currentDraft.remote.url ? currentDraft.remote : undefined,
-      domain: currentDraft.domain || undefined,
-    };
+      if (!sent) {
+        setAppError({
+          appError: {
+            message: "Failed to send deployment request. Please try again.",
+            helpLink: "",
+          },
+        });
+        return;
+      }
 
-    if (!wsConnected) {
-      setAppError({
-        appError: {
-          message: "Not connected to deployment service. Please try again.",
-          helpLink: "",
-        },
-      });
-      return;
-    }
-
-    const sent = sendJson({
-      kind: "deploy",
-      instanceName,
-      payload,
-      requestId: ulid(),
-    });
-
-    if (!sent) {
-      setAppError({
-        appError: {
-          message: "Failed to send deployment request. Please try again.",
-          helpLink: "",
-        },
-      });
-      return;
-    }
-
-    // Clean up draft after successful deploy initiation
-    setLastDeployedInstance(instanceName);
-    discardDraft();
-    setIsCreating(false);
-    lastSyncedDraftRef.current = null;
-  }, [validate, currentDraft, clusterId, discardDraft, wsConnected, sendJson, setAppError]);
+      // Clean up draft after successful deploy initiation
+      setLastDeployedInstance(instanceName);
+      discardDraft();
+      setIsCreating(false);
+      lastSyncedDraftRef.current = null;
+    },
+    [validate, currentDraft, clusterId, discardDraft, wsConnected, sendJson, setAppError]
+  );
 
   // Handle back button
   const handleBack = useCallback(() => {
@@ -347,14 +340,18 @@ export function useDeploymentCreator(instanceId?: string) {
           });
           break;
       }
-      // Clear validation error for this field
+      // Clear validation error for this field and revalidate
       setValidationErrors(prev => {
         const next = { ...prev };
         delete next[field];
         return next;
       });
+
+      // Validate the draft immediately
+      const result = validate();
+      setValidationErrors(result.errors);
     },
-    [currentDraft, updateDraft]
+    [currentDraft, updateDraft, validate]
   );
 
   return {

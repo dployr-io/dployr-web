@@ -89,6 +89,8 @@ export function validateDraft(draft: Partial<DeploymentDraft>): DeploymentDraftV
     errors.name = "Name must be at least 2 characters";
   } else if (!/^[a-z0-9-]+$/.test(draft.name)) {
     errors.name = "Name must be lowercase alphanumeric with hyphens only";
+  } else if (draft.name.startsWith("-") || draft.name.endsWith("-")) {
+    errors.name = "Name cannot start or end with a hyphen";
   }
 
   // Required: source
@@ -146,12 +148,7 @@ export function useDeploymentDraft() {
     if (!currentDraft) return false;
     if (!isDirty) return false;
     // Check if any meaningful field has been filled
-    return Boolean(
-      currentDraft.name.trim() ||
-      currentDraft.run_cmd.trim() ||
-      currentDraft.image.trim() ||
-      currentDraft.remote.url.trim()
-    );
+    return Boolean(currentDraft.name.trim() || currentDraft.run_cmd.trim() || currentDraft.image.trim() || currentDraft.remote.url.trim());
   }, [currentDraft, isDirty]);
 
   // Create a new draft
@@ -198,7 +195,7 @@ export function useDeploymentDraft() {
 
     const updatedDraft = { ...currentDraft, updatedAt: Date.now() };
     const existingIndex = drafts.findIndex(d => d.id === currentDraft.id);
-    
+
     let newDrafts: DeploymentDraft[];
     if (existingIndex >= 0) {
       newDrafts = [...drafts];
@@ -214,25 +211,31 @@ export function useDeploymentDraft() {
   }, [currentDraft, drafts]);
 
   // Load a draft by ID
-  const loadDraft = useCallback((draftId: string) => {
-    const draft = drafts.find(d => d.id === draftId);
-    if (draft) {
-      setCurrentDraft(draft);
-      setIsDirty(false);
-    }
-    return draft || null;
-  }, [drafts]);
+  const loadDraft = useCallback(
+    (draftId: string) => {
+      const draft = drafts.find(d => d.id === draftId);
+      if (draft) {
+        setCurrentDraft(draft);
+        setIsDirty(false);
+      }
+      return draft || null;
+    },
+    [drafts]
+  );
 
   // Delete a draft
-  const deleteDraft = useCallback((draftId: string) => {
-    const newDrafts = drafts.filter(d => d.id !== draftId);
-    saveDraftsToStorage(newDrafts);
-    setDrafts(newDrafts);
-    if (currentDraft?.id === draftId) {
-      setCurrentDraft(null);
-      setIsDirty(false);
-    }
-  }, [drafts, currentDraft]);
+  const deleteDraft = useCallback(
+    (draftId: string) => {
+      const newDrafts = drafts.filter(d => d.id !== draftId);
+      saveDraftsToStorage(newDrafts);
+      setDrafts(newDrafts);
+      if (currentDraft?.id === draftId) {
+        setCurrentDraft(null);
+        setIsDirty(false);
+      }
+    },
+    [drafts, currentDraft]
+  );
 
   // Clear current draft without saving
   const discardDraft = useCallback(() => {
@@ -243,7 +246,7 @@ export function useDeploymentDraft() {
   // Convert draft to blueprint JSON
   const toBlueprint = useCallback((): string => {
     if (!currentDraft) return "{}";
-    
+
     const blueprint = {
       name: currentDraft.name,
       description: currentDraft.description,
@@ -268,39 +271,42 @@ export function useDeploymentDraft() {
   }, [currentDraft]);
 
   // Load from blueprint JSON
-  const fromBlueprint = useCallback((json: string): boolean => {
-    try {
-      const parsed = JSON.parse(json);
-      const draft: DeploymentDraft = {
-        id: currentDraft?.id || generateId(),
-        updatedAt: Date.now(),
-        name: parsed.name || "",
-        description: parsed.description || "",
-        source: parsed.source || "remote",
-        runtime: parsed.runtime?.type || "nodejs",
-        version: parsed.runtime?.version || "",
-        run_cmd: parsed.run_cmd || "",
-        build_cmd: parsed.build_cmd || "",
-        port: parsed.port ?? 3000,
-        working_dir: parsed.working_dir || "",
-        static_dir: parsed.static_dir || "",
-        image: parsed.image || "",
-        env_vars: parsed.env_vars || {},
-        secrets: parsed.secrets || {},
-        remote: {
-          url: parsed.remote?.url || "",
-          branch: parsed.remote?.branch || "main",
-          commit_hash: parsed.remote?.commit_hash || "",
-        },
-        domain: parsed.domain || "",
-      };
-      setCurrentDraft(draft);
-      setIsDirty(true);
-      return true;
-    } catch {
-      return false;
-    }
-  }, [currentDraft?.id, clusterId]);
+  const fromBlueprint = useCallback(
+    (json: string): boolean => {
+      try {
+        const parsed = JSON.parse(json);
+        const draft: DeploymentDraft = {
+          id: currentDraft?.id || generateId(),
+          updatedAt: Date.now(),
+          name: parsed.name || "",
+          description: parsed.description || "",
+          source: parsed.source || "remote",
+          runtime: parsed.runtime?.type || "nodejs",
+          version: parsed.runtime?.version || "",
+          run_cmd: parsed.run_cmd || "",
+          build_cmd: parsed.build_cmd || "",
+          port: parsed.port ?? 3000,
+          working_dir: parsed.working_dir || "",
+          static_dir: parsed.static_dir || "",
+          image: parsed.image || "",
+          env_vars: parsed.env_vars || {},
+          secrets: parsed.secrets || {},
+          remote: {
+            url: parsed.remote?.url || "",
+            branch: parsed.remote?.branch || "main",
+            commit_hash: parsed.remote?.commit_hash || "",
+          },
+          domain: parsed.domain || "",
+        };
+        setCurrentDraft(draft);
+        setIsDirty(true);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [currentDraft?.id, clusterId]
+  );
 
   // Validate current draft
   const validate = useCallback((): DeploymentDraftValidation => {

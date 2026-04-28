@@ -21,7 +21,7 @@ export function useStandardizedLogs(
   },
   logsTabName: string = "logs"
 ) {
-  const { instanceName, path, initialMode = "tail" } = options;
+  const { instanceName, path } = options;
   const { currentTab, logDuration, selectedLogLevel } = tabState;
 
   const [isAtBottom, setIsAtBottom] = useState(true);

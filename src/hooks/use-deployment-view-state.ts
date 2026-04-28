@@ -99,13 +99,6 @@ export function useDeploymentViewState(overrides: Partial<DeploymentViewState> =
     [dispatch],
   );
 
-  const setFields = useCallback(
-    (payload: Partial<DeploymentViewState>) => {
-      dispatch({ type: "SET_FIELDS", payload });
-    },
-    [dispatch],
-  );
-
   const resetErrors = useCallback(() => {
     dispatch({ type: "RESET_ERRORS" });
   }, [dispatch]);

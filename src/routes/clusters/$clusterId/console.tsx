@@ -45,7 +45,7 @@ function Console() {
     }
   }, [instances, selectedInstanceId]);
 
-  const { isOpen, state, streamConnected, openTerminal, sendInput, sendResize, closeTerminal } = useTerminal({
+  const { isOpen, state, streamConnected, openTerminal, sendInput, sendResize } = useTerminal({
     instanceId: selectedInstanceId,
     getTerminal: () => terminalInstanceRef.current,
     enabled: !!selectedInstanceId,

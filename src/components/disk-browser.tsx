@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { DiskInfo, FsNode, FsSnapshot } from "@/types";
+import type { NormalizedDisk as DiskInfo, NormalizedFsNode as FsNode, NormalizedFilesystem as FsSnapshot } from "@/types";
 import {
   ChevronRight,
   ChevronDown,
@@ -30,8 +30,8 @@ interface DiskUsageCardProps {
 }
 
 export function DiskUsageCard({ disk, className }: DiskUsageCardProps) {
-  const usedBytes = disk.used_bytes ?? 0;
-  const usedPercent = disk.size_bytes > 0 ? (usedBytes / disk.size_bytes) * 100 : 0;
+  const usedBytes = disk.usedBytes ?? 0;
+  const usedPercent = disk.totalBytes > 0 ? (usedBytes / disk.totalBytes) * 100 : 0;
   const getColorClass = (pct: number) => {
     if (pct >= 90) return "bg-red-500";
     if (pct >= 70) return "bg-yellow-500";
@@ -43,8 +43,8 @@ export function DiskUsageCard({ disk, className }: DiskUsageCardProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <HardDrive className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium truncate max-w-[120px]" title={disk.mountpoint}>
-            {disk.mountpoint}
+          <span className="text-sm font-medium truncate max-w-[120px]" title={disk.mountPoint}>
+            {disk.mountPoint}
           </span>
         </div>
         <span className="text-xs text-muted-foreground">{disk.filesystem}</span>
@@ -58,7 +58,7 @@ export function DiskUsageCard({ disk, className }: DiskUsageCardProps) {
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>{formatBytes(usedBytes)} used</span>
-          <span>{formatBytes(disk.available_bytes)} free</span>
+          <span>{formatBytes(disk.availableBytes)} free</span>
         </div>
       </div>
     </div>
@@ -76,7 +76,7 @@ export function DiskOverview({ disks, className }: DiskOverviewProps) {
     return disks.filter(d => 
       !d.filesystem.startsWith("tmpfs") && 
       !d.filesystem.startsWith("udev") &&
-      d.size_bytes > 0
+      d.totalBytes > 0
     );
   }, [disks]);
 
@@ -91,7 +91,7 @@ export function DiskOverview({ disks, className }: DiskOverviewProps) {
   return (
     <div className={cn("grid gap-3", className)}>
       {physicalDisks.map((disk, idx) => (
-        <DiskUsageCard key={`${disk.filesystem}-${disk.mountpoint}-${idx}`} disk={disk} />
+        <DiskUsageCard key={`${disk.filesystem}-${disk.mountPoint}-${idx}`} disk={disk} />
       ))}
     </div>
   );
@@ -134,7 +134,7 @@ function FsNodeItem({ node, depth = 0, onSelect }: FsNodeItemProps) {
 
   const getPermissionBadges = () => {
     const badges = [];
-    if (!node.readable) {
+    if (!node.permissions?.readable) {
       badges.push(
         <Tooltip key="no-read">
           <TooltipTrigger asChild>
@@ -144,7 +144,7 @@ function FsNodeItem({ node, depth = 0, onSelect }: FsNodeItemProps) {
         </Tooltip>
       );
     }
-    if (node.readable && !node.writable) {
+    if (node.permissions?.readable && !node.permissions?.writable) {
       badges.push(
         <Tooltip key="read-only">
           <TooltipTrigger asChild>
@@ -154,7 +154,7 @@ function FsNodeItem({ node, depth = 0, onSelect }: FsNodeItemProps) {
         </Tooltip>
       );
     }
-    if (node.writable) {
+    if (node.permissions?.writable) {
       badges.push(
         <Tooltip key="writable">
           <TooltipTrigger asChild>
@@ -172,7 +172,7 @@ function FsNodeItem({ node, depth = 0, onSelect }: FsNodeItemProps) {
       <div
         className={cn(
           "flex items-center gap-1 py-1 px-2 rounded-md hover:bg-muted/50 cursor-pointer group",
-          !node.readable && "opacity-50"
+          !node.permissions?.readable && "opacity-50"
         )}
         style={{ paddingLeft: `${depth * 16 + 8}px` }}
         onClick={handleSelect}
@@ -205,12 +205,12 @@ function FsNodeItem({ node, depth = 0, onSelect }: FsNodeItemProps) {
         </div>
         {node.type === "file" && (
           <span className="text-xs text-muted-foreground ml-2">
-            {formatBytes(node.size_bytes)}
+            {formatBytes(node.sizeBytes)}
           </span>
         )}
         {node.truncated && (
           <Badge variant="outline" className="text-[10px] px-1 py-0">
-            +{node.child_count}
+            +{node.childCount}
           </Badge>
         )}
       </div>
@@ -283,7 +283,7 @@ export function FileBrowser({ fs, onSelectNode, className }: FileBrowserProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Size:</span>
-              <span>{formatBytes(selectedNode.size_bytes)}</span>
+              <span>{formatBytes(selectedNode.sizeBytes)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Owner:</span>
@@ -296,9 +296,9 @@ export function FileBrowser({ fs, onSelectNode, className }: FileBrowserProps) {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Permissions:</span>
               <div className="flex gap-1">
-                {selectedNode.readable && <Badge variant="outline" className="text-[10px] px-1 py-0">R</Badge>}
-                {selectedNode.writable && <Badge variant="outline" className="text-[10px] px-1 py-0">W</Badge>}
-                {selectedNode.executable && <Badge variant="outline" className="text-[10px] px-1 py-0">X</Badge>}
+                {selectedNode.permissions?.readable && <Badge variant="outline" className="text-[10px] px-1 py-0">R</Badge>}
+                {selectedNode.permissions?.writable && <Badge variant="outline" className="text-[10px] px-1 py-0">W</Badge>}
+                {selectedNode.permissions?.executable && <Badge variant="outline" className="text-[10px] px-1 py-0">X</Badge>}
               </div>
             </div>
           </div>

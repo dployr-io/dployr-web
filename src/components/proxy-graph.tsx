@@ -342,7 +342,7 @@ export function ProxyGraph({
       id: "instance",
       type: "instance",
       label: instanceName,
-      sublabel: "dployr agent",
+      sublabel: "dployr node",
       status: "running",
       x: 100,
       y: centerY,

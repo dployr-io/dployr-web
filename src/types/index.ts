@@ -11,6 +11,7 @@ import type { InstanceStreamUpdateV1_1, Process } from "./schemas/v1.1/";
 
 // Re-export all schema types from the new modular schema system
 export * from "./schemas";
+export * from "./proxy";
 
 export type {
   InstanceStreamUpdateV1_1,
@@ -121,54 +122,6 @@ export type UserRole = "owner" | "admin" | "developer" | "viewer";
 
 export type InstanceStatus = "ready" | "starting" | "stopped" | "error" | string;
 
-// // Agent Health Status
-// export type AgentHealthStatus = "ok" | "degraded" | "error";
-
-// export interface AgentHealth {
-//   overall: AgentHealthStatus;
-//   ws: AgentHealthStatus;
-//   tasks: AgentHealthStatus;
-//   auth: AgentHealthStatus;
-// }
-
-// // Disk Information
-// export interface DiskInfo {
-//   filesystem: string;
-//   mountpoint: string;
-//   size_bytes: number;
-//   used_bytes?: number;
-//   available_bytes: number;
-// }
-
-// // System Debug Information
-// export interface SystemDebug {
-//   cpu_count: number;
-//   mem_total_bytes: number;
-//   mem_used_bytes: number;
-//   mem_free_bytes: number;
-//   disks: DiskInfo[];
-//   workers: number;
-// }
-
-// // Debug Information
-// export interface AgentDebug {
-//   ws: {
-//     connected: boolean;
-//     last_connect_at: string;
-//     reconnects_since_start: number;
-//   };
-//   tasks: {
-//     inflight: number;
-//     done_unsent: number;
-//   };
-//   auth: {
-//     agent_token_age_s: number;
-//     agent_token_expires_in_s: number;
-//     bootstrap_token: string;
-//   };
-//   system: SystemDebug;
-// }
-
 // Process Information for Top
 export interface ProcessInfo {
   pid: number;
@@ -189,85 +142,6 @@ export interface ProcessSnapshot {
     list?: Process[];
   };
 }
-
-// // Top Metrics (real-time system stats)
-// export interface TopMetrics {
-//   timestamp: string;
-//   uptime_seconds: number;
-//   load_avg: {
-//     load1: number;
-//     load5: number;
-//     load15: number;
-//   };
-//   cpu: {
-//     user: number;
-//     system: number;
-//     idle: number;
-//     iowait: number;
-//     steal: number;
-//   };
-//   memory: {
-//     total_bytes: number;
-//     used_bytes: number;
-//     free_bytes: number;
-//     available_bytes: number;
-//     used_percent: number;
-//     swap_total_bytes: number;
-//     swap_used_bytes: number;
-//     swap_free_bytes: number;
-//   };
-//   tasks: {
-//     total: number;
-//     running: number;
-//     sleeping: number;
-//     stopped: number;
-//     zombie: number;
-//   };
-//   processes: ProcessInfo[];
-// }
-
-// // Filesystem Node Permissions (v1.1 format)
-// export interface FsNodePermissions {
-//   mode: string;
-//   owner: string;
-//   group: string;
-//   uid: number;
-//   gid: number;
-//   readable: boolean;
-//   writable: boolean;
-//   executable: boolean;
-// }
-
-// // Filesystem Node
-// export interface FsNode {
-//   path: string;
-//   name: string;
-//   type: "file" | "dir" | "symlink" | "directory";
-//   size_bytes: number;
-//   // v1 format
-//   mod_time?: string;
-//   mode?: string;
-//   owner?: string;
-//   group?: string;
-//   uid?: number;
-//   gid?: number;
-//   readable?: boolean;
-//   writable?: boolean;
-//   executable?: boolean;
-//   // v1.1 format
-//   modified_at?: string;
-//   permissions?: FsNodePermissions;
-//   // Common
-//   children?: FsNode[];
-//   truncated?: boolean;
-//   child_count?: number;
-// }
-
-// // Filesystem Snapshot
-// export interface FsSnapshot {
-//   generated_at: string;
-//   roots: FsNode[];
-// }
 
 // Filesystem Task Types
 export type FsTaskType = "file_read" | "file_write" | "file_create" | "file_delete" | "file_tree" | "file_watch" | "file_unwatch";
@@ -302,45 +176,7 @@ export interface FileUpdateEvent {
 
 export type FileWatchCallback = (event: FileUpdateEvent) => void;
 
-// // Proxy types - re-export from proxy.ts
-// export type { ProxyApp, ProxyApps, ProxyAppStatus, ProxyTemplate } from "./proxy";
-
-// // Proxy Status - overall proxy server status
-// export interface ProxyStatus {
-//   status: "running" | "stopped" | "error";
-//   routes: number;
-// }
-
-// export interface Service {
-//   id: string;
-//   name: string;
-//   description: string;
-//   source: string;
-//   runtime: string;
-//   runtime_version: string;
-//   run_cmd: string;
-//   build_cmd: string;
-//   port: number;
-//   working_dir: string;
-//   status: string;
-//   remote: string;
-//   branch: string;
-//   commit_hash: string;
-//   domain: string;
-//   blueprint?: Blueprint;
-//   created_at: string;
-//   updated_at: string;
-// }
-
-// // Note: InstanceStreamUpdateV1, InstanceStreamUpdateV1_1, ProcessV1, ProcessV1_1, and InstanceStreamUpdate
-// // are now exported from ./schemas module above
-
-// Alias for backward compatibility
-// export type ProcessHistorySnapshot = ProcessSnapshot;
-
 export type ProcessTimeWindow = "live" | "1h" | "6h" | "24h";
-
-// Note: NormalizedInstanceData, InstanceUpdate, and related types are now exported from ./schemas module above
 
 export interface InstanceStream {
   id?: string;
@@ -607,10 +443,17 @@ export interface IntegrationMetadata {
 export interface IntegrationUI extends IntegrationMetadata {
   id: string;
   connected: boolean;
+  url?: string;
   gitHub?: GitHubIntegration;
   gitLab?: GitLabIntegration;
   bitbucket?: BitbucketIntegration;
   discord?: DiscordIntegration;
+}
+
+export interface Project {
+  id: number | string;
+  name: string;
+  description: string;
 }
 
 export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {

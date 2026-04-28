@@ -1,29 +1,13 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useProjectForm } from '@/hooks/use-project-form';
-import { useQueryClient } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
-
 interface Props {
     open: boolean;
     setOpen: (open: boolean) => void;
 }
 
 export default function ProjectCreateDialog({ open, setOpen }: Props) {
-    const queryClient = useQueryClient();
-
-    const onCreatedSuccess = () => {
-        queryClient.invalidateQueries({ queryKey: ['projects'] });
-        setOpen(false);
-    };
-
-    const { name, description, validationError, setName, setDescription, getFormData } = useProjectForm();
-
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent className="sm:max-w-[425px]">

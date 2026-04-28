@@ -4,9 +4,9 @@
 import { z } from "zod";
 
 /**
- * Agent information schema - contains version and build details
+ * Node information schema contains dployrd version and build details running on node
  */
-export const agentSchema = z.object({
+export const nodeSchema = z.object({
   version: z.string(),
   commit: z.string(),
   build_date: z.string(),
@@ -15,4 +15,4 @@ export const agentSchema = z.object({
   arch: z.string(),
 });
 
-export type Agent = z.infer<typeof agentSchema>;
+export type Node = z.infer<typeof nodeSchema>;
