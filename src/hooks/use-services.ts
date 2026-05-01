@@ -2,84 +2,116 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInstances } from "@/hooks/use-instances";
-import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { usePagination } from "@/hooks/use-standardized-pagination";
-import type { NormalizedInstanceData, NormalizedService } from "@/types";
+import { useClusterId } from "@/hooks/use-cluster-id";
+import type { ApiService, ApiSuccessResponse, NormalizedInstanceData, NormalizedService } from "@/types";
 
 export interface ServiceWithInstance extends NormalizedService {
   _instanceName: string;
   _instanceId: string;
+  deploymentId: string | null;
+  clusterId: string;
 }
 
 export function useServices(instanceTag?: string | null) {
   const queryClient = useQueryClient();
   const { instances } = useInstances();
-  const { isConnected, error: streamError } = useInstanceStream();
+  const clusterId = useClusterId();
 
-  // Aggregate services from all instances in the query cache
+  const { data: httpServices, isLoading } = useQuery<ApiService[]>({
+    queryKey: ["services", clusterId],
+    queryFn: async () => {
+      const response = await axios.get<ApiSuccessResponse<{ services: ApiService[] }>>(
+        `${import.meta.env.VITE_BASE_URL}/v1/services`,
+        { params: { clusterId }, withCredentials: true }
+      );
+      return response.data.data?.services ?? [];
+    },
+    enabled: !!clusterId,
+    staleTime: 30 * 1000,
+  });
+
+  // Enrich each HTTP service with WS instance data (for rich fields + _instanceName)
   const allServices = useMemo(() => {
     const services: ServiceWithInstance[] = [];
 
-    for (const instance of instances) {
-      const instanceData = queryClient.getQueryData<NormalizedInstanceData>(
-        ["instance-status", instance.tag]
-      );
+    for (const httpService of httpServices ?? []) {
+      let wsService: NormalizedService | undefined;
+      let instanceName = "";
+      let instanceId = "";
 
-      if (instanceData?.workloads?.services) {
-        for (const service of instanceData.workloads.services) {
-          services.push({
-            ...service,
-            _instanceName: instance.tag,
-            _instanceId: instance.id,
-          });
+      for (const instance of instances) {
+        const instanceData = queryClient.getQueryData<NormalizedInstanceData>(
+          ["instance-status", instance.tag]
+        );
+        const match = instanceData?.workloads?.services?.find(s => s.id === httpService.id);
+        if (match) {
+          wsService = match;
+          instanceName = instance.tag;
+          instanceId = instance.id;
+          break;
         }
       }
+
+      services.push({
+        // WS data (rich fields) takes precedence; fall back to HTTP defaults
+        id: httpService.id,
+        name: wsService?.name ?? httpService.name,
+        description: wsService?.description ?? null,
+        source: wsService?.source ?? null,
+        runtime: wsService?.runtime ?? { type: httpService.type, version: null },
+        remote: wsService?.remote ?? null,
+        runCmd: wsService?.runCmd ?? null,
+        buildCmd: wsService?.buildCmd ?? null,
+        port: wsService?.port ?? null,
+        workingDir: wsService?.workingDir ?? null,
+        envVars: wsService?.envVars ?? null,
+        secrets: wsService?.secrets ?? null,
+        createdAt: wsService?.createdAt ?? String(httpService.createdAt),
+        updatedAt: wsService?.updatedAt ?? String(httpService.updatedAt),
+        // ServiceWithInstance extras
+        _instanceName: instanceName,
+        _instanceId: instanceId,
+        deploymentId: httpService.deploymentId,
+        clusterId: httpService.clusterId,
+      });
     }
 
-    // Sort by updatedAt descending (most recently updated first)
     return services.sort((a, b) => {
       const dateA = new Date(a.updatedAt || 0).getTime();
       const dateB = new Date(b.updatedAt || 0).getTime();
       return dateB - dateA;
     });
-  }, [instances, queryClient]);
+  }, [httpServices, instances, queryClient]);
 
-  // Filter by instance if specified
   const services = useMemo(() => {
-    if (!instanceTag || instanceTag === "all") {
-      return allServices;
-    }
+    if (!instanceTag || instanceTag === "all") return allServices;
     return allServices.filter(s => s._instanceName === instanceTag);
   }, [allServices, instanceTag]);
 
-  // Use standardized pagination
   const pagination = usePagination(services);
 
-  // Get selected service from URL
   const selectedService = useMemo(() => {
     const pathSegments = window.location.pathname.split("/");
     const servicesIndex = pathSegments.indexOf("services");
     const id = servicesIndex >= 0 ? pathSegments[servicesIndex + 1] : null;
-    
     if (!id) return null;
     return allServices.find(s => s.id === id) || null;
   }, [allServices]);
 
   const selectedInstanceName = selectedService?._instanceName;
 
-  const isLoading = !isConnected && allServices.length === 0;
-
   return {
-    // Data
     services,
     allServices,
     selectedService,
     selectedInstanceName,
     isLoading,
-    isConnected,
-    error: streamError,
+    isConnected: true,
+    error: null,
     ...pagination,
     paginatedServices: pagination.paginatedItems,
   };

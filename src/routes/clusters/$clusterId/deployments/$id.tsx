@@ -63,7 +63,7 @@ function ViewDeployment() {
     isStreaming,
     setSearchQuery,
     handleScrollPositionChange,
-  } = useDeploymentLogs(deployment?.id, selectedInstanceName, {
+  } = useDeploymentLogs(deployment?.id, selectedInstanceName ?? undefined, {
     currentTab,
     logTimeRange,
     selectedLogLevel,
@@ -71,7 +71,7 @@ function ViewDeployment() {
   });
 
   // Get instance status for blueprint
-  const { update } = useInstanceStatus(selectedInstanceName);
+  const { update } = useInstanceStatus(selectedInstanceName ?? undefined);
   
   const config = useMemo(
     () => denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null,

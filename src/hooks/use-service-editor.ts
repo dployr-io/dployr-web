@@ -2,18 +2,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState, useCallback } from "react";
+import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
-import { ulid } from "ulid";
 import type { NormalizedService } from "@/types";
-import { useDeployment, DEPLOYMENT_ERRORS } from "./use-deployment";
+import { DEPLOYMENT_ERRORS } from "./use-deployment";
 import { useUrlState } from "./use-url-state";
-import { useInstanceStream } from "./use-instance-stream";
 import { useInstanceStatus } from "./use-instance-status";
+import { useClusterId } from "./use-cluster-id";
 
-export function useServiceEditor(service: NormalizedService | null, clusterId: string, instanceName: string) {
+export function useServiceEditor(service: NormalizedService | null, _clusterId: string, instanceName: string) {
   const queryClient = useQueryClient();
-  const { deploy } = useDeployment();
-  const { sendJson, isConnected: wsConnected } = useInstanceStream();
+  const clusterId = useClusterId();
   const { update } = useInstanceStatus();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
@@ -48,10 +47,7 @@ export function useServiceEditor(service: NormalizedService | null, clusterId: s
   }, [secrets]);
 
   const handleSaveSecret = useCallback((key: string) => {
-    setSecrets(prev => ({
-      ...prev,
-      [key]: editSecretValue,
-    }));
+    setSecrets(prev => ({ ...prev, [key]: editSecretValue }));
     setEditingSecretKey(null);
     setEditSecretValue("");
   }, [editSecretValue]);
@@ -62,40 +58,13 @@ export function useServiceEditor(service: NormalizedService | null, clusterId: s
   }, []);
 
   const handleKeyboardPressSecret = useCallback((e: React.KeyboardEvent, key: string) => {
-    if (e.key === "Enter") {
-      handleSaveSecret(key);
-    } else if (e.key === "Escape") {
-      handleCancelSecret();
-    }
+    if (e.key === "Enter") handleSaveSecret(key);
+    else if (e.key === "Escape") handleCancelSecret();
   }, [handleSaveSecret, handleCancelSecret]);
-
-  const handleStopRemove = useCallback(() => {
-    if (!service) return;
-
-    if (!wsConnected) {
-      setAppError({
-        appError: {
-          message: "WebSocket is not connected",
-          helpLink: "",
-        },
-      });
-      return;
-    }
-
-    sendJson({
-      kind: "service_remove",
-      name: service.name,
-      requestId: ulid(),
-    });
-    
-  }, [service, wsConnected, sendJson, setAppError]);
 
   const handleAddSecret = useCallback(() => {
     const key = `SECRET_${Object.keys(secrets).length + 1}`;
-    setSecrets(prev => ({
-      ...prev,
-      [key]: "",
-    }));
+    setSecrets(prev => ({ ...prev, [key]: "" }));
     handleEditSecret(key);
   }, [secrets, handleEditSecret]);
 
@@ -107,70 +76,57 @@ export function useServiceEditor(service: NormalizedService | null, clusterId: s
     });
   }, []);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!service) {
-      setAppError({
-        appError: {
-          message: DEPLOYMENT_ERRORS.BLUEPRINT_NOT_FOUND,
-          helpLink: "",
-        },
-      });
+      setAppError({ appError: { message: DEPLOYMENT_ERRORS.BLUEPRINT_NOT_FOUND, helpLink: "" } });
       return;
     }
 
     if (!editedName.trim()) {
-      setAppError({
-        appError: {
-          message: "Service name is required.",
-          helpLink: "",
-        },
-      });
+      setAppError({ appError: { message: "Service name is required.", helpLink: "" } });
+      return;
+    }
+
+    // Source the blueprint from WS instance data for rich fields
+    const targetService = update?.workloads?.services?.find(
+      s => s.id === service.id || s.name === service.name
+    );
+
+    if (!instanceName) {
+      setAppError({ appError: { message: "Could not find the instance for this service.", helpLink: "" } });
       return;
     }
 
     const payload = {
       name: editedName,
       description: editedDescription || undefined,
-      source: service.source,
-      runtime: service.runtime,
-      remote: service.remote,
-      run_cmd: service.runCmd,
-      build_cmd: service.buildCmd,
-      port: service.port,
-      working_dir: service.workingDir,
-      env_vars: service.envVars,
-      secrets: Object.keys(secrets).length > 0 ? secrets : service.secrets,
+      source: targetService?.source ?? service.source,
+      runtime: targetService?.runtime ?? service.runtime,
+      remote: targetService?.remote ?? service.remote,
+      run_cmd: targetService?.runCmd ?? service.runCmd,
+      build_cmd: targetService?.buildCmd ?? service.buildCmd,
+      port: targetService?.port ?? service.port,
+      working_dir: targetService?.workingDir ?? service.workingDir,
+      env_vars: targetService?.envVars ?? service.envVars,
+      secrets: Object.keys(secrets).length > 0 ? secrets : (targetService?.secrets ?? service.secrets),
     };
 
-    // Find the instance that contains this service
-    const targetService = update?.workloads?.services?.find(s => s.id === service.id || s.name === service.name);
-    
-    if (!targetService) {
-      setAppError({
-        appError: {
-          message: "Could not find the service in the current instance.",
-          helpLink: "",
-        },
-      });
-      return;
-    }
-    
-    if (!instanceName) {
-      setAppError({
-        appError: {
-          message: "Could not find the instance for this service.",
-          helpLink: "",
-        },
-      });
-      return;
-    }
+    try {
+      await axios.patch(
+        `${import.meta.env.VITE_BASE_URL}/v1/services/${service.id}`,
+        { instanceName, payload },
+        { withCredentials: true }
+      );
 
-    const result = deploy(instanceName, payload);
-
-    if (result.success) {
+      queryClient.invalidateQueries({ queryKey: ["deployments", clusterId] });
+      queryClient.invalidateQueries({ queryKey: ["services", clusterId] });
       setIsEditMode(false);
+    } catch (err: any) {
+      const errorData = err?.response?.data?.error;
+      const message = errorData?.message || err?.message || "Failed to update service";
+      setAppError({ appError: { message, helpLink: errorData?.helpLink || "" } });
     }
-  }, [service, editedName, editedDescription, secrets, clusterId, deploy, setAppError, queryClient]);
+  }, [service, editedName, editedDescription, secrets, instanceName, clusterId, update, queryClient, setAppError]);
 
   return {
     isEditMode,
@@ -191,6 +147,5 @@ export function useServiceEditor(service: NormalizedService | null, clusterId: s
     handleKeyboardPressSecret,
     handleAddSecret,
     handleRemoveSecret,
-    handleStopRemove,
   };
 }

@@ -22,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useClusters } from "@/hooks/use-clusters";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { useServiceRemove } from "@/hooks/use-service-remove";
-import { ulid } from "ulid";
 import { BlueprintSection } from "@/components/blueprint";
 import { toJson, toYaml } from "@/lib/utils";
 import { useCallback, useMemo, useState } from "react";
@@ -292,8 +291,8 @@ function ViewService() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => {
-                              const result = handleRemoveService(service?.name || "", ulid());
+                            onClick={async () => {
+                              const result = await handleRemoveService(service?.id || "");
                               if (result.success) {
                                 navigate({ to: "/clusters/$clusterId/services", params: { clusterId } });
                               }

@@ -2,18 +2,35 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useState, useCallback } from "react";
-import type { NormalizedService } from "@/types";
-import { useDeployment, DEPLOYMENT_ERRORS } from "./use-deployment";
+import axios from "axios";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ApiSuccessResponse, NormalizedService } from "@/types";
+import { DEPLOYMENT_ERRORS } from "./use-deployment";
 import { useUrlState } from "./use-url-state";
-import { useInstanceStatus } from "./use-instance-status";
 
 export function useServiceEnv(service: NormalizedService | null) {
-  const { update } = useInstanceStatus();
-  const { deploy } = useDeployment();
+  const queryClient = useQueryClient();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
 
-  const config = service?.envVars || {};
+  const serviceId = service?.id ?? null;
+
+  const { data: fetchedEnvs } = useQuery<Record<string, string>>({
+    queryKey: ["service-envs", serviceId],
+    queryFn: async () => {
+      const response = await axios.get<ApiSuccessResponse<{ envs: Record<string, string> }>>(
+        `${import.meta.env.VITE_BASE_URL}/v1/services/${serviceId}/envs`,
+        { withCredentials: true }
+      );
+      return response.data.data?.envs ?? {};
+    },
+    enabled: !!serviceId,
+    staleTime: 30 * 1000,
+  });
+
+  // Prefer HTTP-fetched envs; fall back to WS cache while loading
+  const config: Record<string, string | number | boolean> = fetchedEnvs ?? (service?.envVars as Record<string, string | number | boolean> | null) ?? {};
+
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
@@ -22,56 +39,28 @@ export function useServiceEnv(service: NormalizedService | null) {
     setEditValue(String(config[key] || ""));
   }, [config]);
 
-  const handleSave = useCallback((key: string) => {
+  const handleSave = useCallback(async (key: string) => {
     if (!service) {
-      setAppError({
-        appError: {
-          message: DEPLOYMENT_ERRORS.BLUEPRINT_NOT_FOUND,
-          helpLink: "",
-        },
-      });
+      setAppError({ appError: { message: DEPLOYMENT_ERRORS.BLUEPRINT_NOT_FOUND, helpLink: "" } });
       return;
     }
 
-    const updatedEnvVars = {
-      ...config,
-      [key]: editValue,
-    };
+    const updatedEnvs = { ...(fetchedEnvs ?? {}), [key]: editValue };
 
-    const payload = {
-      name: service.name,
-      description: service.description,
-      source: service.source,
-      runtime: service.runtime,
-      remote: service.remote,
-      run_cmd: service.runCmd,
-      build_cmd: service.buildCmd,
-      port: service.port,
-      working_dir: service.workingDir,
-      env_vars: updatedEnvVars,
-      secrets: service.secrets,
-    };
-    const targetInstance = update?.workloads?.services?.find(s => s.id === service.id || s.name === service.name);
-    
-    const instanceId = targetInstance?.id;
-    
-    if (!instanceId) {
-      setAppError({
-        appError: {
-          message: "Could not find the instance for this service.",
-          helpLink: "",
-        },
-      });
-      return;
-    }
-
-    const result = deploy(instanceId, payload);
-
-    if (result.success) {
+    try {
+      await axios.put(
+        `${import.meta.env.VITE_BASE_URL}/v1/services/${service.id}/envs`,
+        { envs: updatedEnvs },
+        { withCredentials: true }
+      );
+      queryClient.invalidateQueries({ queryKey: ["service-envs", service.id] });
       setEditingKey(null);
       setEditValue("");
+    } catch (err: any) {
+      const message = err?.response?.data?.error?.message || err?.message || "Failed to save environment variable";
+      setAppError({ appError: { message, helpLink: "" } });
     }
-  }, [service, config, editValue, deploy, setAppError]);
+  }, [service, fetchedEnvs, editValue, queryClient, setAppError]);
 
   const handleCancel = useCallback(() => {
     setEditingKey(null);
@@ -79,11 +68,8 @@ export function useServiceEnv(service: NormalizedService | null) {
   }, []);
 
   const handleKeyboardPress = useCallback((e: React.KeyboardEvent, key: string) => {
-    if (e.key === "Enter") {
-      handleSave(key);
-    } else if (e.key === "Escape") {
-      handleCancel();
-    }
+    if (e.key === "Enter") handleSave(key);
+    else if (e.key === "Escape") handleCancel();
   }, [handleSave, handleCancel]);
 
   return {

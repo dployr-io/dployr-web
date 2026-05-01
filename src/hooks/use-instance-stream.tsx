@@ -142,6 +142,17 @@ export function InstanceStreamProvider({ children, maxRetries = 5 }: InstanceStr
           });
         }
 
+        if (message.kind === "refresh") {
+          const entity = message.entity as string;
+          const msgClusterId = (message.clusterId as string) || clusterId || "";
+          if (entity === "services") {
+            queryClient.invalidateQueries({ queryKey: ["services", msgClusterId] });
+          }
+          if (entity === "deployments") {
+            queryClient.invalidateQueries({ queryKey: ["deployments", msgClusterId] });
+          }
+        }
+
         if (message.kind === "update") {
           const data = message as InstanceStream;
           const update = data.update;

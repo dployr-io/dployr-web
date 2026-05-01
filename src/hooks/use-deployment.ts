@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback } from "react";
-import { useInstanceStream } from "./use-instance-stream";
+import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUrlState } from "./use-url-state";
-import { ulid } from "ulid";
+import { useClusterId } from "./use-cluster-id";
+import type { ApiSuccessResponse } from "@/types";
 
 const DEPLOYMENT_ERRORS = {
-  MISSING_PARAMS: "Instance ID is required for deployment.",
-  NOT_CONNECTED: "WebSocket is not connected",
+  MISSING_PARAMS: "Instance name is required for deployment.",
   SEND_FAILED: "Failed to send deployment request",
   BLUEPRINT_NOT_FOUND: "Service blueprint not found",
 } as const;
@@ -20,67 +21,52 @@ interface DeploymentPayload {
 interface DeploymentResult {
   success: boolean;
   error?: string;
+  status?: number;
+  deployment?: any;
+  taskId?: string;
+  serviceId?: string;
 }
 
-/**
- * Shared hook for handling deployment operations across the application.
- */
 export function useDeployment() {
-  const { sendJson, isConnected: wsConnected } = useInstanceStream();
   const { useAppError } = useUrlState();
   const [, setAppError] = useAppError();
+  const clusterId = useClusterId();
+  const queryClient = useQueryClient();
 
   const deploy = useCallback(
-    (instanceName: string, payload: DeploymentPayload): DeploymentResult => {
-      // Validate WebSocket connection
-      if (!wsConnected) {
-        setAppError({
-          appError: {
-            message: DEPLOYMENT_ERRORS.NOT_CONNECTED,
-            helpLink: "",
-          },
-        });
-        return { success: false, error: DEPLOYMENT_ERRORS.NOT_CONNECTED };
-      }
-
-      // Validate instance Name
+    async (instanceName: string, payload: DeploymentPayload): Promise<DeploymentResult> => {
       if (!instanceName) {
-        setAppError({
-          appError: {
-            message: DEPLOYMENT_ERRORS.MISSING_PARAMS,
-            helpLink: "",
-          },
-        });
-        return { success: false, error: DEPLOYMENT_ERRORS.MISSING_PARAMS };
+        const error = DEPLOYMENT_ERRORS.MISSING_PARAMS;
+        setAppError({ appError: { message: error, helpLink: "" } });
+        return { success: false, error };
       }
 
-      // Send deployment request
-      const sent = sendJson({
-        kind: "deploy",
-        instanceId: instanceName,
-        payload,
-        requestId: ulid(),
-      });
+      try {
+        const response = await axios.post<ApiSuccessResponse<{ deployment: any; taskId: string }>>(
+          `${import.meta.env.VITE_BASE_URL}/v1/deployments`,
+          { instanceName, payload },
+          { withCredentials: true }
+        );
 
-      if (!sent) {
-        setAppError({
-          appError: {
-            message: DEPLOYMENT_ERRORS.SEND_FAILED,
-            helpLink: "",
-          },
-        });
-        return { success: false, error: DEPLOYMENT_ERRORS.SEND_FAILED };
+        queryClient.invalidateQueries({ queryKey: ["deployments", clusterId] });
+        queryClient.invalidateQueries({ queryKey: ["services", clusterId] });
+
+        const data = response.data.data;
+        return { success: true, deployment: data?.deployment, taskId: data?.taskId };
+      } catch (err: any) {
+        const status = err?.response?.status as number | undefined;
+        const errorData = err?.response?.data?.error;
+        const message = errorData?.message || err?.message || DEPLOYMENT_ERRORS.SEND_FAILED;
+        const helpLink = errorData?.helpLink || "";
+
+        setAppError({ appError: { message, helpLink } });
+        return { success: false, error: message, status, serviceId: errorData?.serviceId };
       }
-
-      return { success: true };
     },
-    [wsConnected, sendJson, setAppError]
+    [setAppError, clusterId, queryClient]
   );
 
-  return {
-    deploy,
-    isConnected: wsConnected,
-  };
+  return { deploy };
 }
 
 export { DEPLOYMENT_ERRORS };

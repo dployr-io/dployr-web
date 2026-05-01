@@ -2,85 +2,63 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useInstances } from "@/hooks/use-instances";
-import { useInstanceStream } from "@/hooks/use-instance-stream";
+import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { usePagination } from "@/hooks/use-standardized-pagination";
-import type { NormalizedInstanceData, NormalizedDeployment } from "@/types";
+import { useClusterId } from "@/hooks/use-cluster-id";
+import type { ApiDeployment, ApiSuccessResponse } from "@/types";
 
-export interface DeploymentWithInstance extends NormalizedDeployment {
-  _instanceName: string;
-  _instanceId: string;
+export interface DeploymentWithInstance extends ApiDeployment {
+  _instanceName: string | null;
+  _instanceId: string | null;
 }
 
 export function useDeployments(filterInstanceName?: string | null) {
-  const queryClient = useQueryClient();
-  const { instances } = useInstances();
-  const { isConnected } = useInstanceStream();
+  const clusterId = useClusterId();
 
-  // Aggregate deployments from all instances in the query cache
-  const allDeployments = useMemo(() => {
-    const deployments: DeploymentWithInstance[] = [];
-
-    for (const instance of instances) {
-      const instanceData = queryClient.getQueryData<NormalizedInstanceData>(
-        ["instance-status", instance.tag]
+  const { data: httpDeployments, isLoading } = useQuery<ApiDeployment[]>({
+    queryKey: ["deployments", clusterId],
+    queryFn: async () => {
+      const response = await axios.get<ApiSuccessResponse<{ deployments?: ApiDeployment[] }>>(
+        `${import.meta.env.VITE_BASE_URL}/v1/deployments`,
+        { params: { clusterId }, withCredentials: true }
       );
+      return response.data.data?.deployments ?? [];
+    },
+    enabled: !!clusterId,
+    staleTime: 30 * 1000,
+  });
 
-      if (instanceData?.workloads?.deployments) {
-        for (const deployment of instanceData.workloads.deployments) {
-          deployments.push({
-            ...deployment,
-            _instanceName: instance.tag,
-            _instanceId: instance.id,
-          });
-        }
-      }
-    }
+  const allDeployments = useMemo((): DeploymentWithInstance[] => {
+    return (httpDeployments ?? [])
+      .map(d => ({ ...d, _instanceName: null, _instanceId: null }))
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }, [httpDeployments]);
 
-    // Sort by createdAt descending (newest first)
-    return deployments.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
-      return dateB - dateA;
-    });
-  }, [instances, queryClient]);
-
-  // Filter by instance if specified
   const deployments = useMemo(() => {
-    if (!filterInstanceName || filterInstanceName === "all") {
-      return allDeployments;
-    }
+    if (!filterInstanceName || filterInstanceName === "all") return allDeployments;
     return allDeployments.filter(d => d._instanceName === filterInstanceName);
   }, [allDeployments, filterInstanceName]);
 
-  // Use standardized pagination
   const pagination = usePagination(deployments);
 
-  // Get selected deployment from URL
   const selectedDeployment = useMemo(() => {
     const pathSegments = window.location.pathname.split("/");
     const deploymentsIndex = pathSegments.indexOf("deployments");
     const id = deploymentsIndex >= 0 ? pathSegments[deploymentsIndex + 1] : null;
-    
     if (!id) return null;
     return allDeployments.find(d => d.id === id) || null;
   }, [allDeployments]);
 
-  const selectedInstanceName = selectedDeployment?._instanceName;
-
-  // Loading state: not connected AND no deployments cached
-  const isLoading = !isConnected && allDeployments.length === 0;
+  const selectedInstanceName = selectedDeployment?._instanceName ?? null;
 
   return {
-    // Data
     deployments,
     allDeployments,
     selectedDeployment,
     selectedInstanceName,
     isLoading,
-    isConnected,
-    // Pagination (spread from standardized hook)
+    isConnected: true,
     ...pagination,
     paginatedDeployments: pagination.paginatedItems,
   };

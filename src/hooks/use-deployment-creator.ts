@@ -7,9 +7,8 @@ import { useDeploymentDraft } from "./use-deployment-draft";
 import { useDns } from "./use-dns";
 import { useUrlState } from "./use-url-state";
 import { useClusterId } from "./use-cluster-id";
-import { useInstanceStream } from "./use-instance-stream";
+import { useDeployment } from "./use-deployment";
 import { validateContent, formatContent, convertFormat, getDefaultTemplate, type SchemaError } from "@/lib/blueprint-schema";
-import { ulid } from "ulid";
 
 /**
  * Hook for managing deployment creation state and navigation.
@@ -23,9 +22,7 @@ export function useDeploymentCreator(instanceId?: string) {
   const currentTab = (tab || "quick") as "quick" | "blueprint-editor";
 
   const { domains, isLoadingDomains } = useDns(instanceId);
-
-  // WebSocket connection
-  const { sendJson, isConnected: wsConnected } = useInstanceStream();
+  const { deploy } = useDeployment();
 
   const { currentDraft, drafts, isDirty, hasUnsavedChanges, createDraft, updateDraft, saveDraft, loadDraft, deleteDraft, discardDraft, toBlueprint, fromBlueprint, validate } = useDeploymentDraft();
 
@@ -160,14 +157,14 @@ export function useDeploymentCreator(instanceId?: string) {
   }, [blueprintFormat, currentDraft, fromBlueprint]);
 
   const handleDeploy = useCallback(
-    (instanceName: string) => {
+    async (instanceName: string) => {
       if (currentTab === "blueprint-editor") {
         syncDraftFromBlueprint();
       }
 
-      const result = validate();
-      if (!result.isValid) {
-        setValidationErrors(result.errors);
+      const validation = validate();
+      if (!validation.isValid) {
+        setValidationErrors(validation.errors);
         return;
       }
 
@@ -199,32 +196,9 @@ export function useDeploymentCreator(instanceId?: string) {
         domain: currentDraft.domain || undefined,
       };
 
-      if (!wsConnected) {
-        setAppError({
-          appError: {
-            message: "Not connected to deployment service. Please try again.",
-            helpLink: "",
-          },
-        });
-        return;
-      }
+      const deployResult = await deploy(instanceName, payload);
 
-      const sent = sendJson({
-        kind: "deploy",
-        instanceName,
-        payload,
-        requestId: ulid(),
-      });
-
-      if (!sent) {
-        setAppError({
-          appError: {
-            message: "Failed to send deployment request. Please try again.",
-            helpLink: "",
-          },
-        });
-        return;
-      }
+      if (!deployResult.success) return;
 
       // Clean up draft after successful deploy initiation
       setLastDeployedInstance(instanceName);
@@ -232,7 +206,7 @@ export function useDeploymentCreator(instanceId?: string) {
       setIsCreating(false);
       lastSyncedDraftRef.current = null;
     },
-    [validate, currentDraft, clusterId, discardDraft, wsConnected, sendJson, setAppError]
+    [validate, currentDraft, clusterId, discardDraft, deploy]
   );
 
   // Handle back button

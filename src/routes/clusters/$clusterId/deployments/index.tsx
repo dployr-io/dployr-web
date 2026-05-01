@@ -236,11 +236,11 @@ function Deployments() {
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle whitespace-nowrap">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block">
-                                    {deployment.status === "completed" || deployment.status === "failed" ? (
-                                      deployment.updatedAt && deployment.createdAt ? (
+                                    {deployment.status === "success" || deployment.status === "failed" ? (
+                                      deployment.finishedAt && deployment.createdAt ? (
                                         <span className="inline-block">
                                           {(() => {
-                                            const ms = new Date(deployment.updatedAt).getTime() - new Date(deployment.createdAt).getTime();
+                                            const ms = new Date(deployment.finishedAt!).getTime() - new Date(deployment.createdAt).getTime();
                                             const seconds = Math.floor(ms / 1000);
                                             const minutes = Math.floor(seconds / 60);
                                             const hours = Math.floor(minutes / 60);
@@ -269,20 +269,20 @@ function Deployments() {
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex items-center gap-2">
-                                    {getRuntimeIcon(deployment.runtime?.type || "custom")}
-                                    <span>{String(deployment.runtime?.type || "-")}</span>
+                                    {getRuntimeIcon(deployment.blueprint?.runtime?.type || "custom")}
+                                    <span>{String(deployment.blueprint?.runtime?.type || "-")}</span>
                                   </Link>
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[320px] overflow-hidden align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                                    {!deployment.remote?.url ? (
+                                    {!deployment.blueprint?.remote?.url ? (
                                       <div className="max-w-[320px] overflow-hidden align-middle">
                                         <Skeleton className="h-4 w-40" />
                                       </div>
                                     ) : (
                                       <>
-                                        {deployment.remote?.url?.includes("github") ? <RxGithubLogo /> : <FaGitlab />}
-                                        <span className="truncate">{deployment.remote ? deployment.remote.url?.replace(/^https?:\/\//, "") || "-" : "-"}</span>
+                                        {deployment.blueprint?.remote?.url?.includes("github") ? <RxGithubLogo /> : <FaGitlab />}
+                                        <span className="truncate">{deployment.blueprint?.remote ? deployment.blueprint.remote.url?.replace(/^https?:\/\//, "") || "-" : "-"}</span>
                                       </>
                                     )}
                                   </Link>
@@ -293,7 +293,7 @@ function Deployments() {
                                     params={{ clusterId, id: deployment.id }}
                                     className="block truncate text-right font-mono text-sm text-muted-foreground"
                                   >
-                                    {String(deployment.runCmd || "-")}
+                                    {String(deployment.blueprint?.run_cmd || "-")}
                                   </Link>
                                 </TableCell>
                               </TableRow>

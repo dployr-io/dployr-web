@@ -324,6 +324,32 @@ export interface Deployment {
   updated_at: Date;
 }
 
+/** Service as returned by GET /v1/services */
+export interface ApiService {
+  id: string;
+  clusterId: string;
+  name: string;
+  type: "docker" | "static";
+  deploymentId: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Deployment as returned by GET /v1/deployments */
+export interface ApiDeployment {
+  id: string;
+  clusterId: string;
+  serviceId: string | null;
+  name: string;
+  type: "docker" | "static";
+  source: "remote" | "image";
+  status: "pending" | "running" | "success" | "failed";
+  blueprint: Record<string, any> | null;
+  logs: string | null;
+  createdAt: number;
+  finishedAt: number | null;
+}
+
 export interface Log {
   id: string;
   message: string;
