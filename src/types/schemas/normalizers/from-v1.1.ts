@@ -127,15 +127,15 @@ function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workloads"]): N
         version: s.runtime_version || null,
       },
       remote:
-        s.remote && s.branch
+        s.remote_url && s.branch
           ? {
-              url: s.remote,
+              url: s.remote_url,
               branch: s.branch,
               commitHash: s.commit_hash || null,
             }
           : null,
-      runCmd: s.run_cmd || null,
-      buildCmd: s.build_cmd || null,
+      runCmd: s.run_command || null,
+      buildCmd: s.build_command || null,
       port: s.port || null,
       workingDir: s.working_dir || null,
       envVars: s.env_vars || null,
