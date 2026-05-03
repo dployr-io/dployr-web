@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
- import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { IconType } from "react-icons";
 import { FaBitbucket, FaDiscord, FaGithub, FaGitlab, FaLink, FaSlack } from "react-icons/fa";
 import { SiAmazonroute53, SiCloudflare, SiGodaddy, SiNamecheap } from "react-icons/si";
@@ -13,19 +13,15 @@ import type { InstanceStreamUpdateV1_1, Process } from "./schemas/v1.1/";
 export * from "./schemas";
 export * from "./proxy";
 
-export type {
-  InstanceStreamUpdateV1_1,
-  Process as ProcessV1_1,
-} from "./schemas/v1.1/";
+export type { InstanceStreamUpdateV1_1, Process as ProcessV1_1 } from "./schemas/v1.1/";
 
-export type {
-  InstanceStreamUpdateV1,
-} from "./schemas/v1/";
+export type { InstanceStreamUpdateV1 } from "./schemas/v1/";
 
 export type Runtime = (typeof runtimes)[number];
 export type DnsProvider = (typeof dnsProviders)[number];
 export type BlueprintFormat = "json" | "yaml" | "toml";
 export type LogLevel = (typeof logLevels)[number];
+export type ServiceType = "web" | "worker" | "static" | "job";
 
 export interface Auth {
   user: User;
@@ -301,6 +297,7 @@ export interface RuntimeObj {
 export interface Blueprint {
   name: string;
   description: string;
+  type: ServiceType;
   source: ServiceSource;
   runtime: RuntimeObj;
   remote?: Remote | null;
@@ -406,11 +403,11 @@ export type IntegrationType = (typeof integrationIds)[number];
 
 export type IntegrationCategory = "notifications" | "remote" | "domain";
 
-export interface IntegrationEmailCategory { }
+export interface IntegrationEmailCategory {}
 
-export interface IntegrationRemoteCategory { }
+export interface IntegrationRemoteCategory {}
 
-export interface IntegrationDomainCategory { }
+export interface IntegrationDomainCategory {}
 
 export interface GitHubIntegration {
   loginId: string;
@@ -426,35 +423,35 @@ export interface GitLabIntegration {
 }
 
 export interface BitbucketIntegration {
-  id: string,
+  id: string;
   loginId: string;
   installationId: number;
   remotesCount: number;
 }
 
-export interface CustomWebHookIntegration { }
+export interface CustomWebHookIntegration {}
 
 export interface DiscordIntegration {
   installUrl: string;
- }
+}
 
 export interface SlackIntegration {
   installUrl: string;
- }
+}
 
 export interface Integrations {
   notifications: {
-    customWebHook: CustomWebHookIntegration,
-  },
+    customWebHook: CustomWebHookIntegration;
+  };
   remote: {
-    gitHub: GitHubIntegration,
-    gitLab: GitLabIntegration,
-    bitBucket: BitbucketIntegration,
-  },
+    gitHub: GitHubIntegration;
+    gitLab: GitLabIntegration;
+    bitBucket: BitbucketIntegration;
+  };
   domain: {
-    discord: DiscordIntegration,
-    slack: SlackIntegration,
-  }
+    discord: DiscordIntegration;
+    slack: SlackIntegration;
+  };
 }
 
 export interface IntegrationMetadata {
@@ -510,9 +507,7 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     description: "Trigger custom webhooks",
     category: "notifications",
     connectType: "form",
-    fields: [
-      { id: "url", label: "URL", type: "text", placeholder: "Enter URL", required: true },
-    ],
+    fields: [{ id: "url", label: "URL", type: "text", placeholder: "Enter URL", required: true }],
   },
   discord: {
     icon: FaDiscord,
@@ -556,9 +551,7 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     description: "Manage domains with Cloudflare",
     category: "domain",
     connectType: "form",
-    fields: [
-      { id: "apiToken", label: "API Token", type: "password", placeholder: "Enter API token", required: true },
-    ],
+    fields: [{ id: "apiToken", label: "API Token", type: "password", placeholder: "Enter API token", required: true }],
   },
   route53: {
     icon: SiAmazonroute53,

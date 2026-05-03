@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback, useReducer } from "react";
-import type { ServiceSource, Remote, Runtime } from "@/types";
+import type { ServiceSource, Remote, Runtime, ServiceType } from "@/types";
 
 interface DeploymentViewState {
   name: string;
   nameError: string;
   source: ServiceSource;
+  type: ServiceType;
+  typeError: string;
   remote: Remote | null;
   remoteError: string;
   workingDir: string;
@@ -37,6 +39,8 @@ const initialState: DeploymentViewState = {
   name: "",
   nameError: "",
   source: "image",
+  type: "web",
+  typeError: "",
   remote: null,
   remoteError: "",
   workingDir: "",
@@ -96,7 +100,7 @@ export function useDeploymentViewState(overrides: Partial<DeploymentViewState> =
     <K extends keyof DeploymentViewState>(field: K, value: DeploymentViewState[K]) => {
       dispatch({ type: "SET_FIELD", payload: { field, value } });
     },
-    [dispatch],
+    [dispatch]
   );
 
   const resetErrors = useCallback(() => {
@@ -114,6 +118,8 @@ export function useDeploymentViewState(overrides: Partial<DeploymentViewState> =
   const setRemoteError = useCallback((value: string) => setField("remoteError", value), [setField]);
   const setWorkingDir = useCallback((value: string) => setField("workingDir", value), [setField]);
   const setWorkingDirError = useCallback((value: string) => setField("workingDirError", value), [setField]);
+  const setType = useCallback((value: ServiceType) => setField("type", value), [setField]);
+  const setTypeError = useCallback((value: string) => setField("typeError", value), [setField]);
   const setRuntime = useCallback((value: Runtime) => setField("runtime", value), [setField]);
   const setRuntimeError = useCallback((value: string) => setField("runtimeError", value), [setField]);
   const setRunCmd = useCallback((value: string) => setField("runCmd", value), [setField]);
@@ -137,6 +143,8 @@ export function useDeploymentViewState(overrides: Partial<DeploymentViewState> =
     setRemoteError,
     setWorkingDir,
     setWorkingDirError,
+    setType,
+    setTypeError,
     setRuntime,
     setRuntimeError,
     setRunCmd,

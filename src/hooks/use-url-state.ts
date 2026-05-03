@@ -202,6 +202,13 @@ export function useUrlState() {
         return useQueryStates({
             instance: parseAsString.withDefault("all"),
             new: parseAsBoolean.withDefault(false),
+            page: parseAsInteger.withDefault(1),
+        });
+    }
+
+    function useServicesUrlState() {
+        return useQueryStates({
+            page: parseAsInteger.withDefault(1),
         });
     }
 
@@ -379,6 +386,7 @@ export function useUrlState() {
         useDeploymentsUrlState,
         useDeploymentTabsState,
         useServiceTabsState,
+        useServicesUrlState,
         useConsoleUrlState,
         useAuthError,
         useAppError,

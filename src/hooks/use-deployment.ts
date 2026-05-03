@@ -7,16 +7,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useUrlState } from "./use-url-state";
 import { useClusterId } from "./use-cluster-id";
 import type { ApiSuccessResponse } from "@/types";
+import type { DeploymentDraft } from "./use-deployment-draft";
 
 const DEPLOYMENT_ERRORS = {
   MISSING_PARAMS: "Instance name is required for deployment.",
   SEND_FAILED: "Failed to send deployment request",
   BLUEPRINT_NOT_FOUND: "Service blueprint not found",
 } as const;
-
-interface DeploymentPayload {
-  [key: string]: any;
-}
 
 interface DeploymentResult {
   success: boolean;
@@ -34,7 +31,7 @@ export function useDeployment() {
   const queryClient = useQueryClient();
 
   const deploy = useCallback(
-    async (instanceName: string, payload: DeploymentPayload): Promise<DeploymentResult> => {
+    async (instanceName: string, payload: Partial<Omit<DeploymentDraft, "id" | "updatedAt">>): Promise<DeploymentResult> => {
       if (!instanceName) {
         const error = DEPLOYMENT_ERRORS.MISSING_PARAMS;
         setAppError({ appError: { message: error, helpLink: "" } });
@@ -45,7 +42,7 @@ export function useDeployment() {
         const response = await axios.post<ApiSuccessResponse<{ deployment: any; taskId: string }>>(
           `${import.meta.env.VITE_BASE_URL}/v1/deployments`,
           { instanceName, payload },
-          { withCredentials: true }
+          { withCredentials: true, params: { clusterId } }
         );
 
         queryClient.invalidateQueries({ queryKey: ["deployments", clusterId] });
@@ -56,8 +53,8 @@ export function useDeployment() {
       } catch (err: any) {
         const status = err?.response?.status as number | undefined;
         const errorData = err?.response?.data?.error;
-        const message = errorData?.message || err?.message || DEPLOYMENT_ERRORS.SEND_FAILED;
-        const helpLink = errorData?.helpLink || "";
+        const message = (typeof errorData === "string" ? errorData : errorData?.message) ?? err?.message ?? DEPLOYMENT_ERRORS.SEND_FAILED;
+        const helpLink = errorData?.helpLink ?? "";
 
         setAppError({ appError: { message, helpLink } });
         return { success: false, error: message, status, serviceId: errorData?.serviceId };

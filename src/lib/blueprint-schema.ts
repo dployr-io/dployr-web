@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { Blueprint, BlueprintFormat, ServiceSource, Runtime } from "@/types";
+import type { Blueprint, BlueprintFormat, ServiceSource, Runtime, ServiceType } from "@/types";
 import { runtimes } from "@/types/runtimes";
 import * as YAML from "js-yaml";
 import * as TOML from "smol-toml";
@@ -118,6 +118,12 @@ export function validateBlueprint(data: unknown): ValidationResult {
   const validSources: ServiceSource[] = ["remote", "image"];
   if (!obj.source || !validSources.includes(obj.source as ServiceSource)) {
     errors.push({ message: `source must be one of: ${validSources.join(", ")}`, path: "source", severity: "error" });
+  }
+
+  // Required: type
+  const validTypes: ServiceType[] = ["web", "worker", "static", "job"];
+  if (!obj.type || !validTypes.includes(obj.type as ServiceType)) {
+    errors.push({ message: `type must be one of: ${validTypes.join(", ")}`, path: "type", severity: "error" });
   }
 
   // Required: runtime

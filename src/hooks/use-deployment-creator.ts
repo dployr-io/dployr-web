@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import type { BlueprintFormat } from "@/types";
 import { useDeploymentDraft } from "./use-deployment-draft";
 import { useDns } from "./use-dns";
+import { useAuth } from "@/hooks/use-auth";
 import { useUrlState } from "./use-url-state";
 import { useClusterId } from "./use-cluster-id";
 import { useDeployment } from "./use-deployment";
@@ -26,6 +27,7 @@ export function useDeploymentCreator(instanceId?: string) {
 
   const { currentDraft, drafts, isDirty, hasUnsavedChanges, createDraft, updateDraft, saveDraft, loadDraft, deleteDraft, discardDraft, toBlueprint, fromBlueprint, validate } = useDeploymentDraft();
 
+  const userId = useAuth().user?.id;
   const [isCreating, setIsCreating] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showDrafts, setShowDrafts] = useState(false);
@@ -144,6 +146,7 @@ export function useDeploymentCreator(instanceId?: string) {
           name: "",
           description: "",
           source: "remote",
+          type: "web",
           runtime: { type: "nodejs", version: "22" },
           port: 3000,
           run_cmd: "",
@@ -178,10 +181,32 @@ export function useDeploymentCreator(instanceId?: string) {
         return;
       }
 
+      const env_vars = Object.keys(currentDraft.env_vars).length > 0
+        ? Object.entries(currentDraft.env_vars).reduce(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {} as Record<string, string>
+          )
+        : undefined;
+
+      const secrets = Object.keys(currentDraft.secrets).length > 0
+        ? Object.entries(currentDraft.secrets).reduce(
+            (acc, [key, value]) => {
+              acc[key] = String(value);
+              return acc;
+            },
+            {} as Record<string, string>
+          )
+        : undefined;
+        
       const payload = {
+        user_id: userId,
         name: currentDraft.name,
         description: currentDraft.description || undefined,
         source: currentDraft.source,
+        type: currentDraft.type,
         runtime: currentDraft.runtime,
         version: currentDraft.version || undefined,
         run_cmd: currentDraft.run_cmd || undefined,
@@ -190,8 +215,8 @@ export function useDeploymentCreator(instanceId?: string) {
         working_dir: currentDraft.working_dir || undefined,
         static_dir: currentDraft.static_dir || undefined,
         image: currentDraft.image || undefined,
-        env_vars: Object.keys(currentDraft.env_vars).length > 0 ? currentDraft.env_vars : undefined,
-        secrets: Object.keys(currentDraft.secrets).length > 0 ? currentDraft.secrets : undefined,
+        env_vars,
+        secrets,
         remote: currentDraft.remote.url ? currentDraft.remote : undefined,
         domain: currentDraft.domain || undefined,
       };

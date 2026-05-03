@@ -54,23 +54,25 @@ export function useDns(instanceId?: string) {
   const [verifyCooldowns, setVerifyCooldowns] = useState<Map<string, number>>(new Map());
 
   // Get all DNS domains for an instance
-  const { data: dnsList, isLoading: isLoadingDomains } = useQuery<DnsListResponse | null>({
+  const { data: domains, isLoading: isLoadingDomains } = useQuery<DnsDomain[]>({
     queryKey: ["dns-domains", instanceId, clusterId],
-    queryFn: async (): Promise<DnsListResponse | null> => {
-      if (!instanceId || !clusterId) return null;
+    queryFn: async (): Promise<DnsDomain[]> => {
+      if (!clusterId) return [];
 
       try {
-        const response = await axios.get<ApiSuccessResponse<DnsListResponse>>(`${import.meta.env.VITE_BASE_URL}/v1/domains/instance/${instanceId}`, {
+        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/domains`, {
           params: { clusterId },
           withCredentials: true,
         });
-        return response.data.data;
+        
+        const data = response?.data?.data?.items || response?.data?.data?.domains;
+        return Array.isArray(data) ? data : [];
       } catch (error) {
-        console.error("Failed to fetch DNS domains:", error);
-        return null;
+        console.error((error as Error).message || "An unknown error occurred while retrieving domains");
+        return [];
       }
     },
-    enabled: Boolean(instanceId && clusterId),
+    enabled: Boolean(clusterId),
   });
 
   // Cooldown timer effect
@@ -105,6 +107,7 @@ export function useDns(instanceId?: string) {
         {},
         {
           withCredentials: true,
+          params: { clusterId, id: instanceId },
         }
       );
       return response.data.data;
@@ -117,7 +120,7 @@ export function useDns(instanceId?: string) {
       const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/domains/${domain}`, {
         withCredentials: true,
       });
-      
+
       setVerifySetupDetails((response?.data?.data as DnsSetupResponse) || null);
 
       // Set cooldown even on error
@@ -194,7 +197,7 @@ export function useDns(instanceId?: string) {
   };
 
   return {
-    domains: dnsList?.domains ?? [],
+    domains: domains ?? [],
     isLoadingDomains,
     setupDns: setupDnsMutation.mutate,
     setupDnsAsync: setupDnsMutation.mutateAsync,

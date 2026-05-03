@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Link } from "@tanstack/react-router";
 import { RemoteSelector } from "@/components/remote-selector";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
-import type { Remote, Runtime, ServiceSource } from "@/types";
+import type { Remote, Runtime, ServiceSource, ServiceType } from "@/types";
 import { runtimes } from "@/types/runtimes";
 import { ExternalLink, Info } from "lucide-react";
 
@@ -34,6 +34,8 @@ interface Props {
   staticDirError?: string;
   workingDir?: string | null;
   workingDirError: string;
+  type: ServiceType;
+  typeError: string;
   runtime: Runtime;
   runtimeError: string;
   remote?: Remote | null;
@@ -54,6 +56,10 @@ interface Props {
   envVars?: Record<string, string>;
   secrets?: Record<string, string>;
 
+  // Route parameters
+  clusterId?: string;
+  instanceId?: string;
+
   // Unified handlers
   setField: (field: string, value: unknown) => void;
   onSourceValueChanged: (arg0: ServiceSource) => void;
@@ -73,6 +79,8 @@ export function CreateServiceForm({
   staticDirError,
   workingDir,
   workingDirError,
+  type,
+  typeError,
   runtime,
   runtimeError,
   runCmd,
@@ -93,6 +101,8 @@ export function CreateServiceForm({
   remotes,
   isRemotesLoading,
   remoteError,
+  clusterId,
+  instanceId,
   setField,
   onSourceValueChanged,
   onRuntimeValueChanged,
@@ -179,6 +189,24 @@ export function CreateServiceForm({
         )}
 
         <div className="grid gap-2 md:col-span-1">
+          <Label htmlFor="type">
+            Type <span className="text-destructive">*</span>
+          </Label>
+          <Select value={type} onValueChange={(value: string) => setField("type", value)}>
+            <SelectTrigger id="type" disabled={processing}>
+              <SelectValue placeholder="Select a type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="web">Web</SelectItem>
+              <SelectItem value="worker">Worker</SelectItem>
+              <SelectItem value="static">Static</SelectItem>
+              <SelectItem value="job">Job</SelectItem>
+            </SelectContent>
+          </Select>
+          {(typeError || errors.type) && <div className="text-sm text-destructive">{typeError || errors.type}</div>}
+        </div>
+
+        <div className="grid gap-2 md:col-span-1">
           <Label htmlFor="runtime">
             Runtime <span className="text-destructive">*</span>
           </Label>
@@ -216,7 +244,7 @@ export function CreateServiceForm({
           <Input id="version" name="version" placeholder="1.0.0" value={version || ""} onChange={e => setField("version", e.target.value)} disabled={processing} />
         </div>
 
-        <div className="grid gap-2 md:col-span-3">
+        <div className="grid gap-2 md:col-span-2">
           <Label htmlFor="description">Description</Label>
           <Input
             id="description"
@@ -251,14 +279,16 @@ export function CreateServiceForm({
                   <DialogTitle>Domain Configuration</DialogTitle>
                   <DialogDescription>You can configure domains in your cluster's instance settings.</DialogDescription>
                 </DialogHeader>
-                <div className="flex justify-end">
-                  <Link to="/clusters/$clusterId/instances/$id" params={{ clusterId: "01KBWM5KKBFCCB8VS0WFQH1GE7", id: "01KD86P1HTWZMTNQ2DE02B60ZQ" }} search={{ tab: "config" }}>
-                    <Button variant="outline" size="sm">
-                      <ExternalLink className="h-4 w-4" />
-                      Configure domain
-                    </Button>
-                  </Link>
-                </div>
+                {clusterId && instanceId && (
+                  <div className="flex justify-end">
+                    <Link to="/clusters/$clusterId/instances/$id" params={{ clusterId, id: instanceId }} search={{ tab: "config" }}>
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="h-4 w-4" />
+                        Configure domain
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </div>
@@ -291,21 +321,23 @@ export function CreateServiceForm({
         )}
 
         {source === "remote" && (
-          <div className="grid gap-2 md:col-span-1">
-            <Label htmlFor="build_cmd">Build Command</Label>
-            <Input id="build_cmd" name="build_cmd" placeholder="npm run build" value={buildCmd || ""} onChange={e => setField("buildCmd", e.target.value)} disabled={processing} />
-            {(buildCmdError || errors.build_cmd) && <div className="text-sm text-destructive">{buildCmdError || errors.build_cmd}</div>}
-          </div>
-        )}
+          <>
+            <div className="grid gap-4 md:grid-cols-2 md:col-span-3">
+              <div className="grid gap-2">
+                <Label htmlFor="build_cmd">Build Command</Label>
+                <Input id="build_cmd" name="build_cmd" placeholder="npm run build" value={buildCmd || ""} onChange={e => setField("buildCmd", e.target.value)} disabled={processing} />
+                {(buildCmdError || errors.build_cmd) && <div className="text-sm text-destructive">{buildCmdError || errors.build_cmd}</div>}
+              </div>
 
-        {source === "remote" && (
-          <div className="grid gap-2 md:col-span-2">
-            <Label htmlFor="run_cmd">
-              {runtime === "static" ? "Build Command" : "Run Command"} {runtime !== "static" && <span className="text-destructive">*</span>}
-            </Label>
-            <Input id="run_cmd" name="run_cmd" placeholder={runCmdPlaceholder} value={runCmd!} onChange={e => setField("runCmd", e.target.value)} disabled={processing} />
-            {(runCmdError || errors.run_cmd) && <div className="text-sm text-destructive">{runCmdError || errors.run_cmd}</div>}
-          </div>
+              <div className="grid gap-2">
+                <Label htmlFor="run_cmd">
+                  {runtime === "static" ? "Build Command" : "Run Command"} {runtime !== "static" && <span className="text-destructive">*</span>}
+                </Label>
+                <Input id="run_cmd" name="run_cmd" placeholder={runCmdPlaceholder} value={runCmd!} onChange={e => setField("runCmd", e.target.value)} disabled={processing} />
+                {(runCmdError || errors.run_cmd) && <div className="text-sm text-destructive">{runCmdError || errors.run_cmd}</div>}
+              </div>
+            </div>
+          </>
         )}
 
         {source === "remote" && (

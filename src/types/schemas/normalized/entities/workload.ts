@@ -17,7 +17,7 @@ export const normalizedRuntimeSchema = z.object({
 export const normalizedRemoteSchema = z.object({
   url: z.string(),
   branch: z.string(),
-  commitHash: z.string().nullable(),
+  commitHash: z.string().optional().nullable(),
 });
 
 const valueSchema = z.union([

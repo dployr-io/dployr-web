@@ -50,7 +50,8 @@ function Deployments() {
   const { instances } = useInstances();
   const { remotes, isLoading: isRemotesLoading } = useRemotes();
   const { useDeploymentsUrlState } = useUrlState();
-  const [{ instance: selectedInstanceId, new: isCreatingFromUrl }, setInstanceFilter] = useDeploymentsUrlState();
+  const [{ instance: selectedInstanceId, new: isCreatingFromUrl, page: deploymentsPage }, setInstanceFilter] = useDeploymentsUrlState();
+  const currentPageRaw = deploymentsPage ?? 1;
   const { clusterId } = Route.useParams();
   const [blueprintInstanceId, setBlueprintInstanceId] = useState<string>("");
   const [quickDeployInstanceId, setQuickDeployInstanceId] = useState<string>("");
@@ -90,7 +91,10 @@ function Deployments() {
   } = useDeploymentCreator(quickDeployInstanceId);
 
   // Use the fixed useDeployments hook - now properly aggregates from all instances
-  const { paginatedDeployments, deployments, isLoading: isDeploymentsLoading, currentPage, totalPages, paginationRange, goToPage, goToPreviousPage, goToNextPage } = useDeployments(selectedInstanceId);
+  const { paginatedDeployments, deployments, isLoading: isDeploymentsLoading, currentPage, totalPages, paginationRange, goToPage, goToPreviousPage, goToNextPage } = useDeployments(selectedInstanceId, {
+    externalPage: currentPageRaw,
+    onPageChange: (page) => setInstanceFilter({ page })
+  });
 
   // Sync URL 'new' parameter to isCreating state
   useEffect(() => {
@@ -120,6 +124,17 @@ function Deployments() {
     }
     prevIsCreatingRef.current = isCreating;
   }, [isCreating, selectedInstanceId, setInstanceFilter]);
+
+  // Auto-select the most recent instance
+  useEffect(() => {
+    if (!quickDeployInstanceId && instances.length > 0 && isCreating) {
+      const mostRecentInstance = instances.reduce((latest, current) => {
+        return current.createdAt > latest.createdAt ? current : latest;
+      });
+      setQuickDeployInstanceId(mostRecentInstance.id);
+      setBlueprintInstanceId(mostRecentInstance.id);
+    }
+  }, [instances, quickDeployInstanceId, isCreating]);
 
   return (
     <ProtectedRoute>
@@ -223,7 +238,7 @@ function Deployments() {
                       <TableBody>
                         {!isDeploymentsLoading
                           ? paginatedDeployments.map(deployment => (
-                              <TableRow key={deployment.id} className="h-16 cursor-pointer">
+                              <TableRow key={deployment.id} className={`h-16 transition-opacity ${deployment.status === "pending" ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"}`} onClick={() => navigate({ to: "/clusters/$clusterId/deployments/$id", params: { clusterId, id: deployment.id } })}>
                                 <TableCell className="h-16 w-60 overflow-hidden align-middle font-medium">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block truncate">
                                     {String(deployment.name || "-")}
@@ -246,10 +261,10 @@ function Deployments() {
                                             const hours = Math.floor(minutes / 60);
                                             const days = Math.floor(hours / 24);
 
-                                            if (days > 0) return `${days} day${days !== 1 ? "s" : ""}`;
-                                            if (hours > 0) return `${hours} hour${hours !== 1 ? "s" : ""}`;
-                                            if (minutes > 0) return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
-                                            return `${seconds} second${seconds !== 1 ? "s" : ""}`;
+                                            if (days > 0) return `${days} day${days > 1 ? "s" : ""}`;
+                                            if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""}`;
+                                            if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""}`;
+                                            return `${seconds} second${seconds > 1 ? "s" : ""}`;
                                           })()}
                                         </span>
                                       ) : (
@@ -269,8 +284,8 @@ function Deployments() {
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex items-center gap-2">
-                                    {getRuntimeIcon(deployment.blueprint?.runtime?.type || "custom")}
-                                    <span>{String(deployment.blueprint?.runtime?.type || "-")}</span>
+                                    {getRuntimeIcon((typeof deployment.blueprint?.runtime === 'string' ? deployment.blueprint.runtime : deployment.blueprint?.runtime?.type) || "custom")}
+                                    <span>{String((typeof deployment.blueprint?.runtime === 'string' ? deployment.blueprint.runtime : deployment.blueprint?.runtime?.type) || "-")}</span>
                                   </Link>
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[320px] overflow-hidden align-middle">
@@ -293,7 +308,7 @@ function Deployments() {
                                     params={{ clusterId, id: deployment.id }}
                                     className="block truncate text-right font-mono text-sm text-muted-foreground"
                                   >
-                                    {String(deployment.blueprint?.run_cmd || "-")}
+                                    {String(deployment.blueprint?.run_command || deployment.blueprint?.run_cmd || "-")}
                                   </Link>
                                 </TableCell>
                               </TableRow>
@@ -427,6 +442,8 @@ function Deployments() {
                         remoteError={validationErrors.remote || ""}
                         workingDir={currentDraft?.working_dir || ""}
                         workingDirError={validationErrors.working_dir || ""}
+                        type={currentDraft?.type || "web"}
+                        typeError={validationErrors.type || ""}
                         runtime={currentDraft?.runtime || "nodejs"}
                         runtimeError={validationErrors.runtime || ""}
                         remote={currentDraft?.remote ? { url: currentDraft.remote.url, branch: currentDraft.remote.branch, commit_hash: currentDraft.remote.commit_hash, avatar_url: "" } : null}
@@ -445,6 +462,8 @@ function Deployments() {
                         isLoadingDomains={isLoadingDomains}
                         envVars={currentDraft?.env_vars || {}}
                         secrets={currentDraft?.secrets || {}}
+                        clusterId={clusterId}
+                        instanceId={quickDeployInstanceId}
                         setField={setField}
                         onSourceValueChanged={value => updateDraft("source", value)}
                         onRuntimeValueChanged={value => updateDraft("runtime", value)}
@@ -454,7 +473,6 @@ function Deployments() {
                           onClick={() => {
                             if (quickDeployInstanceId) {
                               const instance = instances?.find(i => i.id === quickDeployInstanceId);
-                              console.log("Deploying...", instance?.tag);
                               if (instance) {
                                 handleDeploy(instance.tag);
                                 navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId } });

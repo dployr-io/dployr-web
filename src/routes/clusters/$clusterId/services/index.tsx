@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { useClusters } from "@/hooks/use-clusters";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NormalizedInstanceData } from "@/types";
+import { useUrlState } from "@/hooks/use-url-state";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/")({
   component: Services,
@@ -30,7 +31,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Services() {
-  const { paginatedServices, services, isLoading, currentPage, totalPages, goToPage, goToPreviousPage, goToNextPage } = useServices();
+  const { useServicesUrlState } = useUrlState();
+  const [{ page: servicesPage }, setServicesUrlState] = useServicesUrlState();
+  const currentPageRaw = servicesPage ?? 1;
+
+  const { paginatedServices, services, isLoading, currentPage, totalPages, goToPage, goToPreviousPage, goToNextPage } = useServices(null, {
+    externalPage: currentPageRaw,
+    onPageChange: (page) => setServicesUrlState({ page })
+  });
 
   const { clusterId, userCluster } = useClusters();
   const router = useRouter();

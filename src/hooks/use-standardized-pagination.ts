@@ -21,6 +21,8 @@ export interface PaginationActions {
 export interface UsePaginationOptions {
   initialPage?: number;
   initialItemsPerPage?: number;
+  externalPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export interface UsePaginationResult<T> extends PaginationState, PaginationActions {
@@ -33,18 +35,20 @@ export function usePagination<T>(
   items: T[],
   options: UsePaginationOptions = {}
 ): UsePaginationResult<T> {
-  const { initialPage = 1, initialItemsPerPage = 8 } = options;
+  const { initialPage = 1, initialItemsPerPage = 8, externalPage, onPageChange } = options;
 
-  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [internalPage, setInternalPage] = useState(initialPage);
   const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
+
+  const currentPage = externalPage ?? internalPage;
 
   const totalItems = items.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
 
   // Ensure current page is within bounds
   const safePage = Math.max(1, Math.min(currentPage, totalPages));
-  if (safePage !== currentPage) {
-    setCurrentPage(safePage);
+  if (externalPage === undefined && safePage !== internalPage) {
+    setInternalPage(safePage);
   }
 
   const startIndex = (safePage - 1) * itemsPerPage;
@@ -101,19 +105,28 @@ export function usePagination<T>(
     return pages;
   }, [safePage, totalPages]);
 
+  const setPage = useCallback((page: number) => {
+    const safePageTarget = Math.max(1, Math.min(page, totalPages));
+    if (onPageChange) {
+      onPageChange(safePageTarget);
+    } else {
+      setInternalPage(safePageTarget);
+    }
+  }, [totalPages, onPageChange]);
+
   const goToPage = useCallback(
-    (page: number) => setCurrentPage(Math.max(1, Math.min(page, totalPages))),
-    [totalPages]
+    (page: number) => setPage(page),
+    [setPage]
   );
 
   const goToPreviousPage = useCallback(
-    () => setCurrentPage(prev => Math.max(1, prev - 1)),
-    []
+    () => setPage(safePage - 1),
+    [setPage, safePage]
   );
 
   const goToNextPage = useCallback(
-    () => setCurrentPage(prev => Math.min(totalPages, prev + 1)),
-    [totalPages]
+    () => setPage(safePage + 1),
+    [setPage, safePage]
   );
 
   return {

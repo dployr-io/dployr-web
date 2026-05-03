@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useCallback, useEffect, useState } from "react";
-import type { ServiceSource, Runtime } from "@/types";
+import type { ServiceSource, Runtime, ServiceType } from "@/types";
 import { useClusterId } from "./use-cluster-id";
 
 export interface DeploymentDraft {
@@ -10,6 +10,7 @@ export interface DeploymentDraft {
   name: string;
   description: string;
   source: ServiceSource;
+  type: ServiceType;
   runtime: Runtime;
   version: string;
   run_cmd: string;
@@ -39,6 +40,7 @@ const STORAGE_KEY = "dployr_deployment_drafts";
 const DEFAULT_DRAFT: Omit<DeploymentDraft, "id" | "updatedAt" | "clusterId"> = {
   name: "",
   description: "",
+  type: "web",
   source: "remote",
   runtime: "nodejs",
   version: "",
@@ -251,6 +253,7 @@ export function useDeploymentDraft() {
       name: currentDraft.name,
       description: currentDraft.description,
       source: currentDraft.source,
+      type: currentDraft.type,
       runtime: {
         type: currentDraft.runtime,
         version: currentDraft.version || "latest",
@@ -281,6 +284,7 @@ export function useDeploymentDraft() {
           name: parsed.name || "",
           description: parsed.description || "",
           source: parsed.source || "remote",
+          type: parsed.type || "web",
           runtime: parsed.runtime?.type || "nodejs",
           version: parsed.runtime?.version || "",
           run_cmd: parsed.run_cmd || "",

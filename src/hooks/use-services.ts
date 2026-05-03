@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInstances } from "@/hooks/use-instances";
 import { usePagination } from "@/hooks/use-standardized-pagination";
 import { useClusterId } from "@/hooks/use-cluster-id";
-import type { ApiService, ApiSuccessResponse, NormalizedInstanceData, NormalizedService } from "@/types";
+import type { ApiService, NormalizedInstanceData, NormalizedService } from "@/types";
 
 export interface ServiceWithInstance extends NormalizedService {
   _instanceName: string;
@@ -16,19 +16,25 @@ export interface ServiceWithInstance extends NormalizedService {
   clusterId: string;
 }
 
-export function useServices(instanceTag?: string | null) {
+export function useServices(instanceTag?: string | null, pageOptions?: { externalPage?: number; onPageChange?: (page: number) => void }) {
   const queryClient = useQueryClient();
   const { instances } = useInstances();
   const clusterId = useClusterId();
 
   const { data: httpServices, isLoading } = useQuery<ApiService[]>({
     queryKey: ["services", clusterId],
-    queryFn: async () => {
-      const response = await axios.get<ApiSuccessResponse<{ services: ApiService[] }>>(
-        `${import.meta.env.VITE_BASE_URL}/v1/services`,
-        { params: { clusterId }, withCredentials: true }
-      );
-      return response.data.data?.services ?? [];
+    queryFn: async (): Promise<ApiService[]> => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BASE_URL}/v1/services`,
+          { params: { clusterId }, withCredentials: true }
+        );
+        const data = response?.data?.data?.items;
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error((error as Error).message || "An unknown error occurred while retrieving services");
+        return [];
+      }
     },
     enabled: !!clusterId,
     staleTime: 30 * 1000,
@@ -92,7 +98,7 @@ export function useServices(instanceTag?: string | null) {
     return allServices.filter(s => s._instanceName === instanceTag);
   }, [allServices, instanceTag]);
 
-  const pagination = usePagination(services);
+  const pagination = usePagination(services, pageOptions);
 
   const selectedService = useMemo(() => {
     const pathSegments = window.location.pathname.split("/");

@@ -128,7 +128,7 @@ export function useClusters() {
 
         return Array.isArray(data) ? (data as (User & { role: UserRole })[]) : [];
       } catch (error) {
-        console.error((error as Error).message || "An unknown error occoured while retrieving deployments");
+        console.error((error as Error).message || "An unknown error occurred while retrieving users");
         return [];
       }
     },

@@ -72,15 +72,29 @@ function ViewDeployment() {
 
   // Get instance status for blueprint
   const { update } = useInstanceStatus(selectedInstanceName ?? undefined);
-  
+
   const config = useMemo(
     () => denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null,
     [update]
-  );  
+  );
 
   const deploymentBlueprint = useMemo(() => config?.workloads?.deployments?.find((d) => d?.id === deployment?.id), [config, deployment?.id]);
-  const yamlConfig = useMemo(() => deploymentBlueprint ? toYaml(deploymentBlueprint) : "", [deploymentBlueprint]);
-  const jsonConfig = useMemo(() => deploymentBlueprint ? toJson(deploymentBlueprint) : "", [deploymentBlueprint]);
+
+  // Fallback to REST API blueprint when stream blueprint is unavailable
+  const normalizedBlueprintFromRest = useMemo(() => {
+    const bp = deployment?.blueprint as any;
+    if (!bp) return null;
+    return {
+      ...bp,
+      runtime: typeof bp.runtime === 'string'
+        ? { type: bp.runtime, version: bp.version ?? null }
+        : bp.runtime,
+    };
+  }, [deployment?.blueprint]);
+
+  const effectiveBlueprint = deploymentBlueprint ?? normalizedBlueprintFromRest;
+  const yamlConfig = useMemo(() => effectiveBlueprint ? toYaml(effectiveBlueprint) : "", [effectiveBlueprint]);
+  const jsonConfig = useMemo(() => effectiveBlueprint ? toJson(effectiveBlueprint) : "", [effectiveBlueprint]);
 
   const handleBlueprintCopy = useCallback(() => {
     const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
@@ -152,7 +166,7 @@ function ViewDeployment() {
                   />
                 </TabsContent>
                 <TabsContent value="blueprint">
-                  {config?.workloads?.services?.length ? (
+                  {effectiveBlueprint ? (
                     <BlueprintSection
                       name={deployment?.name || "Deployment"}
                       blueprintFormat={blueprintFormat}
