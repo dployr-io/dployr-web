@@ -99,7 +99,7 @@ function ViewService() {
 
   const serviceDomain = useMemo(() => {
     if (proxyRoute?.domain) return proxyRoute.domain;
-    return `${service?.name}.${userCluster?.name}.dployr.io`;
+    return `${service?.name}.dployr.run`;
   }, [proxyRoute, service?.name, userCluster?.name]);
 
   const yamlConfig = useMemo(() => {
@@ -217,7 +217,7 @@ function ViewService() {
                   <>
                     <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
                       <MetricCard label="Name" value={service.name} />
-                      <MetricCard label="Port" value={<span className="font-mono">{service.port}</span>} />
+                      <MetricCard label="Port" value={<span className="font-mono">{service.port ?? "3000"}</span>} />
                       <MetricCard
                         label="Runtime"
                         value={
@@ -261,11 +261,15 @@ function ViewService() {
                     <div className="rounded-xl border bg-background/40 p-2">
                       <div className="px-2 py-1 space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name" className="text-muted-foreground">Name</Label>
+                          <Label htmlFor="name" className="text-muted-foreground">
+                            Name
+                          </Label>
                           <Input id="name" value={editedName} onChange={e => setEditedName(e.target.value)} placeholder="Enter service name" />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="description" className="text-muted-foreground">Description</Label>
+                          <Label htmlFor="description" className="text-muted-foreground">
+                            Description
+                          </Label>
                           <Textarea id="description" value={editedDescription} onChange={e => setEditedDescription(e.target.value)} placeholder="Enter service description" rows={3} />
                         </div>
                         {currentTab === "overview" && isEditMode && (

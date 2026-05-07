@@ -12,7 +12,7 @@ import {
   Maximize2,
   Plus,
 } from "lucide-react";
-import type { NormalizedService, InstanceStream, NormalizedProxyRoute } from "@/types";
+import type { NormalizedService, NormalizedProxyRoute, NormalizedInstanceData } from "@/types";
 import { StatusDot } from "./status-dot";
 import { ConnectionPath } from "./connection-path";
 import { InstanceNode } from "./instance-node";
@@ -437,7 +437,7 @@ export function ProxyGraphVisualizer({
         {selectedInstance && (
           <InstanceDetailPanel
             instance={selectedInstance}
-            instanceStatus={queryClient.getQueryData<InstanceStream>(["instance-status", selectedInstance.name])}
+            instanceStatus={queryClient.getQueryData<NormalizedInstanceData>(["instance-status", selectedInstance.name])}
             onClose={() => setSelectedInstance(null)}
             onRestart={onInstanceRestart ? () => onInstanceRestart(selectedInstance.name) : undefined}
             onSettings={onInstanceSettings ? () => onInstanceSettings(selectedInstance.id) : undefined}

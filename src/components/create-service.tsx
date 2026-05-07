@@ -1,12 +1,11 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KeyValueEditorModal } from "@/components/key-value-editor-modal";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Link } from "@tanstack/react-router";
 import { RemoteSelector } from "@/components/remote-selector";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
@@ -139,55 +138,6 @@ export function CreateServiceForm({
             </SelectContent>
           </Select>
         </div>
-
-        {source === "remote" && (
-          <div className="grid gap-2">
-            <RemoteSelector value={remote || null} remotes={remotes} isLoading={isRemotesLoading} error={remoteError} disabled={processing} onChange={remote => setField("remote", remote)} />
-          </div>
-        )}
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="name">
-          Name <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="name"
-          name="name"
-          placeholder="my-awesome-project"
-          value={name}
-          onChange={e =>
-            setField(
-              "name",
-              e.target.value
-                .toLowerCase()
-                .replace(/\s+/g, "-")
-                .replace(/[^a-z0-9-]/g, "")
-                .replace(/-+/g, "-")
-            )
-          }
-          disabled={processing}
-        />
-        {(nameError || errors.name) && <div className="text-sm text-destructive">{nameError || errors.name}</div>}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        {source === "remote" && (
-          <div className="grid gap-2 md:col-span-1">
-            <Label htmlFor="branch">
-              Branch <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="branch"
-              name="branch"
-              placeholder="main"
-              value={remote?.branch || "main"}
-              onChange={e => setField("remote", { ...remote, url: remote?.url || "", branch: e.target.value, commit_hash: remote?.commit_hash || "", avatar_url: remote?.avatar_url || "" })}
-              disabled={processing || !remote?.url}
-            />
-          </div>
-        )}
-
         <div className="grid gap-2 md:col-span-1">
           <Label htmlFor="type">
             Type <span className="text-destructive">*</span>
@@ -205,6 +155,29 @@ export function CreateServiceForm({
           </Select>
           {(typeError || errors.type) && <div className="text-sm text-destructive">{typeError || errors.type}</div>}
         </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {source === "remote" && (
+          <div className="grid gap-2 md:col-span-2">
+            <RemoteSelector value={remote || null} remotes={remotes} isLoading={isRemotesLoading} error={remoteError} disabled={processing} onChange={remote => setField("remote", remote)} />
+          </div>
+        )}
+        {source === "remote" && (
+          <div className="grid gap-2 md:col-span-1">
+            <Label htmlFor="branch">
+              Branch <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="branch"
+              name="branch"
+              placeholder="main"
+              value={remote?.branch || "main"}
+              onChange={e => setField("remote", { ...remote, url: remote?.url || "", branch: e.target.value, commit_hash: remote?.commit_hash || "", avatar_url: remote?.avatar_url || "" })}
+              disabled={processing || !remote?.url}
+            />
+          </div>
+        )}
 
         <div className="grid gap-2 md:col-span-1">
           <Label htmlFor="runtime">
@@ -244,6 +217,45 @@ export function CreateServiceForm({
           <Input id="version" name="version" placeholder="1.0.0" value={version || ""} onChange={e => setField("version", e.target.value)} disabled={processing} />
         </div>
 
+        <div className="grid gap-2 md:col-span-1">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="port">Port</Label>
+            <Tooltip>
+              <TooltipTrigger type="button">
+                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                Port to listen on. Defaults to <span className="font-mono bg-white/15 rounded px-1 py-0.5">3000</span>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Input id="port" name="port" placeholder="3000" value={port || ""} onChange={e => setField("port", e.target.value ? Number(e.target.value) : null)} disabled={processing} />
+          {(portError || errors.port) && <div className="text-sm text-destructive">{portError || errors.port}</div>}
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="name">
+            Name <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="name"
+            name="name"
+            placeholder="my-awesome-project"
+            value={name}
+            onChange={e =>
+              setField(
+                "name",
+                e.target.value
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")
+                  .replace(/[^a-z0-9-]/g, "")
+                  .replace(/-+/g, "-")
+              )
+            }
+            disabled={processing}
+          />
+          {(nameError || errors.name) && <div className="text-sm text-destructive">{nameError || errors.name}</div>}
+        </div>
         <div className="grid gap-2 md:col-span-2">
           <Label htmlFor="description">Description</Label>
           <Input
@@ -256,41 +268,29 @@ export function CreateServiceForm({
           />
         </div>
 
-        <div className="grid gap-2 md:col-span-1">
-          <Label htmlFor="port">Port{runtime !== "static" && <span className="text-destructive">*</span>}</Label>
-          <Input id="port" name="port" placeholder="3000" value={port || ""} onChange={e => setField("port", Number(e.target.value))} disabled={processing} />
-          {(portError || errors.port) && <div className="text-sm text-destructive">{portError || errors.port}</div>}
-        </div>
-
-        <div className="grid gap-2 md:col-span-2">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="domain">Domain</Label>
-            <Dialog>
-              <DialogTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-                >
-                  <Info className="h-4 w-4 text-blue-500" />
-                </button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Domain Configuration</DialogTitle>
-                  <DialogDescription>You can configure domains in your cluster's instance settings.</DialogDescription>
-                </DialogHeader>
-                {clusterId && instanceId && (
-                  <div className="flex justify-end">
-                    <Link to="/clusters/$clusterId/instances/$id" params={{ clusterId, id: instanceId }} search={{ tab: "config" }}>
-                      <Button variant="outline" size="sm">
-                        <ExternalLink className="h-4 w-4" />
-                        Configure domain
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="domain">Domain</Label>
+              <Tooltip>
+                <TooltipTrigger type="button">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  Defaults to <span className="font-mono bg-white/15 rounded px-1 py-0.5">your-app.dployr.run</span>.<br /> You can add your own domain for free.
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            {clusterId && instanceId && (
+              <Link
+                to="/clusters/$clusterId/instances/$id"
+                params={{ clusterId, id: instanceId }}
+                search={{ tab: "config" }}
+                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              >
+                Manage domains <ExternalLink className="h-3 w-3" />
+              </Link>
+            )}
           </div>
           <Select value={domain || ""} onValueChange={(value: string) => setField("domain", value)} disabled={processing || isLoadingDomains || availableDomains?.length === 0}>
             <SelectTrigger id="domain">
@@ -310,8 +310,26 @@ export function CreateServiceForm({
           {(domainError || errors.domain) && <div className="text-sm text-destructive">{domainError || errors.domain}</div>}
         </div>
 
+        {source === "remote" && (
+          <div className={`grid gap-2 ${source === "remote" && runtime === "static" ? "" : "md:col-span-2"}`}>
+            <Label htmlFor="working_dir">
+              Working Directory <span className="text-xs text-muted-foreground">(Defaults to root)</span>
+            </Label>
+            <Input id="working_dir" name="working_dir" placeholder="src" value={workingDir!} onChange={e => setField("workingDir", e.target.value)} disabled={processing} />
+            {(workingDirError || errors.working_dir) && <div className="text-sm text-destructive">{workingDirError || errors.working_dir}</div>}
+          </div>
+        )}
+
+        {source === "remote" && runtime === "static" && (
+          <div className="grid gap-2 md:col-span-1">
+            <Label htmlFor="static_dir">Static Directory</Label>
+            <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
+            {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
+          </div>
+        )}
+
         {source === "image" && (
-          <div className="grid gap-2 md:col-span-3">
+          <div className="grid gap-2 md:col-span-2">
             <Label htmlFor="image">
               Docker Image <span className="text-destructive">*</span>
             </Label>
@@ -338,24 +356,6 @@ export function CreateServiceForm({
               </div>
             </div>
           </>
-        )}
-
-        {source === "remote" && (
-          <div className={`grid gap-2 ${source === "remote" && runtime === "static" ? "md:col-span-2" : "md:col-span-3"}`}>
-            <Label htmlFor="working_dir">
-              Working Directory <span className="text-xs text-muted-foreground">(Defaults to root)</span>
-            </Label>
-            <Input id="working_dir" name="working_dir" placeholder="src" value={workingDir!} onChange={e => setField("workingDir", e.target.value)} disabled={processing} />
-            {(workingDirError || errors.working_dir) && <div className="text-sm text-destructive">{workingDirError || errors.working_dir}</div>}
-          </div>
-        )}
-
-        {source === "remote" && runtime === "static" && (
-          <div className="grid gap-2 md:col-span-1">
-            <Label htmlFor="static_dir">Static Directory</Label>
-            <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
-            {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
-          </div>
         )}
 
         {/* Environment Variables & Secrets */}

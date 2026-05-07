@@ -305,7 +305,7 @@ export function CodeEditor({
         {/* Header with filename and toolbar */}
         <div className="flex items-center justify-between bg-[#252526] px-3 py-2 border-b border-neutral-700">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-neutral-400 font-mono">{filename}</span>
+            <span className="text-xs text-neutral-400 font-mono w-48 truncate">{filename}</span>
             {showFormatSelector && onFormatChange && (
               <Select value={language} onValueChange={(value) => onFormatChange(value as BlueprintFormat)}>
                 <SelectTrigger className="h-6 w-20 bg-transparent border-neutral-600 text-xs text-neutral-300">

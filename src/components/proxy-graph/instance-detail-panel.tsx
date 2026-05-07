@@ -5,55 +5,28 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, Server, Activity, HardDrive, Cpu, Settings, RotateCcw, FolderOpen, Trash2, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import type { InstanceStream, InstanceStreamUpdateV1, InstanceStreamUpdateV1_1 } from "@/types";
+import type { NormalizedInstanceData } from "@/types";
 
-// Normalize instance update data to handle both v1 and v1.1 formats
-function normalizeInstanceUpdate(update: InstanceStreamUpdateV1 | InstanceStreamUpdateV1_1 | undefined) {
-  if (!update) return null;
+// Transform NormalizedInstanceData to display format
+function getNormalizedDisplayData(data: NormalizedInstanceData | null | undefined) {
+  if (!data) return null;
 
-  const isV1_1 = (update as any).schema === "v1.1";
-
-  if (isV1_1) {
-    const u = update as InstanceStreamUpdateV1_1;
-    return {
-      status: u.status?.state || u.health?.overall || "unknown",
-      uptime: u.status?.uptime_seconds ? formatSeconds(u.status.uptime_seconds) : undefined,
-      platform: u.node ? { os: u.node.os, arch: u.node.arch } : null,
-      version: u.node?.version || null,
-      cpu: u.resources?.cpu
-        ? {
-            user: u.resources.cpu.user_percent,
-            system: u.resources.cpu.system_percent,
-            idle: u.resources.cpu.idle_percent,
-          }
-        : null,
-      memory: u.resources?.memory
-        ? {
-            used_bytes: u.resources.memory.used_bytes,
-            total_bytes: u.resources.memory.total_bytes,
-          }
-        : null,
-    };
-  }
-
-  // v1 format
-  const u = update as InstanceStreamUpdateV1;
   return {
-    status: u.status || "unknown",
-    uptime: u.uptime,
-    platform: u.platform,
-    version: u.build_info?.version || null,
-    cpu: u.top?.cpu
+    status: data.status?.state || data.health?.overall || "unknown",
+    uptime: data.status?.uptimeSeconds ? formatSeconds(data.status.uptimeSeconds) : undefined,
+    platform: data.node ? { os: data.node.os, arch: data.node.arch } : null,
+    version: data.node?.version || null,
+    cpu: data.resources?.cpu
       ? {
-          user: u.top.cpu.user,
-          system: u.top.cpu.system,
-          idle: u.top.cpu.idle,
+          user: data.resources.cpu.userPercent,
+          system: data.resources.cpu.systemPercent,
+          idle: data.resources.cpu.idlePercent,
         }
       : null,
-    memory: u.top?.memory
+    memory: data.resources?.memory
       ? {
-          used_bytes: u.top.memory.used,
-          total_bytes: u.top.memory.total,
+          used_bytes: data.resources.memory.usedBytes,
+          total_bytes: data.resources.memory.totalBytes,
         }
       : null,
   };
@@ -77,7 +50,7 @@ export function InstanceDetailPanel({
   onRemove,
 }: {
   instance: { id: string; name: string; status?: string };
-  instanceStatus?: InstanceStream | null;
+  instanceStatus?: NormalizedInstanceData | null;
   onClose: () => void;
   onRestart?: () => void;
   onSettings?: () => void;
@@ -96,7 +69,7 @@ export function InstanceDetailPanel({
     }
   };
 
-  const normalized = useMemo(() => normalizeInstanceUpdate(instanceStatus?.update), [instanceStatus?.update]);
+  const normalized = useMemo(() => getNormalizedDisplayData(instanceStatus), [instanceStatus]);
 
   return (
     <div className="absolute right-4 bottom-20 w-72 bg-background border border-stone-700 rounded-md shadow-lg z-20 font-mono">

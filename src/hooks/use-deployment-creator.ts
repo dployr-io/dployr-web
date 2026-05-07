@@ -7,6 +7,7 @@ import { useDeploymentDraft } from "./use-deployment-draft";
 import { useDns } from "./use-dns";
 import { useAuth } from "@/hooks/use-auth";
 import { useUrlState } from "./use-url-state";
+import { useAppAlert } from "@/contexts/app-alert-context";
 import { useClusterId } from "./use-cluster-id";
 import { useDeployment } from "./use-deployment";
 import { validateContent, formatContent, convertFormat, getDefaultTemplate, type SchemaError } from "@/lib/blueprint-schema";
@@ -17,9 +18,9 @@ import { validateContent, formatContent, convertFormat, getDefaultTemplate, type
  */
 export function useDeploymentCreator(instanceId?: string) {
   const clusterId = useClusterId();
-  const { useDeploymentsTabsState, useAppError } = useUrlState();
+  const { useDeploymentsTabsState } = useUrlState();
   const [{ tab }, setTab] = useDeploymentsTabsState();
-  const [, setAppError] = useAppError();
+  const { setError: setAppError } = useAppAlert();
   const currentTab = (tab || "quick") as "quick" | "blueprint-editor";
 
   const { domains, isLoadingDomains } = useDns(instanceId);
@@ -148,7 +149,6 @@ export function useDeploymentCreator(instanceId?: string) {
           source: "remote",
           type: "web",
           runtime: { type: "nodejs", version: "22" },
-          port: 3000,
           run_cmd: "",
           build_cmd: "",
           working_dir: "/app",
@@ -172,12 +172,7 @@ export function useDeploymentCreator(instanceId?: string) {
       }
 
       if (!currentDraft || !clusterId) {
-        setAppError({
-          appError: {
-            message: "Unable to start deployment. Please try again.",
-            helpLink: "",
-          },
-        });
+        setAppError({ message: "Unable to start deployment. Please try again.", helpLink: "" });
         return;
       }
 

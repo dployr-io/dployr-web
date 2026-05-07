@@ -37,7 +37,7 @@ function Services() {
 
   const { paginatedServices, services, isLoading, currentPage, totalPages, goToPage, goToPreviousPage, goToNextPage } = useServices(null, {
     externalPage: currentPageRaw,
-    onPageChange: (page) => setServicesUrlState({ page })
+    onPageChange: page => setServicesUrlState({ page }),
   });
 
   const { clusterId, userCluster } = useClusters();
@@ -45,17 +45,17 @@ function Services() {
   const queryClient = useQueryClient();
 
   const getServiceDomain = (service: any) => {
-    if (!service._instanceName) return `${service.name}.${userCluster?.name}.dployr.io`;
+    if (!service._instanceName) return `${service.name}.dployr.run`;
 
     const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", service._instanceName]);
-    if (!instanceData?.proxy?.routes) return `${service.name}.${userCluster?.name}.dployr.io`;
+    if (!instanceData?.proxy?.routes) return `${service.name}.dployr.run`;
 
     const proxyRoute = instanceData.proxy.routes.find(route => {
       const upstreamPort = route.upstream?.match(/:(\d+)/)?.[1];
       return route.domain.includes(service.name) || route.upstream?.includes(service.name) || upstreamPort === String(service.port);
     });
 
-    return proxyRoute?.domain || `${service.name}.${userCluster?.name}.dployr.io`;
+    return proxyRoute?.domain || `${service.name}.dployr.run`;
   };
 
   return (
@@ -104,7 +104,6 @@ function Services() {
                     <TableRow className="h-14">
                       <TableHead className="h-14 w-[200px] align-middle">Name</TableHead>
                       <TableHead className="h-14 w-[100px] align-middle">Status</TableHead>
-                      <TableHead className="h-14 w-[80px] align-middle">Port</TableHead>
                       <TableHead className="h-14 align-middle">Instance</TableHead>
                       <TableHead className="h-14 align-middle">Domains</TableHead>
                       <TableHead className="h-14 w-[140px] text-right align-middle">Updated</TableHead>
@@ -126,9 +125,6 @@ function Services() {
                               </TableCell>
                               <TableCell className="h-16 max-w-[100px] align-middle">
                                 <StatusBadge status="running" variant="compact" />
-                              </TableCell>
-                              <TableCell className="h-16 max-w-[80px] align-middle">
-                                <span className="font-mono text-sm">{service.port ?? "—"}</span>
                               </TableCell>
                               <TableCell className="h-16 align-middle">
                                 {service._instanceName ? (

@@ -20,11 +20,7 @@ export const normalizedRemoteSchema = z.object({
   commitHash: z.string().optional().nullable(),
 });
 
-const valueSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-]);
+const valueSchema = z.union([z.string(), z.number(), z.boolean()]);
 
 const secretSchema = z.object({
   key: z.string(),
@@ -39,6 +35,7 @@ export const normalizedServiceSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   source: z.string().nullable(),
+  type: z.string(),
   runtime: normalizedRuntimeSchema,
   remote: normalizedRemoteSchema.nullable(),
   runCmd: z.string().nullable(),

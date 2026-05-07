@@ -46,7 +46,7 @@ const DEFAULT_DRAFT: Omit<DeploymentDraft, "id" | "updatedAt" | "clusterId"> = {
   version: "",
   run_cmd: "",
   build_cmd: "",
-  port: 3000,
+  port: null,
   working_dir: "",
   static_dir: "",
   image: "",
@@ -109,8 +109,8 @@ export function validateDraft(draft: Partial<DeploymentDraft>): DeploymentDraftV
 
   // Port validation (optional but must be valid if provided)
   if (draft.port !== null && draft.port !== undefined) {
-    if (draft.port < 1 || draft.port > 65535) {
-      errors.port = "Port must be between 1 and 65535";
+    if (draft.port < 1024 || draft.port > 10000) {
+      errors.port = "Port must be between 1024 and 10000";
     }
   }
 
@@ -249,7 +249,7 @@ export function useDeploymentDraft() {
   const toBlueprint = useCallback((): string => {
     if (!currentDraft) return "{}";
 
-    const blueprint = {
+    const blueprint: any = {
       name: currentDraft.name,
       description: currentDraft.description,
       source: currentDraft.source,
@@ -260,7 +260,6 @@ export function useDeploymentDraft() {
       },
       run_cmd: currentDraft.run_cmd,
       build_cmd: currentDraft.build_cmd,
-      port: currentDraft.port,
       working_dir: currentDraft.working_dir,
       static_dir: currentDraft.static_dir,
       image: currentDraft.image,
@@ -269,6 +268,10 @@ export function useDeploymentDraft() {
       remote: currentDraft.remote,
       domain: currentDraft.domain,
     };
+
+    if (currentDraft.port !== null && currentDraft.port !== undefined) {
+      blueprint.port = currentDraft.port;
+    }
 
     return JSON.stringify(blueprint, null, 2);
   }, [currentDraft]);
@@ -289,7 +292,7 @@ export function useDeploymentDraft() {
           version: parsed.runtime?.version || "",
           run_cmd: parsed.run_cmd || "",
           build_cmd: parsed.build_cmd || "",
-          port: parsed.port ?? 3000,
+          port: parsed.port !== undefined ? parsed.port : (currentDraft?.port ?? null),
           working_dir: parsed.working_dir || "",
           static_dir: parsed.static_dir || "",
           image: parsed.image || "",
@@ -309,7 +312,7 @@ export function useDeploymentDraft() {
         return false;
       }
     },
-    [currentDraft?.id, clusterId]
+    [currentDraft?.id, clusterId, currentDraft?.port]
   );
 
   // Validate current draft

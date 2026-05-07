@@ -73,6 +73,7 @@ export function useStandardizedLogs(
 
 export function useDeploymentLogs(
   deploymentId: string | undefined,
+  deploymentName: string | undefined,
   instanceName: string | undefined,
   tabState: {
     currentTab: string;
@@ -84,7 +85,7 @@ export function useDeploymentLogs(
   return useStandardizedLogs(
     {
       instanceName,
-      path: deploymentId || "",
+      path: deploymentName || deploymentId || "",
     },
     tabState,
     "logs"

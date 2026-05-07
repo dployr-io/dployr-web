@@ -4,13 +4,13 @@
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiSuccessResponse } from "@/types";
-import { useUrlState } from "./use-url-state";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 /** GET /v1/services/:id/secrets returns keys only — values are always masked. */
 export function useServiceSecrets(serviceId: string | null) {
   const queryClient = useQueryClient();
-  const { useAppError } = useUrlState();
-  const [, setAppError] = useAppError();
+  const { setError: setAppError } = useAppAlert();
 
   const { data: secrets, isLoading } = useQuery<Record<string, string>>({
     queryKey: ["service-secrets", serviceId],
@@ -37,8 +37,8 @@ export function useServiceSecrets(serviceId: string | null) {
       queryClient.invalidateQueries({ queryKey: ["service-secrets", serviceId] });
     },
     onError: (err: any) => {
-      const message = err?.response?.data?.error?.message || err?.message || "Failed to update secrets";
-      setAppError({ appError: { message, helpLink: "" } });
+      const message = getApiErrorMessage(err, "Failed to update secrets");
+      setAppError({ message, helpLink: "" });
     },
   });
 
@@ -53,8 +53,8 @@ export function useServiceSecrets(serviceId: string | null) {
       queryClient.invalidateQueries({ queryKey: ["service-secrets", serviceId] });
     },
     onError: (err: any) => {
-      const message = err?.response?.data?.error?.message || err?.message || "Failed to delete secret";
-      setAppError({ appError: { message, helpLink: "" } });
+      const message = getApiErrorMessage(err, "Failed to delete secret");
+      setAppError({ message, helpLink: "" });
     },
   });
 

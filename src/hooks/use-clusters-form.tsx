@@ -1,6 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
+import { useState } from "react";
 import { useForm } from "@tanstack/react-form";
 import z from "zod";
 import { useClusters } from "@/hooks/use-clusters";
@@ -12,8 +13,8 @@ const addUsersSchema = z.object({
 });
 
 export function useClustersForm(twoFactor: ReturnType<typeof use2FA>) {
-  const { useAppError, useInviteUserDialog } = useUrlState();
-  const [{ appError }, setError] = useAppError();
+  const { useInviteUserDialog } = useUrlState();
+  const [formError, setFormError] = useState<string>("");
   const [, setInviteDialogOpen] = useInviteUserDialog();
   const { setUsersToAdd, addUsers } = useClusters();
 
@@ -24,12 +25,7 @@ export function useClustersForm(twoFactor: ReturnType<typeof use2FA>) {
 
       if (!result.success) {
         const fieldErrors = result.error.flatten().fieldErrors;
-        setError({
-          appError: {
-            message: fieldErrors.users?.[0] || "Validation failed",
-            helpLink: "",
-          },
-        });
+        setFormError(fieldErrors.users?.[0] || "Validation failed");
         return;
       }
 
@@ -39,12 +35,7 @@ export function useClustersForm(twoFactor: ReturnType<typeof use2FA>) {
         });
 
         setUsersToAdd(value.users);
-        setError({
-          appError: {
-            message: "",
-            helpLink: "",
-          },
-        });
+        setFormError("");
         setInviteDialogOpen({ inviteOpen: false });
       } catch (error) {
         // Error is handled by the mutation's onError
@@ -54,6 +45,6 @@ export function useClustersForm(twoFactor: ReturnType<typeof use2FA>) {
 
   return {
     form,
-    appError,
+    formError,
   };
 }

@@ -20,11 +20,7 @@ export const remoteSchema = z.object({
   commit_hash: z.string().optional(),
 });
 
-const valueSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-]);
+const valueSchema = z.union([z.string(), z.number(), z.boolean()]);
 
 const secretSchema = z.object({
   key: z.string(),
@@ -60,8 +56,8 @@ export const deploymentSchema = z.object({
   source: z.string(),
   runtime: runtimeSchema,
   remote: remoteSchema.optional(),
-  run_command: z.string().optional(),
-  build_command: z.string().optional(),
+  run_cmd: z.string().optional(),
+  build_cmd: z.string().optional(),
   port: z.number().optional(),
   working_dir: z.string().optional(),
   env_vars: z.record(z.string(), valueSchema).optional(),
@@ -97,10 +93,11 @@ export const serviceSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   source: z.string().optional(),
+  type: z.string(),
   runtime: z.string(),
   runtime_version: z.string().optional(),
-  run_command: z.string().optional(),
-  build_command: z.string().optional(),
+  run_cmd: z.string().optional(),
+  build_cmd: z.string().optional(),
   port: z.number().optional(),
   working_dir: z.string().optional(),
   env_vars: z.record(z.string(), valueSchema).optional(),

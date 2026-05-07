@@ -6,8 +6,7 @@ import type { IconType } from "react-icons";
 import { FaBitbucket, FaDiscord, FaGithub, FaGitlab, FaLink, FaSlack } from "react-icons/fa";
 import { SiAmazonroute53, SiCloudflare, SiGodaddy, SiNamecheap } from "react-icons/si";
 import { dnsProviders, runtimes, logLevels } from "./runtimes";
-import type { InstanceStreamUpdateV1 } from "./schemas/v1/";
-import type { InstanceStreamUpdateV1_1, Process } from "./schemas/v1.1/";
+import type { Process } from "./schemas/v1.1/";
 
 // Re-export all schema types from the new modular schema system
 export * from "./schemas";
@@ -173,13 +172,6 @@ export interface FileUpdateEvent {
 export type FileWatchCallback = (event: FileUpdateEvent) => void;
 
 export type ProcessTimeWindow = "live" | "1h" | "6h" | "24h";
-
-export interface InstanceStream {
-  id?: string;
-  kind: string;
-  timestamp?: number;
-  update: InstanceStreamUpdateV1 | InstanceStreamUpdateV1_1;
-}
 
 // Memory profile entry for caching
 export interface MemoryProfileEntry {

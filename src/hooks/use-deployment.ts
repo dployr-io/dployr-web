@@ -3,11 +3,12 @@
 
 import { useCallback } from "react";
 import axios from "axios";
-import { useQueryClient } from "@tanstack/react-query";
-import { useUrlState } from "./use-url-state";
 import { useClusterId } from "./use-cluster-id";
+import { useInstanceStream } from "./use-instance-stream";
 import type { ApiSuccessResponse } from "@/types";
 import type { DeploymentDraft } from "./use-deployment-draft";
+import { getApiErrorHelpLink, getApiErrorMessage } from "@/lib/api-error";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 const DEPLOYMENT_ERRORS = {
   MISSING_PARAMS: "Instance name is required for deployment.",
@@ -25,16 +26,15 @@ interface DeploymentResult {
 }
 
 export function useDeployment() {
-  const { useAppError } = useUrlState();
-  const [, setAppError] = useAppError();
+  const { setError: setAppError } = useAppAlert();
   const clusterId = useClusterId();
-  const queryClient = useQueryClient();
+  const { sendJson } = useInstanceStream();
 
   const deploy = useCallback(
     async (instanceName: string, payload: Partial<Omit<DeploymentDraft, "id" | "updatedAt">>): Promise<DeploymentResult> => {
       if (!instanceName) {
         const error = DEPLOYMENT_ERRORS.MISSING_PARAMS;
-        setAppError({ appError: { message: error, helpLink: "" } });
+        setAppError({ message: error });
         return { success: false, error };
       }
 
@@ -45,22 +45,22 @@ export function useDeployment() {
           { withCredentials: true, params: { clusterId } }
         );
 
-        queryClient.invalidateQueries({ queryKey: ["deployments", clusterId] });
-        queryClient.invalidateQueries({ queryKey: ["services", clusterId] });
+        sendJson({ kind: "heartbeat", versions: { [instanceName]: { workloads: 0 } } });
 
         const data = response.data.data;
         return { success: true, deployment: data?.deployment, taskId: data?.taskId };
       } catch (err: any) {
         const status = err?.response?.status as number | undefined;
         const errorData = err?.response?.data?.error;
-        const message = (typeof errorData === "string" ? errorData : errorData?.message) ?? err?.message ?? DEPLOYMENT_ERRORS.SEND_FAILED;
-        const helpLink = errorData?.helpLink ?? "";
+        const message = getApiErrorMessage(err, DEPLOYMENT_ERRORS.SEND_FAILED);
+        const helpLink = getApiErrorHelpLink(err);
 
-        setAppError({ appError: { message, helpLink } });
-        return { success: false, error: message, status, serviceId: errorData?.serviceId };
+        setAppError({ message, helpLink });
+        const serviceId = errorData && typeof errorData !== "string" ? errorData.serviceId : undefined;
+        return { success: false, error: message, status, serviceId };
       }
     },
-    [setAppError, clusterId, queryClient]
+    [setAppError, clusterId, sendJson]
   );
 
   return { deploy };

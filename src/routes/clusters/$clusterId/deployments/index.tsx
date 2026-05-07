@@ -91,9 +91,19 @@ function Deployments() {
   } = useDeploymentCreator(quickDeployInstanceId);
 
   // Use the fixed useDeployments hook - now properly aggregates from all instances
-  const { paginatedDeployments, deployments, isLoading: isDeploymentsLoading, currentPage, totalPages, paginationRange, goToPage, goToPreviousPage, goToNextPage } = useDeployments(selectedInstanceId, {
+  const {
+    paginatedDeployments,
+    deployments,
+    isLoading: isDeploymentsLoading,
+    currentPage,
+    totalPages,
+    paginationRange,
+    goToPage,
+    goToPreviousPage,
+    goToNextPage,
+  } = useDeployments(selectedInstanceId, {
     externalPage: currentPageRaw,
-    onPageChange: (page) => setInstanceFilter({ page })
+    onPageChange: page => setInstanceFilter({ page }),
   });
 
   // Sync URL 'new' parameter to isCreating state
@@ -238,7 +248,11 @@ function Deployments() {
                       <TableBody>
                         {!isDeploymentsLoading
                           ? paginatedDeployments.map(deployment => (
-                              <TableRow key={deployment.id} className={`h-16 transition-opacity ${deployment.status === "pending" ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"}`} onClick={() => navigate({ to: "/clusters/$clusterId/deployments/$id", params: { clusterId, id: deployment.id } })}>
+                              <TableRow
+                                key={deployment.id}
+                                className={`h-16 transition-opacity ${deployment.status === "pending" ? "opacity-50 cursor-not-allowed pointer-events-none" : "cursor-pointer"}`}
+                                onClick={() => navigate({ to: "/clusters/$clusterId/deployments/$id", params: { clusterId, id: deployment.id } })}
+                              >
                                 <TableCell className="h-16 w-60 overflow-hidden align-middle font-medium">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block truncate">
                                     {String(deployment.name || "-")}
@@ -252,10 +266,10 @@ function Deployments() {
                                 <TableCell className="h-16 w-[120px] align-middle whitespace-nowrap">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="block">
                                     {deployment.status === "success" || deployment.status === "failed" ? (
-                                      deployment.finishedAt && deployment.createdAt ? (
+                                      deployment.updatedAt && deployment.createdAt ? (
                                         <span className="inline-block">
                                           {(() => {
-                                            const ms = new Date(deployment.finishedAt!).getTime() - new Date(deployment.createdAt).getTime();
+                                            const ms = new Date(deployment.updatedAt!).getTime() - new Date(deployment.createdAt).getTime();
                                             const seconds = Math.floor(ms / 1000);
                                             const minutes = Math.floor(seconds / 60);
                                             const hours = Math.floor(minutes / 60);
@@ -284,20 +298,20 @@ function Deployments() {
                                 </TableCell>
                                 <TableCell className="h-16 w-[120px] align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex items-center gap-2">
-                                    {getRuntimeIcon((typeof deployment.blueprint?.runtime === 'string' ? deployment.blueprint.runtime : deployment.blueprint?.runtime?.type) || "custom")}
-                                    <span>{String((typeof deployment.blueprint?.runtime === 'string' ? deployment.blueprint.runtime : deployment.blueprint?.runtime?.type) || "-")}</span>
+                                    {getRuntimeIcon((typeof deployment?.runtime === "string" ? deployment.runtime : deployment?.runtime?.type) || "custom")}
+                                    <span>{String((typeof deployment?.runtime === "string" ? deployment.runtime : deployment?.runtime?.type) || "-")}</span>
                                   </Link>
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[320px] overflow-hidden align-middle">
                                   <Link to="/clusters/$clusterId/deployments/$id" params={{ clusterId, id: deployment.id }} className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                                    {!deployment.blueprint?.remote?.url ? (
+                                    {!deployment?.remote?.url ? (
                                       <div className="max-w-[320px] overflow-hidden align-middle">
                                         <Skeleton className="h-4 w-40" />
                                       </div>
                                     ) : (
                                       <>
-                                        {deployment.blueprint?.remote?.url?.includes("github") ? <RxGithubLogo /> : <FaGitlab />}
-                                        <span className="truncate">{deployment.blueprint?.remote ? deployment.blueprint.remote.url?.replace(/^https?:\/\//, "") || "-" : "-"}</span>
+                                        {deployment?.remote?.url?.includes("github") ? <RxGithubLogo /> : <FaGitlab />}
+                                        <span className="truncate">{deployment?.remote ? deployment.remote.url?.replace(/^https?:\/\//, "") || "-" : "-"}</span>
                                       </>
                                     )}
                                   </Link>
@@ -308,7 +322,7 @@ function Deployments() {
                                     params={{ clusterId, id: deployment.id }}
                                     className="block truncate text-right font-mono text-sm text-muted-foreground"
                                   >
-                                    {String(deployment.blueprint?.run_command || deployment.blueprint?.run_cmd || "-")}
+                                    {String(deployment?.runCmd || "-")}
                                   </Link>
                                 </TableCell>
                               </TableRow>
@@ -495,7 +509,7 @@ function Deployments() {
                       value={blueprintContent}
                       onChange={handleBlueprintChange}
                       language={blueprintFormat}
-                      filename={`blueprint.${getFileExtension(blueprintFormat)}`}
+                      filename={`${currentDraft?.name || "service"}.${getFileExtension(blueprintFormat)}`}
                       onFormat={formatBlueprint}
                       onReset={resetBlueprint}
                       onFormatChange={handleFormatChange}
@@ -503,7 +517,7 @@ function Deployments() {
                       showFormatSelector
                       instanceSelector={
                         <Select value={blueprintInstanceId} onValueChange={value => setBlueprintInstanceId(value)}>
-                          <SelectTrigger className="h-6 w-[140px] bg-transparent border-neutral-600 text-xs text-neutral-300">
+                          <SelectTrigger className="h-6 bg-transparent border-neutral-600 text-xs text-neutral-300 w-auto min-w-fit max-w-none">
                             <SelectValue placeholder="Select instance" />
                           </SelectTrigger>
                           <SelectContent>

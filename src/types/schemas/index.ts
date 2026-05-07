@@ -239,6 +239,7 @@ function denormalizeToV1_1(data: NormalizedInstanceData | null): InstanceStreamU
             data.workloads.services?.map(s => ({
               id: s.id,
               name: s.name,
+              type: s.type,
               description: s.description || undefined,
               source: s.source || "remote",
               runtime: s.runtime.type,
@@ -273,8 +274,8 @@ function denormalizeToV1_1(data: NormalizedInstanceData | null): InstanceStreamU
                     commit_hash: d.remote.commitHash || undefined,
                   }
                 : undefined,
-              run_command: d.runCmd || undefined,
-              build_command: d.buildCmd || undefined,
+              run_cmd: d.runCmd || undefined,
+              build_cmd: d.buildCmd || undefined,
               port: d.port || undefined,
               working_dir: d.workingDir || undefined,
               env_vars: d.envVars || undefined,

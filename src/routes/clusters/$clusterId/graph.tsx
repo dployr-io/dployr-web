@@ -23,8 +23,8 @@ import { RotateCcw } from "lucide-react";
 import { useInstances } from "@/hooks/use-instances";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { useProxyOperations } from "@/hooks/use-proxy-operations";
-import { useUrlState } from "@/hooks/use-url-state";
 import { toast } from "@/lib/toast";
+import { useAppAlert } from "@/contexts/app-alert-context";
 import { useServices } from "@/hooks/use-services";
 
 export const Route = createFileRoute("/clusters/$clusterId/graph")({
@@ -39,8 +39,7 @@ const graphBreadcrumbs = (clusterId?: string): BreadcrumbItem[] => [
 function GraphPage() {
   const { clusterId } = Route.useParams();
   const router = useRouter();
-  const { useAppError } = useUrlState();
-  const [, setAppError] = useAppError();
+  const { setError: setAppError } = useAppAlert();
 
   // State
   const [selectedInstance, setSelectedInstance] = useState<string | null>(null);
@@ -95,12 +94,7 @@ function GraphPage() {
   // Handle error display
   useEffect(() => {
     if (proxyError) {
-      setAppError({
-        appError: {
-          message: proxyError,
-          helpLink: "https://docs.dployr.io/proxy/troubleshooting",
-        },
-      });
+      setAppError({ message: proxyError, helpLink: "https://docs.dployr.io/proxy/troubleshooting" });
     }
   }, [proxyError, setAppError]);
 

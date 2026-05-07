@@ -15,6 +15,7 @@ import './css/app.css';
 
 import { initializeTheme } from '@/hooks/use-appearance';
 import { restoreCacheFromStorage } from '@/lib/query-cache-persistence';
+import { AppAlertProvider } from '@/contexts/app-alert-context';
 
 // Create a new QueryClient instance
 const queryClient = new QueryClient({
@@ -55,8 +56,10 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-        <ReactQueryDevtools initialIsOpen={false} />
+        <AppAlertProvider>
+          <RouterProvider router={router} />
+          <ReactQueryDevtools initialIsOpen={false} />
+        </AppAlertProvider>
       </QueryClientProvider>
     </StrictMode>,
   )

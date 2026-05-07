@@ -6,12 +6,12 @@ import axios from "axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiSuccessResponse, NormalizedService } from "@/types";
 import { DEPLOYMENT_ERRORS } from "./use-deployment";
-import { useUrlState } from "./use-url-state";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 export function useServiceEnv(service: NormalizedService | null) {
   const queryClient = useQueryClient();
-  const { useAppError } = useUrlState();
-  const [, setAppError] = useAppError();
+  const { setError: setAppError } = useAppAlert();
 
   const serviceId = service?.id ?? null;
 
@@ -41,7 +41,7 @@ export function useServiceEnv(service: NormalizedService | null) {
 
   const handleSave = useCallback(async (key: string) => {
     if (!service) {
-      setAppError({ appError: { message: DEPLOYMENT_ERRORS.BLUEPRINT_NOT_FOUND, helpLink: "" } });
+      setAppError({ message: DEPLOYMENT_ERRORS.BLUEPRINT_NOT_FOUND, helpLink: "" });
       return;
     }
 
@@ -57,8 +57,8 @@ export function useServiceEnv(service: NormalizedService | null) {
       setEditingKey(null);
       setEditValue("");
     } catch (err: any) {
-      const message = err?.response?.data?.error?.message || err?.message || "Failed to save environment variable";
-      setAppError({ appError: { message, helpLink: "" } });
+      const message = getApiErrorMessage(err, "Failed to save environment variable");
+      setAppError({ message, helpLink: "" });
     }
   }, [service, fetchedEnvs, editValue, queryClient, setAppError]);
 

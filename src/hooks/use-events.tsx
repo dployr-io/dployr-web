@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useQuery } from "@tanstack/react-query";
-import { useUrlState } from "@/hooks/use-url-state";
 import axios from "axios";
+import { useAppAlert } from "@/contexts/app-alert-context";
 import type { ApiSuccessResponse, EventsResponse, PaginationMeta } from "@/types";
+import { getApiErrorHelpLink, getApiErrorMessage } from "@/lib/api-error";
 
 type EventsFilters = {
   type?: string;
@@ -14,8 +15,7 @@ type EventsFilters = {
 };
 
 export function useEvents(clusterId?: string, page = 1, pageSize?: number, filters?: EventsFilters) {
-  const { useAppError } = useUrlState();
-  const [{}, setError] = useAppError();
+  const { setError } = useAppAlert();
 
   const estimatedRowHeight = 64; // px, matches h-16 rows
   const viewportHeight =
@@ -88,19 +88,10 @@ export function useEvents(clusterId?: string, page = 1, pageSize?: number, filte
 
         return payload;
       } catch (error: any) {
-        const errorData = error?.response?.data?.error;
-        const errorMessage =
-          typeof errorData === "string"
-            ? errorData
-            : errorData?.message || error?.message || "An error occurred while loading events.";
-        const helpLink = error?.response?.data?.error?.helpLink;
+        const errorMessage = getApiErrorMessage(error, "An error occurred while loading events.");
+        const helpLink = getApiErrorHelpLink(error);
 
-        setError({
-          appError: {
-            message: errorMessage,
-            helpLink,
-          },
-        });
+        setError({ message: errorMessage, helpLink });
 
         return {
           items: [],

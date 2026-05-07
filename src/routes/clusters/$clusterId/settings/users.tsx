@@ -22,8 +22,8 @@ import { ActivityModal } from "@/components/activity-modal";
 import InviteUsersDialog from "@/components/invite-users-dialog";
 import { useClusterUsers } from "@/hooks/use-cluster-users";
 import { useClustersForm } from "@/hooks/use-clusters-form";
-import { useUrlState } from "@/hooks/use-url-state";
 import { useConfirmation } from "@/hooks/use-confirmation";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 export const Route = createFileRoute("/clusters/$clusterId/settings/users")({
   component: Profile,
@@ -39,9 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 function Profile() {
   const getInitials = useInitials();
 
-  const { useAppError, useAppNotification } = useUrlState();
-  const [{ appError },] = useAppError();
-  const [, setAppNotification] = useAppNotification();
+  const { setNotification } = useAppAlert();
   const confirmation = useConfirmation();
   const { setPendingAction } = confirmation;
 
@@ -80,7 +78,7 @@ function Profile() {
     isLoadingUsers,
   } = useClusterUsers(setPendingAction);
 
-  const { form } = useClustersForm(twoFactor);
+  const { form, formError } = useClustersForm(twoFactor);
 
   return (
     <ProtectedRoute>
@@ -374,12 +372,7 @@ function Profile() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  setAppNotification({
-                                    appNotification: {
-                                      message: `Reminder sent to ${user.email}!`,
-                                      link: "",
-                                    },
-                                  });
+                                  setNotification({ message: `Reminder sent to ${user.email}!` });
                                 }}
                                 className="h-8 px-3 cursor-pointer"
                                 aria-label="Send reminder"
@@ -408,7 +401,7 @@ function Profile() {
           </div>
 
           {/* Invite User Dialog */}
-          <InviteUsersDialog open={inviteDialogOpen} onOpenChange={handleInviteUsersDialogClose} form={form} error={appError} />
+          <InviteUsersDialog open={inviteDialogOpen} onOpenChange={handleInviteUsersDialogClose} form={form} error={{ message: formError }} />
 
           {/* Activity Modal */}
           <ActivityModal open={usersUrlState.activityModal.open} onOpenChange={handleActivityModalClose} user={userToViewActivity} />

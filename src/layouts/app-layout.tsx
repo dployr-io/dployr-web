@@ -4,8 +4,8 @@
 import AppLayoutTemplate from "@/layouts/app/app-sidebar-layout";
 import { type BreadcrumbItem } from "@/types";
 import { type ReactNode, useEffect } from "react";
-import { useUrlState } from "@/hooks/use-url-state";
 import { AlertBanner } from "@/components/ui/alert-banner";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -13,56 +13,34 @@ interface AppLayoutProps {
 }
 
 export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => {
-  const { useAppError, useAppNotification } = useUrlState();
-  const [{ appError }, setError] = useAppError();
-  const [{ appNotification }, setAppNotification] = useAppNotification();
+  const { error, notification, clearError, clearNotification } = useAppAlert();
 
   useEffect(() => {
-    if (appError.message) {
-      const timer = setTimeout(() => {
-        setError({
-          appError: {
-            message: "",
-            helpLink: "",
-          },
-        });
-      }, 10000);
+    if (error?.message) {
+      const timer = setTimeout(clearError, 10000);
       return () => clearTimeout(timer);
     }
-  }, [appError.message, setError]);
+  }, [error?.message, clearError]);
+
   return (
     <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>
       <div className="flex-1 min-h-0 px-9">
-        {appError.message && (
+        {error?.message && (
           <AlertBanner
-            message={appError.message}
-            helpLink={appError.helpLink || ""}
-            onDismiss={() =>
-              setError({
-                appError: {
-                  message: "",
-                  helpLink: "",
-                },
-              })
-            }
+            message={error.message}
+            helpLink={error.helpLink || ""}
+            onDismiss={clearError}
           />
         )}
 
-        {appNotification.message && (
-            <AlertBanner
-              message={appNotification.message}
-              helpLink={appNotification.link || ""}
-              variant="success"
-              onDismiss={() =>
-                setAppNotification({
-                  appNotification: {
-                    message: "",
-                    link: "",
-                  },
-                })
-              }
-            />
-          )}
+        {notification?.message && (
+          <AlertBanner
+            message={notification.message}
+            helpLink={notification.helpLink || ""}
+            variant="success"
+            onDismiss={clearNotification}
+          />
+        )}
       </div>
       {children}
     </AppLayoutTemplate>

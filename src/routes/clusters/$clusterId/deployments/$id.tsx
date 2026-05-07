@@ -63,7 +63,7 @@ function ViewDeployment() {
     isStreaming,
     setSearchQuery,
     handleScrollPositionChange,
-  } = useDeploymentLogs(deployment?.id, selectedInstanceName ?? undefined, {
+  } = useDeploymentLogs(deployment?.id, deployment?.name, selectedInstanceName ?? undefined, {
     currentTab,
     logTimeRange,
     selectedLogLevel,
@@ -79,22 +79,8 @@ function ViewDeployment() {
   );
 
   const deploymentBlueprint = useMemo(() => config?.workloads?.deployments?.find((d) => d?.id === deployment?.id), [config, deployment?.id]);
-
-  // Fallback to REST API blueprint when stream blueprint is unavailable
-  const normalizedBlueprintFromRest = useMemo(() => {
-    const bp = deployment?.blueprint as any;
-    if (!bp) return null;
-    return {
-      ...bp,
-      runtime: typeof bp.runtime === 'string'
-        ? { type: bp.runtime, version: bp.version ?? null }
-        : bp.runtime,
-    };
-  }, [deployment?.blueprint]);
-
-  const effectiveBlueprint = deploymentBlueprint ?? normalizedBlueprintFromRest;
-  const yamlConfig = useMemo(() => effectiveBlueprint ? toYaml(effectiveBlueprint) : "", [effectiveBlueprint]);
-  const jsonConfig = useMemo(() => effectiveBlueprint ? toJson(effectiveBlueprint) : "", [effectiveBlueprint]);
+  const yamlConfig = useMemo(() => deploymentBlueprint ? toYaml(deploymentBlueprint) : "", [deploymentBlueprint]);
+  const jsonConfig = useMemo(() => deploymentBlueprint ? toJson(deploymentBlueprint) : "", [deploymentBlueprint]);
 
   const handleBlueprintCopy = useCallback(() => {
     const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
@@ -166,7 +152,7 @@ function ViewDeployment() {
                   />
                 </TabsContent>
                 <TabsContent value="blueprint">
-                  {effectiveBlueprint ? (
+                  {deploymentBlueprint ? (
                     <BlueprintSection
                       name={deployment?.name || "Deployment"}
                       blueprintFormat={blueprintFormat}

@@ -22,7 +22,7 @@ import type { FsNode } from "../v1.1/entities";
 /**
  * Normalize node from v1.1 format
  */
-function normalizeNode(node: InstanceStreamUpdateV1_1["node"]): NormalizedNode {
+export function normalizeNode(node: InstanceStreamUpdateV1_1["node"]): NormalizedNode {
   if (!node) return { ...defaultNode };
   return {
     version: node.version,
@@ -37,7 +37,7 @@ function normalizeNode(node: InstanceStreamUpdateV1_1["node"]): NormalizedNode {
 /**
  * Normalize status from v1.1 format
  */
-function normalizeStatus(status: InstanceStreamUpdateV1_1["status"]): NormalizedStatus {
+export function normalizeStatus(status: InstanceStreamUpdateV1_1["status"]): NormalizedStatus {
   if (!status) return { ...defaultStatus };
   return {
     state: status.state,
@@ -49,7 +49,7 @@ function normalizeStatus(status: InstanceStreamUpdateV1_1["status"]): Normalized
 /**
  * Normalize health from v1.1 format
  */
-function normalizeHealth(health: InstanceStreamUpdateV1_1["health"]): NormalizedHealth {
+export function normalizeHealth(health: InstanceStreamUpdateV1_1["health"]): NormalizedHealth {
   if (!health) return { ...defaultHealth };
   return {
     overall: health.overall,
@@ -63,7 +63,7 @@ function normalizeHealth(health: InstanceStreamUpdateV1_1["health"]): Normalized
 /**
  * Normalize resources from v1.1 format
  */
-function normalizeResources(resources: InstanceStreamUpdateV1_1["resources"]): NormalizedResources {
+export function normalizeResources(resources: InstanceStreamUpdateV1_1["resources"]): NormalizedResources {
   if (!resources) return { ...defaultResources };
   return {
     cpu: resources.cpu
@@ -114,14 +114,15 @@ function normalizeResources(resources: InstanceStreamUpdateV1_1["resources"]): N
 /**
  * Normalize workloads from v1.1 format
  */
-function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workloads"]): NormalizedWorkloads {
+export function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workloads"]): NormalizedWorkloads {
   if (!workloads) return { ...defaultWorkloads };
   return {
     services: (workloads.services || []).map(s => ({
       id: s.id,
       name: s.name || "",
       description: s.description || null,
-      source: s.source || null,
+      source: s.source || "remote",
+      type: s.type || "web",
       runtime: {
         type: s.runtime,
         version: s.runtime_version || null,
@@ -134,8 +135,8 @@ function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workloads"]): N
               commitHash: s.commit_hash || null,
             }
           : null,
-      runCmd: s.run_command || null,
-      buildCmd: s.build_command || null,
+      runCmd: s.run_cmd || null,
+      buildCmd: s.build_cmd || null,
       port: s.port || null,
       workingDir: s.working_dir || null,
       envVars: s.env_vars || null,
@@ -160,8 +161,8 @@ function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workloads"]): N
             commitHash: d.remote.commit_hash || null,
           }
         : null,
-      runCmd: d.run_command || null,
-      buildCmd: d.build_command || null,
+      runCmd: d.run_cmd || null,
+      buildCmd: d.build_cmd || null,
       port: d.port || null,
       workingDir: d.working_dir || null,
       envVars: d.env_vars || null,
@@ -177,7 +178,7 @@ function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workloads"]): N
 /**
  * Normalize proxy from v1.1 format
  */
-function normalizeProxy(proxy: InstanceStreamUpdateV1_1["proxy"]): NormalizedProxy | null {
+export function normalizeProxy(proxy: InstanceStreamUpdateV1_1["proxy"]): NormalizedProxy | null {
   if (!proxy) return null;
   return {
     type: proxy.type,
@@ -196,7 +197,7 @@ function normalizeProxy(proxy: InstanceStreamUpdateV1_1["proxy"]): NormalizedPro
 /**
  * Normalize processes from v1.1 format
  */
-function normalizeProcesses(processes: InstanceStreamUpdateV1_1["processes"]): NormalizedProcesses {
+export function normalizeProcesses(processes: InstanceStreamUpdateV1_1["processes"]): NormalizedProcesses {
   if (!processes) return { ...defaultProcesses };
   return {
     summary: processes.summary
@@ -256,7 +257,7 @@ export function normalizeFsNode(node: FsNode): NormalizedFsNode {
 /**
  * Normalize filesystem from v1.1 format
  */
-function normalizeFilesystem(filesystem: InstanceStreamUpdateV1_1["filesystem"]): NormalizedFilesystem | null {
+export function normalizeFilesystem(filesystem: InstanceStreamUpdateV1_1["filesystem"]): NormalizedFilesystem | null {
   if (!filesystem) return null;
   return {
     generatedAt: filesystem.generated_at,
@@ -267,7 +268,7 @@ function normalizeFilesystem(filesystem: InstanceStreamUpdateV1_1["filesystem"])
 /**
  * Normalize diagnostics from v1.1 format
  */
-function normalizeDiagnostics(diagnostics: InstanceStreamUpdateV1_1["diagnostics"]): NormalizedDiagnostics {
+export function normalizeDiagnostics(diagnostics: InstanceStreamUpdateV1_1["diagnostics"]): NormalizedDiagnostics {
   if (!diagnostics) return { ...defaultDiagnostics };
   return {
     bootstrapTokenPreview: diagnostics.auth?.bootstrap_token_preview || null,

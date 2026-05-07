@@ -5,14 +5,14 @@ import { useState } from "react";
 import type { ApiSuccessResponse, Instance, InstanceStatus, PaginatedData, PaginationMeta } from "@/types";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useUrlState } from "@/hooks/use-url-state";
 import { useClusterId } from "@/hooks/use-cluster-id";
 import { useInstanceOperations } from "@/hooks/use-instance-operations";
+import { getApiErrorHelpLink, getApiErrorMessage } from "@/lib/api-error";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 export function useInstances() {
   const queryClient = useQueryClient();
-  const { useAppError } = useUrlState();
-  const [, setError] = useAppError();
+  const { setError } = useAppAlert();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const clusterId = useClusterId();
@@ -127,17 +127,10 @@ export function useInstances() {
       queryClient.invalidateQueries({ queryKey: ["instances", clusterId] });
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while adding instance.";
+      const errorMessage = getApiErrorMessage(error, "An error occurred while adding instance.");
+      const helpLink = getApiErrorHelpLink(error);
 
-      const helpLink = error?.response?.data?.error.helpLink;
-
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      setError({ message: errorMessage, helpLink });
     },
   });
 
@@ -155,20 +148,10 @@ export function useInstances() {
       queryClient.invalidateQueries({ queryKey: ["instances", clusterId] });
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage =
-        typeof errorData === "string"
-          ? errorData
-          : errorData?.message || error?.message || "An error occurred while deleting instance.";
+      const errorMessage = getApiErrorMessage(error, "An error occurred while deleting instance.");
+      const helpLink = getApiErrorHelpLink(error);
 
-      const helpLink = error?.response?.data?.error.helpLink;
-
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      setError({ message: errorMessage, helpLink });
     },
   });
 
@@ -177,14 +160,9 @@ export function useInstances() {
       await instanceOps.rotateToken(name, token);
     },
     onError: (error: any) => {
-      const errorMessage = error?.message || "An error occurred while rotating bootstrap token.";
+      const errorMessage = getApiErrorMessage(error, "An error occurred while rotating bootstrap token.");
 
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink: "",
-        },
-      });
+      setError({ message: errorMessage, helpLink: "" });
     },
   });
 
@@ -202,20 +180,10 @@ export function useInstances() {
       queryClient.invalidateQueries({ queryKey: ["instances", clusterId] });
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage =
-        typeof errorData === "string"
-          ? errorData
-          : errorData?.message || error?.message || "An error occurred while updating instance.";
+      const errorMessage = getApiErrorMessage(error, "An error occurred while updating instance.");
+      const helpLink = getApiErrorHelpLink(error);
 
-      const helpLink = error?.response?.data?.error.helpLink;
-
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      setError({ message: errorMessage, helpLink });
     },
   });
 
@@ -227,14 +195,9 @@ export function useInstances() {
       return await instanceOps.installVersion(name, clusterId, version);
     },
     onError: (error: any) => {
-      const errorMessage = error?.message || "An error occurred while installing version.";
+      const errorMessage = getApiErrorMessage(error, "An error occurred while installing version.");
 
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink: "",
-        },
-      });
+      setError({ message: errorMessage, helpLink: "" });
     },
   });
 
@@ -246,14 +209,9 @@ export function useInstances() {
       return await instanceOps.restartInstance(name, clusterId, force);
     },
     onError: (error: any) => {
-      const errorMessage = error?.message || "An error occurred while restarting instance.";
+      const errorMessage = getApiErrorMessage(error, "An error occurred while restarting instance.");
 
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink: "",
-        },
-      });
+      setError({ message: errorMessage, helpLink: "" });
     },
   });
 
@@ -265,14 +223,9 @@ export function useInstances() {
       return await instanceOps.rebootInstance(name, clusterId, force);
     },
     onError: (error: any) => {
-      const errorMessage = error?.message || "An error occurred while rebooting instance.";
+      const errorMessage = getApiErrorMessage(error, "An error occurred while rebooting instance.");
 
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink: "",
-        },
-      });
+      setError({ message: errorMessage, helpLink: "" });
     },
   });
 

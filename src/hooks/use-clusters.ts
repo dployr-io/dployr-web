@@ -5,15 +5,15 @@ import type { Integrations, User, UserRole } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useAuth } from "./use-auth";
-import { useUrlState } from "@/hooks/use-url-state";
 import { useState } from "react";
 import { useClusterId } from "./use-cluster-id";
+import { getApiErrorHelpLink, getApiErrorMessage } from "@/lib/api-error";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 export function useClusters() {
   const { clusters } = useAuth();
   const queryClient = useQueryClient();
-  const { useAppError } = useUrlState();
-  const [, setError] = useAppError();
+  const { setError } = useAppAlert();
   const [usersToAdd, setUsersToAdd] = useState<string[]>([]);
 
   const clusterId = useClusterId() || "";
@@ -84,15 +84,9 @@ export function useClusters() {
       });
       queryClient.invalidateQueries({ queryKey: ["invites-received"] });
     } catch (error: any) {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
-      const helpLink = error?.response?.data?.error.helpLink;
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      const errorMessage = getApiErrorMessage(error, "An error occored while adding user.");
+      const helpLink = getApiErrorHelpLink(error);
+      setError({ message: errorMessage, helpLink });
     }
   }
 
@@ -104,15 +98,9 @@ export function useClusters() {
       });
       queryClient.invalidateQueries({ queryKey: ["invites-received"] });
     } catch (error: any) {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
-      const helpLink = error?.response?.data?.error.helpLink;
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      const errorMessage = getApiErrorMessage(error, "An error occored while adding user.");
+      const helpLink = getApiErrorHelpLink(error);
+      setError({ message: errorMessage, helpLink });
     }
   }
 
@@ -150,17 +138,10 @@ export function useClusters() {
       queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+      const errorMessage = getApiErrorMessage(error, "An error occored while adding user.");
+      const helpLink = getApiErrorHelpLink(error);
 
-      const helpLink = error?.response?.data?.error.helpLink;
-
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      setError({ message: errorMessage, helpLink });
     },
   });
 
@@ -180,17 +161,10 @@ export function useClusters() {
       queryClient.invalidateQueries({ queryKey: ["invites-received"] });
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+      const errorMessage = getApiErrorMessage(error, "An error occored while adding user.");
+      const helpLink = getApiErrorHelpLink(error);
 
-      const helpLink = error?.response?.data?.error.helpLink;
-
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      setError({ message: errorMessage, helpLink });
     },
   });
 
@@ -209,17 +183,10 @@ export function useClusters() {
       queryClient.invalidateQueries({ queryKey: ["users", clusterId] });
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while adding user.";
+      const errorMessage = getApiErrorMessage(error, "An error occored while adding user.");
+      const helpLink = getApiErrorHelpLink(error);
 
-      const helpLink = error?.response?.data?.error.helpLink;
-
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      setError({ message: errorMessage, helpLink });
     },
   });
 
@@ -237,16 +204,10 @@ export function useClusters() {
 
         return data;
       } catch (error: any) {
-        const errorData = error?.response?.data?.error;
-        const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occored while loading integrations.";
-        const helpLink = error?.response?.data?.error.helpLink;
+        const errorMessage = getApiErrorMessage(error, "An error occored while loading integrations.");
+        const helpLink = getApiErrorHelpLink(error);
 
-        setError({
-          appError: {
-            message: errorMessage,
-            helpLink,
-          },
-        });
+        setError({ message: errorMessage, helpLink });
         return {} as Integrations;
       }
     },

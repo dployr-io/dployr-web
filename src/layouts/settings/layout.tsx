@@ -8,7 +8,7 @@ import { type NavItem } from "@/types";
 import { type PropsWithChildren } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { AlertBanner } from "@/components/ui/alert-banner";
-import { useUrlState } from "@/hooks/use-url-state";
+import { useAppAlert } from "@/contexts/app-alert-context";
 import { useConfirmation } from "@/hooks/use-confirmation";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
@@ -23,10 +23,7 @@ interface SettingsLayoutProps extends PropsWithChildren {
 export default function SettingsLayout({ children, twoFactor, confirmation }: SettingsLayoutProps) {
   const clusterId = useClusterId();
   const location = useLocation();
-  const { useAppError, useAppNotification, useAutoInitializeAppState } = useUrlState();
-  const [{ appError }, setError] = useAppError();
-  const [{ appNotification }, setAppNotification] = useAppNotification();
-  useAutoInitializeAppState(setError, setAppNotification);
+  const { error: appError, notification: appNotification, clearError, clearNotification } = useAppAlert();
   const { pendingAction, setPendingAction } = confirmation;
 
   const sidebarNavItems: NavItem[] = [
@@ -79,34 +76,20 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
         <Separator className="my-6 lg:hidden" />
 
         <div className="flex-1 min-h-0">
-          {appError.message && (
+          {appError?.message && (
             <AlertBanner
               message={appError.message}
               helpLink={appError.helpLink || ""}
-              onDismiss={() =>
-                setError({
-                  appError: {
-                    message: "",
-                    helpLink: "",
-                  },
-                })
-              }
+              onDismiss={clearError}
             />
           )}
 
-          {appNotification.message && (
+          {appNotification?.message && (
             <AlertBanner
               message={appNotification.message}
-              helpLink={appNotification.link || ""}
+              helpLink={appNotification.helpLink || ""}
               variant="success"
-              onDismiss={() =>
-                setAppNotification({
-                  appNotification: {
-                    message: "",
-                    link: "",
-                  },
-                })
-              }
+              onDismiss={clearNotification}
             />
           )}
 

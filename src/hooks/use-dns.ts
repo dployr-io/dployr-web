@@ -5,8 +5,9 @@ import type { ApiSuccessResponse } from "@/types";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClusterId } from "@/hooks/use-cluster-id";
-import { useUrlState } from "@/hooks/use-url-state";
 import { useState, useEffect } from "react";
+import { useAppAlert } from "@/contexts/app-alert-context";
+import { getApiErrorHelpLink, getApiErrorMessage } from "@/lib/api-error";
 
 export interface DnsDomain {
   id: string;
@@ -47,8 +48,7 @@ export interface DnsSetupResponse {
 export function useDns(instanceId?: string) {
   const queryClient = useQueryClient();
   const clusterId = useClusterId();
-  const { useAppError } = useUrlState();
-  const [, setError] = useAppError();
+  const { setError } = useAppAlert();
   const [setupDetails, setSetupDetails] = useState<DnsSetupResponse | null>(null);
   const [verifySetupDetails, setVerifySetupDetails] = useState<DnsSetupResponse | null>(null);
   const [verifyCooldowns, setVerifyCooldowns] = useState<Map<string, number>>(new Map());
@@ -151,16 +151,10 @@ export function useDns(instanceId?: string) {
       setSetupDetails(data);
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while setting up domain.";
-      const helpLink = error?.response?.data?.error?.helpLink;
+      const errorMessage = getApiErrorMessage(error, "An error occurred while setting up domain.");
+      const helpLink = getApiErrorHelpLink(error);
 
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      setError({ message: errorMessage, helpLink });
     },
   });
 
@@ -179,16 +173,10 @@ export function useDns(instanceId?: string) {
       queryClient.invalidateQueries({ queryKey: ["dns-domains", instanceId, clusterId] });
     },
     onError: (error: any) => {
-      const errorData = error?.response?.data?.error;
-      const errorMessage = typeof errorData === "string" ? errorData : errorData?.message || error?.message || "An error occurred while deleting domain.";
-      const helpLink = error?.response?.data?.error?.helpLink;
+      const errorMessage = getApiErrorMessage(error, "An error occurred while deleting domain.");
+      const helpLink = getApiErrorHelpLink(error);
 
-      setError({
-        appError: {
-          message: errorMessage,
-          helpLink,
-        },
-      });
+      setError({ message: errorMessage, helpLink });
     },
   });
 

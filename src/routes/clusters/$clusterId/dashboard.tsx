@@ -34,7 +34,7 @@ function Dashboard() {
   const { services } = useServices();
   const { deployments } = useDeployments();
   const { instances } = useInstances();
-  const { clusterId, userCluster } = useClusters();
+  const { clusterId } = useClusters();
   const queryClient = useQueryClient();
 
   const lastDeployment = useMemo(() => {
@@ -58,10 +58,10 @@ function Dashboard() {
   }, [instances, queryClient]);
 
   const getServiceDomain = (service: any) => {
-    if (!service._instanceName) return `${service.name}.${userCluster?.name}.dployr.io`;
+    if (!service._instanceName) return `${service.name}.dployr.run`;
     
     const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", service._instanceName]);
-    if (!instanceData?.proxy?.routes) return `${service.name}.${userCluster?.name}.dployr.io`;
+    if (!instanceData?.proxy?.routes) return `${service.name}.dployr.run`;
     
     const proxyRoute = instanceData.proxy.routes.find(route => {
       const upstreamPort = route.upstream?.match(/:(\d+)/)?.[1];
@@ -70,7 +70,7 @@ function Dashboard() {
              upstreamPort === String(service.port);
     });
     
-    return proxyRoute?.domain || `${service.name}.${userCluster?.name}.dployr.io`;
+    return proxyRoute?.domain || `${service.name}.dployr.run`;
   };
 
   const hasServices = services.length > 0;

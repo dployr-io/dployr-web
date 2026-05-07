@@ -128,6 +128,7 @@ function normalizeWorkloads(update: InstanceStreamUpdateV1): NormalizedWorkloads
       name: s.name,
       description: s.description || null,
       source: s.source || null,
+      type: s.runtime === "static" ? "static" : "web",
       runtime: {
         type: s.runtime,
         version: s.runtime_version || null,

@@ -4,6 +4,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
+import { getApiErrorMessage } from "@/lib/api-error";
 import type { ApiSuccessResponse, User } from "@/types";
 import axios from "axios";
 import { useUrlState } from "@/hooks/use-url-state";
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return res.data.data;
       } catch (error: any) {
-        const errorMessage = error?.response?.data?.error || "Authentication failed";
+        const errorMessage = getApiErrorMessage(error, "Authentication failed");
 
         // don't set session errors in auth page
         if (window.location.pathname !== "/") {
@@ -161,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         withCredentials: true,
       });
     } catch (error: any) {
-      const errorMessage = error?.response?.data?.error || "Error occored while trying to sign out";
+      const errorMessage = getApiErrorMessage(error, "Error occored while trying to sign out");
 
       console.error("Logout error:", errorMessage);
     }

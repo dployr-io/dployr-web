@@ -41,7 +41,7 @@ export function CreateServicePage2({
                     name="port"
                     placeholder="3000"
                     value={port || ''}
-                    onChange={(e) => setField('port', Number(e.target.value))}
+                    onChange={(e) => setField('port', e.target.value ? Number(e.target.value) : null)}
                     tabIndex={1}
                     disabled={processing}
                 />

@@ -6,6 +6,7 @@ import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
+import { useAppAlert } from "@/contexts/app-alert-context";
 import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Cog, Copy, Cpu, ExternalLink, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/metric-card";
@@ -98,6 +99,7 @@ function ViewInstance() {
   const {
     snapshots: processSnapshots,
     isLoading: isLoadingProcessHistory,
+    error: processHistoryError,
   } = useProcessHistory(instance?.tag || "");
 
   // Metrics history hook - collects metrics at 30 second intervals
@@ -168,7 +170,14 @@ function ViewInstance() {
   const [isCertOpen, setIsCertOpen] = useState(false);
   const [domainInput, setDomainInput] = useState("");
   const { domains, setupDnsAsync, isSettingUp, deleteDnsAsync, isDeleting, verifyDomain, isVerifying, getVerifyCooldown, verifySetupDetails, clearVerifySetupDetails } = useDns(instanceId);
-  const [, setError] = useState<{ message: string; helpLink: string } | null>(null);
+  const { setError: setAppError } = useAppAlert();
+
+  // Display process history errors
+  useEffect(() => {
+    if (processHistoryError) {
+      setAppError({ message: processHistoryError });
+    }
+  }, [processHistoryError, setAppError]);
 
   // Set bootstrap token from update data
   useEffect(() => {
@@ -585,7 +594,7 @@ function ViewInstance() {
                               await setupDnsAsync({ domain: domainInput, instanceId: instanceId! });
                               setDomainInput("");
                             } catch (error: any) {
-                              setError({ message: error?.response?.data?.error || "Failed to setup DNS", helpLink: "" });
+                              setAppError({ message: error?.response?.data?.error || "Failed to setup DNS" });
                             }
                           }}
                           disabled={isSettingUp || !domainInput.trim()}

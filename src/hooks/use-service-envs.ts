@@ -4,12 +4,12 @@
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiSuccessResponse } from "@/types";
-import { useUrlState } from "./use-url-state";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 export function useServiceEnvs(serviceId: string | null) {
   const queryClient = useQueryClient();
-  const { useAppError } = useUrlState();
-  const [, setAppError] = useAppError();
+  const { setError: setAppError } = useAppAlert();
 
   const { data: envs, isLoading } = useQuery<Record<string, string>>({
     queryKey: ["service-envs", serviceId],
@@ -36,8 +36,8 @@ export function useServiceEnvs(serviceId: string | null) {
       queryClient.invalidateQueries({ queryKey: ["service-envs", serviceId] });
     },
     onError: (err: any) => {
-      const message = err?.response?.data?.error?.message || err?.message || "Failed to update environment variables";
-      setAppError({ appError: { message, helpLink: "" } });
+      const message = getApiErrorMessage(err, "Failed to update environment variables");
+      setAppError({ message, helpLink: "" });
     },
   });
 
@@ -52,8 +52,8 @@ export function useServiceEnvs(serviceId: string | null) {
       queryClient.invalidateQueries({ queryKey: ["service-envs", serviceId] });
     },
     onError: (err: any) => {
-      const message = err?.response?.data?.error?.message || err?.message || "Failed to delete environment variable";
-      setAppError({ appError: { message, helpLink: "" } });
+      const message = getApiErrorMessage(err, "Failed to delete environment variable");
+      setAppError({ message, helpLink: "" });
     },
   });
 

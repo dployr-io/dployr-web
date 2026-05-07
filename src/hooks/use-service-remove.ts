@@ -3,7 +3,8 @@
 
 import { useCallback } from "react";
 import axios from "axios";
-import { useUrlState } from "./use-url-state";
+import { getApiErrorHelpLink, getApiErrorMessage } from "@/lib/api-error";
+import { useAppAlert } from "@/contexts/app-alert-context";
 
 interface ServiceRemoveResult {
   success: boolean;
@@ -11,15 +12,13 @@ interface ServiceRemoveResult {
 }
 
 export function useServiceRemove() {
-  const { useAppError, useAppNotification } = useUrlState();
-  const [, setAppError] = useAppError();
-  const [, setAppNotification] = useAppNotification();
+  const { setError: setAppError, setNotification: setAppNotification } = useAppAlert();
 
   const removeService = useCallback(
     async (serviceId: string): Promise<ServiceRemoveResult> => {
       if (!serviceId) {
         const error = "Service ID is required for removal.";
-        setAppError({ appError: { message: error, helpLink: "" } });
+        setAppError({ message: error, helpLink: "" });
         return { success: false, error };
       }
 
@@ -29,17 +28,14 @@ export function useServiceRemove() {
           { withCredentials: true }
         );
 
-        setAppNotification({
-          appNotification: { message: "Service removed successfully", link: "" },
-        });
+        setAppNotification({ message: "Service removed successfully", helpLink: "" });
 
         return { success: true };
       } catch (err: any) {
-        const errorData = err?.response?.data?.error;
-        const message = errorData?.message || err?.message || "Failed to remove service";
-        const helpLink = errorData?.helpLink || "";
+        const message = getApiErrorMessage(err, "Failed to remove service");
+        const helpLink = getApiErrorHelpLink(err);
 
-        setAppError({ appError: { message, helpLink } });
+        setAppError({ message, helpLink });
         return { success: false, error: message };
       }
     },

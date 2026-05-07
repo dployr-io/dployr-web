@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useClusters } from "@/hooks/use-clusters";
 import { getRolePriority } from "@/lib/utils";
 import { useUrlState } from "@/hooks/use-url-state";
+import { useAppAlert } from "@/contexts/app-alert-context";
 import { use2FA } from "@/hooks/use-2fa";
 import { useConfirmation } from "./use-confirmation";
 
@@ -16,8 +17,8 @@ export function useClusterUsers(setPendingAction: ReturnType<typeof useConfirmat
   const [{ tab, page }, setTabAndPage] = useUsersUrlState();
   const [{ open: activityOpen, userId: activityUserId, search, category, sortBy, sortOrder }, setActivityModal] = useUsersActivityModal();
 
-  const { useAppError, useInviteUserDialog } = useUrlState();
-  const [, setError] = useAppError();
+  const { useInviteUserDialog } = useUrlState();
+  const { setError } = useAppAlert();
 
   // Local state for non-URL state
   const [userToRemove, setUserToRemove] = useState<User | null>(null);
@@ -107,12 +108,7 @@ export function useClusterUsers(setPendingAction: ReturnType<typeof useConfirmat
   };
 
   const handleInviteUsersDialogClose = (inviteOpen: boolean) => {
-    setError({
-      appError: {
-        message: "",
-        helpLink: "",
-      },
-    });
+    setError({ message: "", helpLink: "" });
     setInviteDialogOpen({ inviteOpen });
   };
 
