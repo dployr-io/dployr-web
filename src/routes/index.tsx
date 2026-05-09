@@ -98,7 +98,7 @@ function App() {
                 {errorMessage && <AlertBanner message={errorMessage} helpLink="" onDismiss={() => setError({ authError: "" })} />}
 
                 <div className="flex flex-col gap-2">
-                  <div className="text-xl">{verifyOTP ? "Verify 2FA" : "Sign in"}</div>
+                  <div className="text-xl font-bold">{verifyOTP ? "Verify 2FA" : "Sign in"}</div>
                   <div>{verifyOTP ? "Enter the OTP sent to your email" : "Jump back into action!"}</div>
                 </div>
               </div>
