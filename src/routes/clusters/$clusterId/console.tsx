@@ -18,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useUrlState } from "@/hooks/use-url-state";
+import { usePlanFeatures } from "@/hooks/use-plan-features";
+import { FeatureGate } from "@/components/feature-gate";
 
 export const Route = createFileRoute("/clusters/$clusterId/console")({
   component: Console,
@@ -31,6 +33,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 function Console() {
+  const { hasConsole } = usePlanFeatures();
   const { instances } = useInstances();
   const { useConsoleUrlState } = useUrlState();
   const [{ fullscreen }, setConsoleState] = useConsoleUrlState();
@@ -159,6 +162,45 @@ function Console() {
   const sanitizedData = () => ({
     __html: DOMPurify.sanitize(terminalScrollbarHTML),
   });
+
+  if (!hasConsole) {
+    return (
+      <ProtectedRoute>
+        <AppLayout breadcrumbs={breadcrumbs}>
+          <div className="relative flex h-full min-h-[500px] flex-col rounded-xl border overflow-hidden bg-[#0d0d0d]">
+            {/* Fake terminal content — visible enough to read through glass */}
+            <div className="flex-1 p-5 space-y-2 select-none pointer-events-none font-mono text-xs" aria-hidden>
+              {[
+                { text: "$ dployr status", color: "#4ade80" },
+                { text: "● neutron04-PDdl4   healthy   ready   uptime 19h 54m", color: "#a3a3a3" },
+                { text: "", color: "" },
+                { text: "$ tail -f /var/log/app.log", color: "#4ade80" },
+                { text: "[INFO]  2025-05-10 18:48:01  Server listening on :8080", color: "#737373" },
+                { text: "[INFO]  2025-05-10 18:48:01  Connected to postgres@db:5432", color: "#737373" },
+                { text: "[WARN]  2025-05-10 18:48:12  Memory usage at 65.8%", color: "#facc15" },
+                { text: "[INFO]  2025-05-10 18:48:30  GET /api/health  200  2ms", color: "#737373" },
+                { text: "[INFO]  2025-05-10 18:48:45  GET /api/instances  200  18ms", color: "#737373" },
+                { text: "", color: "" },
+                { text: "$ ps aux | head -5", color: "#4ade80" },
+                { text: "USER       PID  %CPU  %MEM    VSZ    RSS  COMMAND", color: "#525252" },
+                { text: "root         1   0.0   0.1   4236   3012  /bin/sh", color: "#737373" },
+                { text: "node      1234   2.1   4.5  812432 20840  node app/server.js", color: "#737373" },
+                { text: "postgres  1891   0.3   2.2  219408  9876  postgres: main", color: "#737373" },
+                { text: "", color: "" },
+                { text: "$ _", color: "#4ade80" },
+              ].map((line, i) => (
+                <div key={i} style={{ color: line.color || "transparent" }}>{line.text || " "}</div>
+              ))}
+            </div>
+            <FeatureGate
+              feature="Console access"
+              description="Run commands and interact with your instance in real time. Available on Pro plan."
+            />
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>

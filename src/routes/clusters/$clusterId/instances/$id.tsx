@@ -31,6 +31,8 @@ import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useEffect, useState, useMemo } from "react";
+import { usePlanFeatures } from "@/hooks/use-plan-features";
+import { FeatureGate, FileExplorerGatePlaceholder } from "@/components/feature-gate";
 import { LogsWindow } from "@/components/logs-window";
 import { VersionSelector } from "@/components/version-selector";
 import { useDns } from "@/hooks/use-dns";
@@ -73,6 +75,7 @@ function ViewInstance() {
   const canViewConfig = myRole ? getRolePriority(myRole) >= 2 : false;
   const canViewLogs = myRole ? getRolePriority(myRole) >= 2 : false;
   const { address, tag, publicKey, setAddress, setTag, setPublicKey } = useInstancesForm();
+  const { hasFileExplorer } = usePlanFeatures();
   const twoFactor = use2FA({ enabled: true });
 
   const {
@@ -333,7 +336,12 @@ function ViewInstance() {
               <div className="flex items-center justify-between">
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
-                  {update?.filesystem && <TabsTrigger value="files">Files</TabsTrigger>}
+                  <TabsTrigger value="files" className="relative">
+                    Files
+                    {!hasFileExplorer && (
+                      <span className="ml-1.5 rounded-sm bg-muted px-1 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">Pro</span>
+                    )}
+                  </TabsTrigger>
                   {canViewConfig && <TabsTrigger value="config">Configuration</TabsTrigger>}
                   {canViewLogs && <TabsTrigger value="logs">Logs</TabsTrigger>}
                   {canViewAdvanced && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
@@ -423,13 +431,25 @@ function ViewInstance() {
               </TabsContent>
 
               {/* Files Tab */}
-              {update?.filesystem && (
-                <TabsContent value="files" className="mt-4 flex min-h-0 flex-1 flex-col">
-                  <div className="flex-1 rounded-xl border bg-background/40 overflow-hidden" style={{ minHeight: "500px" }}>
+              <TabsContent value="files" className="mt-4 flex min-h-0 flex-1 flex-col">
+                <div className="relative flex-1 rounded-xl border bg-background/40 overflow-hidden" style={{ minHeight: "500px" }}>
+                  {!hasFileExplorer ? (
+                    <>
+                      <FileExplorerGatePlaceholder />
+                      <FeatureGate
+                        feature="File explorer"
+                        description="Browse and manage files on your instance. Available on Pro plan."
+                      />
+                    </>
+                  ) : update?.filesystem ? (
                     <FileSystemBrowser instanceId={instance?.tag || ""} clusterId={clusterId} fs={update.filesystem} className="h-full" />
-                  </div>
-                </TabsContent>
-              )}
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                      No filesystem data available
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
 
               {/* Config Tab */}
               {canViewConfig && (

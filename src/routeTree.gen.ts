@@ -23,6 +23,7 @@ import { Route as ClustersClusterIdDeploymentsIndexRouteImport } from './routes/
 import { Route as ClustersClusterIdSettingsUsersRouteImport } from './routes/clusters/$clusterId/settings/users'
 import { Route as ClustersClusterIdSettingsProfileRouteImport } from './routes/clusters/$clusterId/settings/profile'
 import { Route as ClustersClusterIdSettingsIntegrationsRouteImport } from './routes/clusters/$clusterId/settings/integrations'
+import { Route as ClustersClusterIdSettingsBillingRouteImport } from './routes/clusters/$clusterId/settings/billing'
 import { Route as ClustersClusterIdSettingsAboutRouteImport } from './routes/clusters/$clusterId/settings/about'
 import { Route as ClustersClusterIdServicesIdRouteImport } from './routes/clusters/$clusterId/services/$id'
 import { Route as ClustersClusterIdInstancesIdRouteImport } from './routes/clusters/$clusterId/instances/$id'
@@ -107,6 +108,12 @@ const ClustersClusterIdSettingsIntegrationsRoute =
     path: '/integrations',
     getParentRoute: () => ClustersClusterIdSettingsRouteRoute,
   } as any)
+const ClustersClusterIdSettingsBillingRoute =
+  ClustersClusterIdSettingsBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => ClustersClusterIdSettingsRouteRoute,
+  } as any)
 const ClustersClusterIdSettingsAboutRoute =
   ClustersClusterIdSettingsAboutRouteImport.update({
     id: '/about',
@@ -145,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/clusters/$clusterId/instances/$id': typeof ClustersClusterIdInstancesIdRoute
   '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
   '/clusters/$clusterId/settings/about': typeof ClustersClusterIdSettingsAboutRoute
+  '/clusters/$clusterId/settings/billing': typeof ClustersClusterIdSettingsBillingRoute
   '/clusters/$clusterId/settings/integrations': typeof ClustersClusterIdSettingsIntegrationsRoute
   '/clusters/$clusterId/settings/profile': typeof ClustersClusterIdSettingsProfileRoute
   '/clusters/$clusterId/settings/users': typeof ClustersClusterIdSettingsUsersRoute
@@ -165,6 +173,7 @@ export interface FileRoutesByTo {
   '/clusters/$clusterId/instances/$id': typeof ClustersClusterIdInstancesIdRoute
   '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
   '/clusters/$clusterId/settings/about': typeof ClustersClusterIdSettingsAboutRoute
+  '/clusters/$clusterId/settings/billing': typeof ClustersClusterIdSettingsBillingRoute
   '/clusters/$clusterId/settings/integrations': typeof ClustersClusterIdSettingsIntegrationsRoute
   '/clusters/$clusterId/settings/profile': typeof ClustersClusterIdSettingsProfileRoute
   '/clusters/$clusterId/settings/users': typeof ClustersClusterIdSettingsUsersRoute
@@ -186,6 +195,7 @@ export interface FileRoutesById {
   '/clusters/$clusterId/instances/$id': typeof ClustersClusterIdInstancesIdRoute
   '/clusters/$clusterId/services/$id': typeof ClustersClusterIdServicesIdRoute
   '/clusters/$clusterId/settings/about': typeof ClustersClusterIdSettingsAboutRoute
+  '/clusters/$clusterId/settings/billing': typeof ClustersClusterIdSettingsBillingRoute
   '/clusters/$clusterId/settings/integrations': typeof ClustersClusterIdSettingsIntegrationsRoute
   '/clusters/$clusterId/settings/profile': typeof ClustersClusterIdSettingsProfileRoute
   '/clusters/$clusterId/settings/users': typeof ClustersClusterIdSettingsUsersRoute
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/clusters/$clusterId/instances/$id'
     | '/clusters/$clusterId/services/$id'
     | '/clusters/$clusterId/settings/about'
+    | '/clusters/$clusterId/settings/billing'
     | '/clusters/$clusterId/settings/integrations'
     | '/clusters/$clusterId/settings/profile'
     | '/clusters/$clusterId/settings/users'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/clusters/$clusterId/instances/$id'
     | '/clusters/$clusterId/services/$id'
     | '/clusters/$clusterId/settings/about'
+    | '/clusters/$clusterId/settings/billing'
     | '/clusters/$clusterId/settings/integrations'
     | '/clusters/$clusterId/settings/profile'
     | '/clusters/$clusterId/settings/users'
@@ -248,6 +260,7 @@ export interface FileRouteTypes {
     | '/clusters/$clusterId/instances/$id'
     | '/clusters/$clusterId/services/$id'
     | '/clusters/$clusterId/settings/about'
+    | '/clusters/$clusterId/settings/billing'
     | '/clusters/$clusterId/settings/integrations'
     | '/clusters/$clusterId/settings/profile'
     | '/clusters/$clusterId/settings/users'
@@ -362,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClustersClusterIdSettingsIntegrationsRouteImport
       parentRoute: typeof ClustersClusterIdSettingsRouteRoute
     }
+    '/clusters/$clusterId/settings/billing': {
+      id: '/clusters/$clusterId/settings/billing'
+      path: '/billing'
+      fullPath: '/clusters/$clusterId/settings/billing'
+      preLoaderRoute: typeof ClustersClusterIdSettingsBillingRouteImport
+      parentRoute: typeof ClustersClusterIdSettingsRouteRoute
+    }
     '/clusters/$clusterId/settings/about': {
       id: '/clusters/$clusterId/settings/about'
       path: '/about'
@@ -395,6 +415,7 @@ declare module '@tanstack/react-router' {
 
 interface ClustersClusterIdSettingsRouteRouteChildren {
   ClustersClusterIdSettingsAboutRoute: typeof ClustersClusterIdSettingsAboutRoute
+  ClustersClusterIdSettingsBillingRoute: typeof ClustersClusterIdSettingsBillingRoute
   ClustersClusterIdSettingsIntegrationsRoute: typeof ClustersClusterIdSettingsIntegrationsRoute
   ClustersClusterIdSettingsProfileRoute: typeof ClustersClusterIdSettingsProfileRoute
   ClustersClusterIdSettingsUsersRoute: typeof ClustersClusterIdSettingsUsersRoute
@@ -403,6 +424,8 @@ interface ClustersClusterIdSettingsRouteRouteChildren {
 const ClustersClusterIdSettingsRouteRouteChildren: ClustersClusterIdSettingsRouteRouteChildren =
   {
     ClustersClusterIdSettingsAboutRoute: ClustersClusterIdSettingsAboutRoute,
+    ClustersClusterIdSettingsBillingRoute:
+      ClustersClusterIdSettingsBillingRoute,
     ClustersClusterIdSettingsIntegrationsRoute:
       ClustersClusterIdSettingsIntegrationsRoute,
     ClustersClusterIdSettingsProfileRoute:

@@ -102,7 +102,19 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
           case "node":        updated.node        = normalizeNode(data as any);        break;
           case "status":      updated.status      = normalizeStatus(data as any);      break;
           case "health":      updated.health      = normalizeHealth(data as any);      break;
-          case "resources":   updated.resources   = normalizeResources(data as any);   break;
+          case "resources": {
+            const rawRes = data as any;
+            const nr = normalizeResources(rawRes);
+            const prev = (existing ?? base).resources;
+            // Preserve existing sub-fields absent from this delta to avoid flicker
+            updated.resources = {
+              cpu:    rawRes?.cpu    !== undefined ? nr.cpu    : (prev?.cpu    ?? null),
+              memory: rawRes?.memory !== undefined ? nr.memory : (prev?.memory ?? null),
+              swap:   rawRes?.swap   !== undefined ? nr.swap   : (prev?.swap   ?? null),
+              disks:  rawRes?.disks  !== undefined ? nr.disks  : (prev?.disks  ?? []),
+            };
+            break;
+          }
           case "workloads":   updated.workloads   = normalizeWorkloads(data as any);   break;
           case "proxy":       updated.proxy       = normalizeProxy(data as any);       break;
           case "processes":   updated.processes   = normalizeProcesses(data as any);   break;

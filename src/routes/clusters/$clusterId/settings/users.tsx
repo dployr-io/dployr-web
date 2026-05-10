@@ -18,6 +18,7 @@ import { Crown, Trash2, ChevronLeft, ChevronRight, Check, X, UserPlus2 } from "l
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tooltip } from "@radix-ui/react-tooltip";
+import TimeAgo from "react-timeago";
 import { ActivityModal } from "@/components/activity-modal";
 import InviteUsersDialog from "@/components/invite-users-dialog";
 import { useClusterUsers } from "@/hooks/use-cluster-users";
@@ -359,7 +360,7 @@ function Profile() {
                             <span className="text-sm">{user.email}</span>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Recently"}</span>
+                            <span className="text-sm">{user.createdAt ? <TimeAgo date={Number(user.createdAt)} /> : "Recently"}</span>
                           </TableCell>
                           <TableCell>
                             <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold backdrop-blur-md border shadow-sm bg-yellow-950/30 text-yellow-950 border-yellow-800/50 dark:bg-yellow-900/35 dark:text-yellow-100 dark:border-yellow-700/60 shadow-yellow-950/20">

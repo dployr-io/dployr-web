@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Link } from "@tanstack/react-router";
 import { useClusterId } from "@/hooks/use-cluster-id";
+import { usePlanFeatures } from "@/hooks/use-plan-features";
 
 export function AppSidebar() {
   const clusterId = useClusterId();
@@ -34,6 +35,7 @@ export function AppSidebar() {
   }
 
   const clusterName = getClusterName(clusters);
+  const { hasConsole } = usePlanFeatures();
 
   const mainNavItems: NavItem[] = [
     {
@@ -55,6 +57,7 @@ export function AppSidebar() {
       title: "Console",
       href: clusterId ? "/clusters/$clusterId/console" : "/console",
       icon: SquareChevronRight,
+      badge: hasConsole ? undefined : "Pro",
     },
   ];
 

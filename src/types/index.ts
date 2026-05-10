@@ -41,6 +41,7 @@ export interface NavItem {
   href: string;
   icon?: LucideIcon | null;
   isActive?: boolean;
+  badge?: string;
 }
 
 export interface SharedData {
@@ -469,6 +470,29 @@ export interface Project {
   id: number | string;
   name: string;
   description: string;
+}
+
+export interface Plan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  interval: "month" | null;
+  features?: string[];
+}
+
+export interface BillingSubscription {
+  status: "active" | "canceled" | "past_due";
+  polarSubscriptionId: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BillingStatus {
+  plan: string;
+  planDetails: Plan;
+  subscription: BillingSubscription | null;
 }
 
 export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {

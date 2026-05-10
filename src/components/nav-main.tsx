@@ -30,11 +30,21 @@ export function NavMain({ items = [], title, clusterId }: { items: NavItem[]; ti
                                     <a href={item.href} target="_blank" rel="noopener noreferrer">
                                         {item.icon && <item.icon />}
                                         <span>{item.title}</span>
+                                        {item.badge && (
+                                            <span className="ml-auto rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">
+                                                {item.badge}
+                                            </span>
+                                        )}
                                     </a>
                                 ) : (
                                     <Link to={item.href} params={clusterId ? { clusterId } : undefined}>
                                         {item.icon && <item.icon />}
                                         <span>{item.title}</span>
+                                        {item.badge && (
+                                            <span className="ml-auto rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground leading-none">
+                                                {item.badge}
+                                            </span>
+                                        )}
                                     </Link>
                                 )}
                             </SidebarMenuButton>

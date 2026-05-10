@@ -143,6 +143,12 @@ export function useUrlState() {
         });
     }
 
+    function useBillingUrlState() {
+        return useQueryStates({
+            compare: parseAsBoolean.withDefault(false),
+        });
+    }
+
     return {
         useUsersUrlState,
         useUsersActivityModal,
@@ -157,5 +163,6 @@ export function useUrlState() {
         useConsoleUrlState,
         useAuthError,
         useEventsUrlState,
+        useBillingUrlState,
     };
 }

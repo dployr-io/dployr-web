@@ -20,6 +20,7 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { use2FA } from "@/hooks/use-2fa";
 import { useConfirmation } from "@/hooks/use-confirmation";
+import { useClusters } from "@/hooks/use-clusters";
 
 export const Route = createFileRoute("/clusters/$clusterId/settings/profile")({
   component: System,
@@ -35,9 +36,53 @@ const breadcrumbs: BreadcrumbItem[] = [
 function System() {
   const { user } = useAuth();
   const [editMode, setEditMode] = useState(false);
-  const { form, error } = useSettingsForm();
+  const [clusterName, setClusterName] = useState("");
+  const [clusterNameError, setClusterNameError] = useState("");
+  const { form, error, submit: submitProfile } = useSettingsForm();
   const twoFactor = use2FA({ enabled: true });
   const confirmation = useConfirmation();
+  const { userCluster, renameCluster } = useClusters();
+
+  function enterEditMode() {
+    setClusterName(userCluster?.name ?? "");
+    setClusterNameError("");
+    setEditMode(true);
+  }
+
+  function cancelEditMode() {
+    setEditMode(false);
+    setClusterNameError("");
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+
+    const trimmed = clusterName.trim();
+    if (!trimmed) {
+      setClusterNameError("Cluster name is required.");
+      return;
+    }
+
+    const clusterNameChanged = trimmed !== (userCluster?.name ?? "");
+
+    if (clusterNameChanged) {
+      try {
+        await renameCluster.mutateAsync(trimmed);
+        setClusterNameError("");
+      } catch (renameErr: any) {
+        const message: string = renameErr?.response?.data?.error?.message ?? renameErr?.message ?? "Failed to rename cluster.";
+        setClusterNameError(message);
+        return;
+      }
+    }
+
+    const profileError = await submitProfile();
+    if (!profileError) {
+      setEditMode(false);
+    }
+  }
+
+  const isSaving = renameCluster.isPending;
 
   return (
     <ProtectedRoute>
@@ -45,10 +90,10 @@ function System() {
         <SettingsLayout twoFactor={twoFactor} confirmation={confirmation}>
           <div className="space-y-6">
             <div className="flex justify-between align-middle">
-              <HeadingSmall title="Profile information" description="Update your name and email address" />
+              <HeadingSmall title="Profile" description="Update your profile and cluster name" />
 
               {!editMode && (
-                <Button className="flex items-center gap-2" onClick={() => setEditMode(true)}>
+                <Button className="flex items-center gap-2" onClick={enterEditMode}>
                   <Edit2 className="h-4 w-4" />
                   Edit
                 </Button>
@@ -56,13 +101,7 @@ function System() {
             </div>
 
             {editMode ? (
-              <form
-                onSubmit={e => {
-                  e.preventDefault();
-                  form.handleSubmit();
-                  setEditMode(false);
-                }}
-              >
+              <form onSubmit={handleSave}>
                 <FieldGroup>
                   <form.Field
                     name="name"
@@ -70,7 +109,7 @@ function System() {
                       const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                       return (
                         <Field data-invalid={isInvalid}>
-                          <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                          <FieldLabel htmlFor={field.name}>Display name</FieldLabel>
                           <Input
                             id={field.name}
                             name={field.name}
@@ -82,14 +121,16 @@ function System() {
                             autoComplete="off"
                           />
                           {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                          {!isInvalid && error && <p className="text-destructive text-sm">{error}</p>}
                         </Field>
                       );
                     }}
                   />
 
-                  <Field>
-                    <FieldLabel>Email</FieldLabel>
-                    <Input value={user?.email || ""} readOnly placeholder="Enter email" autoComplete="off" />
+                  <Field data-invalid={!!clusterNameError}>
+                    <FieldLabel htmlFor="cluster-name">Cluster name</FieldLabel>
+                    <Input id="cluster-name" value={clusterName} onChange={e => setClusterName(e.target.value)} placeholder="Enter cluster name" autoComplete="off" aria-invalid={!!clusterNameError} />
+                    {clusterNameError && <p className="text-destructive text-sm">{clusterNameError}</p>}
                   </Field>
                 </FieldGroup>
 
@@ -131,25 +172,28 @@ function System() {
                   }}
                 />
 
-                {error && (
-                  <div className="my-5">
-                    <p className="text-sm font-medium text-red-500">{error}</p>
-                  </div>
-                )}
-
-                <Button type="submit" className="mt-6">
-                  Save
-                </Button>
+                <div className="mt-6 flex gap-2">
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={cancelEditMode} disabled={isSaving}>
+                    Cancel
+                  </Button>
+                </div>
               </form>
             ) : (
               <div className="space-y-6">
                 <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Name</dt>
+                  <dt className="text-sm font-medium text-muted-foreground">Display name</dt>
                   <dd className="mt-1 text-sm">{user?.name || "Not set"}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">Email</dt>
                   <dd className="mt-1 text-sm">{user?.email || "Not set"}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Cluster name</dt>
+                  <dd className="mt-1 text-sm">{userCluster?.name || "Not set"}</dd>
                 </div>
               </div>
             )}

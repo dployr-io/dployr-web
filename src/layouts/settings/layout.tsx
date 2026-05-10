@@ -12,6 +12,8 @@ import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { use2FA } from "@/hooks/use-2fa";
 import { useClusterId } from "@/hooks/use-cluster-id";
+import { useAuth } from "@/hooks/use-auth";
+import { useClusters } from "@/hooks/use-clusters";
 
 interface SettingsLayoutProps extends PropsWithChildren {
   twoFactor: ReturnType<typeof use2FA>;
@@ -21,7 +23,11 @@ interface SettingsLayoutProps extends PropsWithChildren {
 export default function SettingsLayout({ children, twoFactor, confirmation }: SettingsLayoutProps) {
   const clusterId = useClusterId();
   const location = useLocation();
-const { pendingAction, setPendingAction } = confirmation;
+  const { pendingAction, setPendingAction } = confirmation;
+  const { user } = useAuth();
+  const { users } = useClusters();
+
+  const isOwner = users?.find(u => u.id === user?.id)?.role === "owner";
 
   const sidebarNavItems: NavItem[] = [
     {
@@ -39,6 +45,15 @@ const { pendingAction, setPendingAction } = confirmation;
       href: clusterId ? "/clusters/$clusterId/settings/integrations" : "/settings/integrations",
       icon: null,
     },
+    ...(isOwner
+      ? [
+          {
+            title: "Billing",
+            href: clusterId ? "/clusters/$clusterId/settings/billing" : "/settings/billing",
+            icon: null,
+          },
+        ]
+      : []),
     {
       title: "About",
       href: clusterId ? "/clusters/$clusterId/settings/about" : "/settings/about",
@@ -82,9 +97,9 @@ const { pendingAction, setPendingAction } = confirmation;
       </div>
 
       <footer className="lg:sticky lg:bottom-0 border-t min-h-12 bg-background/80 backdrop-blur-sm -mx-4 px-4">
-        <div className="flex w-full justify-center py-3">
+        <div className="flex w-full items-center justify-between py-3">
           <div className="flex space-x-6 text-xs text-muted-foreground">
-            <a href="https://dployr.instatus.com" className="hover:underline">
+            <a href="https://status.dployr.io" className="hover:underline">
               Status
             </a>
             <span className="text-border">•</span>
@@ -100,14 +115,20 @@ const { pendingAction, setPendingAction } = confirmation;
               Privacy Policy
             </a>
             <span className="text-border">•</span>
-            <a href="https://dployr.io/docs/quickstart.html" className="hover:underline">
-              Docs
+            <a href="https://discord.gg/tY8ZbjvrSZ" className="hover:underline">
+              Discord
             </a>
             <span className="text-border">•</span>
-            <a href="https://discord.gg/tY8ZbjvrSZ" className="hover:underline">
-              Support
+            <a href="https://x.com/dployr" className="hover:underline">
+              X
             </a>
           </div>
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Dployr ·{" "}
+            <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer" className="hover:underline">
+              Apache-2.0
+            </a>
+          </p>
         </div>
       </footer>
     </div>
