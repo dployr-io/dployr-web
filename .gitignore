@@ -91,3 +91,4 @@ temp/
 # Editor/IDE
 .vscode/
 .idea/
+.claude

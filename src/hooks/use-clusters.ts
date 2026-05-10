@@ -136,6 +136,7 @@ export function useClusters() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
+      queryClient.invalidateQueries({ queryKey: ["users", clusterId] });
     },
     onError: (error: any) => {
       const errorMessage = getApiErrorMessage(error, "An error occored while adding user.");
@@ -159,6 +160,7 @@ export function useClusters() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invites", clusterId] });
       queryClient.invalidateQueries({ queryKey: ["invites-received"] });
+      queryClient.invalidateQueries({ queryKey: ["users", clusterId] });
     },
     onError: (error: any) => {
       const errorMessage = getApiErrorMessage(error, "An error occored while adding user.");
@@ -187,6 +189,21 @@ export function useClusters() {
       const helpLink = getApiErrorHelpLink(error);
 
       setError({ message: errorMessage, helpLink });
+    },
+  });
+
+  // rename cluster
+  const renameCluster = useMutation({
+    mutationFn: async (name: string): Promise<{ id: string; name: string }> => {
+      const response = await axios.patch(
+        `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}`,
+        { name },
+        { withCredentials: true }
+      );
+      return response.data.data.cluster;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
     },
   });
 
@@ -233,5 +250,6 @@ export function useClusters() {
     removeUsers,
     clusterId,
     userCluster,
+    renameCluster,
   };
 }

@@ -17,10 +17,17 @@ export default ({ children, breadcrumbs, ...props }: AppLayoutProps) => {
 
   useEffect(() => {
     if (error?.message) {
-      const timer = setTimeout(clearError, 10000);
+      const timer = setTimeout(clearError, 10_000);
       return () => clearTimeout(timer);
     }
   }, [error?.message, clearError]);
+
+  useEffect(() => {
+    if (notification?.message) {
+      const timer = setTimeout(clearNotification, 5_000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification?.message, clearNotification]);
 
   return (
     <AppLayoutTemplate breadcrumbs={breadcrumbs} {...props}>

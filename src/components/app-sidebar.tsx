@@ -6,7 +6,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { type NavItem } from "@/types";
-import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, CircleGauge, Factory, LayoutGrid, MessageCircleQuestion, Server, Settings2, SquareChevronRight } from "lucide-react";
+import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, Factory, LayoutGrid, MessageCircleQuestion, Server, Settings2, SquareChevronRight } from "lucide-react";
 import AppLogo from "./app-logo";
 import { useAuth } from "@/hooks/use-auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -63,11 +63,6 @@ export function AppSidebar() {
       title: "Instances",
       href: clusterId ? "/clusters/$clusterId/instances" : "/instances",
       icon: Server,
-    },
-    {
-      title: "Graph",
-      href: clusterId ? "/clusters/$clusterId/graph" : "/graph",
-      icon: CircleGauge,
     },
     {
       title: "Events",

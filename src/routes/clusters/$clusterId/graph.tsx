@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import AppLayout from "@/layouts/app-layout";
@@ -28,6 +28,13 @@ import { useAppAlert } from "@/contexts/app-alert-context";
 import { useServices } from "@/hooks/use-services";
 
 export const Route = createFileRoute("/clusters/$clusterId/graph")({
+  // TODO: Re-enable graph page when ready. For now, redirect to dashboard.
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: "/clusters/$clusterId/dashboard",
+      params: { clusterId: params.clusterId },
+    });
+  },
   component: GraphPage,
 });
 

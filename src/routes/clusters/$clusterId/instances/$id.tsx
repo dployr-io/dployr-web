@@ -7,7 +7,7 @@ import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useAppAlert } from "@/contexts/app-alert-context";
-import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Cog, Copy, Cpu, ExternalLink, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
+import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Copy, Cpu, ExternalLink, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/metric-card";
 import { StatusBadge } from "@/components/status-badge";
@@ -15,7 +15,6 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
 import { useInstanceViewState } from "@/hooks/use-instance-view-state";
-import { useProcessHistory } from "@/hooks/use-process-history";
 import { useMetricsHistory } from "@/hooks/use-metrics-history";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
@@ -40,8 +39,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { FileSystemBrowser } from "@/components/file-system-browser";
 import { InstanceMetricsChart } from "@/components/metrics-chart";
 import { getMemoryProfile } from "@/lib/query-cache-persistence";
-import { ProcessViewer } from "@/components/resource-viewer";
-import { ProxyBadge } from "@/components/proxy-badge";
 import { formatUptime, formatBytes } from "@/lib/instance-update";
 
 export const Route = createFileRoute("/clusters/$clusterId/instances/$id")({
@@ -59,21 +56,15 @@ const viewInstanceBreadcrumbs = (clusterId?: string, instanceId?: string, instan
 function ViewInstance() {
   const router = useRouter();
   const { id: instanceId, clusterId } = Route.useParams();
-  
+
   // Use standardized tabs hook
-  const {
-    currentTab,
-    logTimeRange,
-    selectedLogLevel,
-    logDuration,
-    setTabState,
-  } = useInstanceTabs();
-  
+  const { currentTab, logTimeRange, selectedLogLevel, logDuration, setTabState } = useInstanceTabs();
+
   const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
   const { update, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instance?.tag);
   const { compatibility } = useVersion({ currentVersion: update?.node.version });
-    
+
   const breadcrumbs = viewInstanceBreadcrumbs(clusterId, instanceId, instance?.tag);
   const { user } = useAuth();
   const { users: clusterUsers } = useClusters();
@@ -83,29 +74,47 @@ function ViewInstance() {
   const canViewLogs = myRole ? getRolePriority(myRole) >= 2 : false;
   const { address, tag, publicKey, setAddress, setTag, setPublicKey } = useInstancesForm();
   const twoFactor = use2FA({ enabled: true });
-  
+
   const {
-    bootstrapToken, rotateOpen, rotateValue, rotateError, isRotating, rotatedToken,
-    showBootstrapInfo, isInstalling, isRestarting, restartOpen, rebootOpen,
-    forceRestart, forceReboot, logType, logMode, isAtBottom,
-    lockedTimestamp, isHistoricalMode,
-    setBootstrapToken, setRotateOpen, setRotateValue, setRotateError, setIsRotating,
-    setRotatedToken, setShowBootstrapInfo, setIsInstalling, setIsRestarting,
-    setRestartOpen, setRebootOpen, setForceRestart, setForceReboot,
-    setLogType, setLogMode, lockToTimestamp, returnToLive,
+    bootstrapToken,
+    rotateOpen,
+    rotateValue,
+    rotateError,
+    isRotating,
+    rotatedToken,
+    showBootstrapInfo,
+    isInstalling,
+    isRestarting,
+    restartOpen,
+    rebootOpen,
+    forceRestart,
+    forceReboot,
+    logType,
+    logMode,
+    isAtBottom,
+    lockedTimestamp,
+    isHistoricalMode,
+    setBootstrapToken,
+    setRotateOpen,
+    setRotateValue,
+    setRotateError,
+    setIsRotating,
+    setRotatedToken,
+    setShowBootstrapInfo,
+    setIsInstalling,
+    setIsRestarting,
+    setRestartOpen,
+    setRebootOpen,
+    setForceRestart,
+    setForceReboot,
+    setLogType,
+    setLogMode,
+    lockToTimestamp,
+    returnToLive,
   } = useInstanceViewState();
 
-  // Process history hook
-  const {
-    snapshots: processSnapshots,
-    isLoading: isLoadingProcessHistory,
-    error: processHistoryError,
-  } = useProcessHistory(instance?.tag || "");
-
   // Metrics history hook - collects metrics at 30 second intervals
-  const {
-    snapshots: metricsSnapshots,
-  } = useMetricsHistory(instance?.tag || "", 30000);
+  const { snapshots: metricsSnapshots } = useMetricsHistory(instance?.tag || "", 30000);
 
   // Transform metrics snapshots to chart format
   const metricsChartData = useMemo(() => {
@@ -115,19 +124,17 @@ function ViewInstance() {
           timestamp: snapshot.timestamp,
           mem_used_bytes: snapshot.data.memory.used_bytes || 0,
           mem_total_bytes: snapshot.data.memory.total_bytes || 1,
-          mem_used_percent: snapshot.data.memory 
-            ? (snapshot.data.memory.used_bytes / snapshot.data.memory.total_bytes) * 100 
-            : 0,
+          mem_used_percent: snapshot.data.memory ? (snapshot.data.memory.used_bytes / snapshot.data.memory.total_bytes) * 100 : 0,
           cpu_user: snapshot.data.cpu.user_percent || 0,
           cpu_system: snapshot.data.cpu.system_percent || 0,
         };
       }
-      
+
       // Fall back to calculating from process list if available
       if (snapshot.data.list && snapshot.data.list.length > 0) {
         const totalCpuPercent = snapshot.data.list.reduce((sum, p) => sum + (p.cpu_percent || 0), 0);
         const totalMemoryPercent = snapshot.data.list.reduce((sum, p) => sum + (p.memory_percent || 0), 0);
-        
+
         return {
           timestamp: snapshot.timestamp,
           mem_used_bytes: 0,
@@ -137,7 +144,7 @@ function ViewInstance() {
           cpu_system: Math.min(totalCpuPercent / 2, 100), // Approximate system CPU
         };
       }
-      
+
       // Default empty data point
       return {
         timestamp: snapshot.timestamp,
@@ -151,15 +158,7 @@ function ViewInstance() {
   }, [metricsSnapshots]);
 
   // Use standardized logs hook
-  const {
-    logs,
-    filteredLogs,
-    searchQuery,
-    logsEndRef,
-    isStreaming,
-    setSearchQuery,
-    handleScrollPositionChange,
-  } = useInstanceLogs(instance?.tag, logType || "app", {
+  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, handleScrollPositionChange } = useInstanceLogs(instance?.tag, logType || "app", {
     currentTab,
     logTimeRange,
     selectedLogLevel,
@@ -171,13 +170,6 @@ function ViewInstance() {
   const [domainInput, setDomainInput] = useState("");
   const { domains, setupDnsAsync, isSettingUp, deleteDnsAsync, isDeleting, verifyDomain, isVerifying, getVerifyCooldown, verifySetupDetails, clearVerifySetupDetails } = useDns(instanceId);
   const { setError: setAppError } = useAppAlert();
-
-  // Display process history errors
-  useEffect(() => {
-    if (processHistoryError) {
-      setAppError({ message: processHistoryError });
-    }
-  }, [processHistoryError, setAppError]);
 
   // Set bootstrap token from update data
   useEffect(() => {
@@ -202,13 +194,13 @@ function ViewInstance() {
   // ESC key to return to live view
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isHistoricalMode) {
+      if (e.key === "Escape" && isHistoricalMode) {
         returnToLive();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isHistoricalMode, returnToLive]);
 
   const handleCopyStatus = async () => {
@@ -225,7 +217,10 @@ function ViewInstance() {
   const handleRotateSubmit = async () => {
     if (!instance?.tag) return;
     const token = rotateValue.trim();
-    if (!token) { setRotateError("Bootstrap token is required"); return; }
+    if (!token) {
+      setRotateError("Bootstrap token is required");
+      return;
+    }
     setIsRotating(true);
     setRotateError("");
     try {
@@ -244,22 +239,33 @@ function ViewInstance() {
   const handleInstallVersion = async (version?: string) => {
     if (!instance?.tag) return;
     setIsInstalling(true);
-    try { await installVersion.mutateAsync({ name: instance.tag, version }); }
-    finally { setIsInstalling(false); }
+    try {
+      await installVersion.mutateAsync({ name: instance.tag, version });
+    } finally {
+      setIsInstalling(false);
+    }
   };
 
   const handleRestartSubmit = async () => {
     if (!instance?.tag) return;
     setIsRestarting(true);
-    try { await restartInstance.mutateAsync({ name: instance.tag, force: forceRestart }); }
-    finally { setIsRestarting(false); setRestartOpen(false); }
+    try {
+      await restartInstance.mutateAsync({ name: instance.tag, force: forceRestart });
+    } finally {
+      setIsRestarting(false);
+      setRestartOpen(false);
+    }
   };
 
   const handleRebootSubmit = async () => {
     if (!instance?.tag) return;
     setIsRestarting(true);
-    try { await rebootInstance.mutateAsync({ name: instance.tag, force: forceReboot }); }
-    finally { setIsRestarting(false); setRebootOpen(false); }
+    try {
+      await rebootInstance.mutateAsync({ name: instance.tag, force: forceReboot });
+    } finally {
+      setIsRestarting(false);
+      setRebootOpen(false);
+    }
   };
 
   // Error state
@@ -270,15 +276,21 @@ function ViewInstance() {
           <div className="flex h-full min-h-[500px] items-center justify-center">
             <Empty>
               <EmptyHeader>
-                <EmptyMedia variant="icon"><FileX2 /></EmptyMedia>
+                <EmptyMedia variant="icon">
+                  <FileX2 />
+                </EmptyMedia>
                 <EmptyTitle>Instance Error</EmptyTitle>
                 <EmptyDescription>{error}</EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <div className="flex justify-center gap-2">
-                  <Button onClick={() => router.history.back()}><ChevronLeft /> Back</Button>
+                  <Button onClick={() => router.history.back()}>
+                    <ChevronLeft /> Back
+                  </Button>
                   <Button variant="link" asChild className="text-muted-foreground" size="sm">
-                    <a href="#">Learn More <ArrowUpRightIcon /></a>
+                    <a href="#">
+                      Learn More <ArrowUpRightIcon />
+                    </a>
                   </Button>
                 </div>
               </EmptyContent>
@@ -297,7 +309,9 @@ function ViewInstance() {
           <div className="flex h-full min-h-[500px] items-center justify-center">
             <Empty>
               <EmptyHeader>
-                <EmptyMedia variant="icon"><Loader2 className="h-4 w-4 animate-spin" /></EmptyMedia>
+                <EmptyMedia variant="icon">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </EmptyMedia>
                 <EmptyTitle>Connecting to instance...</EmptyTitle>
                 <EmptyDescription>This shouldn&apos;t take too long.</EmptyDescription>
               </EmptyHeader>
@@ -319,7 +333,6 @@ function ViewInstance() {
               <div className="flex items-center justify-between">
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="system">System</TabsTrigger>
                   {update?.filesystem && <TabsTrigger value="files">Files</TabsTrigger>}
                   {canViewConfig && <TabsTrigger value="config">Configuration</TabsTrigger>}
                   {canViewLogs && <TabsTrigger value="logs">Logs</TabsTrigger>}
@@ -332,8 +345,8 @@ function ViewInstance() {
 
               {/* Overview Tab */}
               <TabsContent value="overview" className="mt-4 space-y-4">
-                {/* Node Info */}
-                <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
+                {/* Metrics bar */}
+                <div className="flex items-center justify-between gap-x-6 rounded-xl border bg-background/40 px-4 py-3">
                   <MetricCard label="Uptime" value={uptime} />
                   <MetricCard
                     label="Version"
@@ -348,143 +361,65 @@ function ViewInstance() {
                     }
                   />
                   <MetricCard label="Platform" value={`${update?.node.os || "-"} · ${update?.node.arch || "-"}`} />
+                  <MetricCard label="Status" value={<StatusBadge status={update?.status.state || "-"} variant="compact" />} />
+                  <MetricCard label="Mode" value={<StatusBadge status={update?.status.mode || "-"} variant="compact" />} />
+                  <MetricCard label="CPU" icon={<Cpu className="h-3 w-3" />} value={update?.resources.cpu?.count?.toString() || "-"} />
+                  <MetricCard
+                    label="Memory"
+                    icon={<MemoryStick className="h-3 w-3" />}
+                    value={update?.resources.memory ? `${formatBytes(update.resources.memory.usedBytes)} / ${formatBytes(update.resources.memory.totalBytes)}` : "-"}
+                    progress={update?.resources.memory ? (update.resources.memory.usedBytes / update.resources.memory.totalBytes) * 100 : undefined}
+                  />
+
+                  <div className="flex gap-2 shrink-0">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={handleRestartClick} className="h-8 w-8">
+                          <RefreshCcw className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Restarting dployrd has no effect on your services</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={handleRebootClick} className="h-8 w-8">
+                          <Power className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Your services will be briefly unavailable</TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
 
-                {/* Status & Workloads */}
-                <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
-                  <div className="flex flex-col gap-3">
-                    <MetricCard label="Status" value={<StatusBadge status={update?.status.state || "-"} variant="compact" />} />
-                    <MetricCard label="Mode" value={<StatusBadge status={update?.status.mode || "-"} variant="compact" />} />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <MetricCard label="Services" value={update?.workloads?.services.length ? `${update.workloads.services.length} running` : "-"} />
-                    <MetricCard label="Health" value={<StatusBadge status={update?.health.overall || "-"} variant="compact" />} />
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    <MetricCard
-                      label="Proxy"
-                      value={
-                        update?.proxy ? (
-                          <ProxyBadge
-                            type={update.proxy.type}
-                            status={update.proxy.status}
-                            version={update.proxy.version}
-                            routeCount={update.proxy.routes.length}
-                          />
-                        ) : "-"
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* Health Breakdown */}
-                <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
-                  <MetricCard label="Overall" value={<StatusBadge status={update?.health.overall || "-"} variant="compact" />} />
-                  <MetricCard label="Websocket" value={<StatusBadge status={update?.health.websocket || "-"} variant="compact" />} />
-                  <MetricCard label="Tasks" value={<StatusBadge status={update?.health.tasks || "-"} variant="compact" />} />
-                  <MetricCard label="Proxy" value={<StatusBadge status={update?.health.proxy || "-"} variant="compact" />} />
-                  <MetricCard label="Auth" value={<StatusBadge status={update?.health.auth || "-"} variant="compact" />} />
-                </div>
-              </TabsContent>
-
-              {/* System Tab */}
-              <TabsContent value="system" className="mt-4 space-y-4">
-                <InstanceMetricsChart 
-                  data={metricsChartData.length > 0 ? metricsChartData : getMemoryProfile(instanceId)} 
-                  height={140}
-                  processSnapshots={processSnapshots}
+                {/* Chart */}
+                <InstanceMetricsChart
+                  data={metricsChartData.length > 0 ? metricsChartData : getMemoryProfile(instanceId)}
+                  height={160}
                   onTimestampClick={lockToTimestamp}
                   lockedTimestamp={lockedTimestamp}
                 />
 
-                <ProcessViewer
-                  processes={update?.processes.list || []}
-                  processSummary={update?.processes.summary || undefined}
-                  historySnapshots={processSnapshots}
-                  isLoadingHistory={isLoadingProcessHistory}
-                  lockedTimestamp={lockedTimestamp}
-                  isHistoricalMode={isHistoricalMode}
-                  onReturnToLive={returnToLive}
-                />
-
-                <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
-                  <MetricCard label="CPU" icon={<Cpu className="h-3 w-3" />} value={update?.resources.cpu?.count?.toString() || "-"} />
-                  <MetricCard label="Workers" icon={<Cog className="h-3 w-3" />} value={update?.diagnostics.workers?.toString() || "-"} />
-                  <MetricCard
-                    label="Memory"
-                    icon={<MemoryStick className="h-3 w-3" />}
-                    value={
-                      update?.resources.memory
-                        ? `${formatBytes(update.resources.memory.usedBytes)} / ${formatBytes(update.resources.memory.totalBytes)}`
-                        : "-"
-                    }
-                    progress={
-                      update?.resources.memory
-                        ? (update.resources.memory.usedBytes / update.resources.memory.totalBytes) * 100
-                        : undefined
-                    }
-                  />
-
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center gap-1">
-                      <p className="text-xs text-muted-foreground">Restart</p>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="icon" onClick={handleRestartClick} className="h-8 w-8 p-0">
-                            <RefreshCcw className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Services keep running</TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <p className="text-xs text-muted-foreground">Reboot</p>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="icon" onClick={handleRebootClick} className="h-8 w-8 p-0">
-                            <Power className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Services briefly unavailable</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Disks */}
-                <div className="rounded-xl border bg-background/40 p-4 mb-6">
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {update?.resources.disks && update.resources.disks.length > 0 ? (
-                      update.resources.disks.map((d: { totalBytes: number; usedBytes: number; filesystem: any; mountPoint: string; }, idx: any) => {
+                {update?.resources.disks && update.resources.disks.length > 0 && (
+                  <div className="rounded-xl border bg-background/40 p-4 mb-6">
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {update.resources.disks.map((d: { totalBytes: number; usedBytes: number; filesystem: any; mountPoint: string }, idx: any) => {
                         const percent = d.totalBytes > 0 ? (d.usedBytes / d.totalBytes) * 100 : 0;
                         const hasFs = !!update.filesystem;
-
                         return (
                           <button
                             key={`${idx}-${d.filesystem}`}
-                            className={cn(
-                              "rounded-md border bg-background/60 p-3 text-left transition-all",
-                              hasFs && "cursor-pointer hover:bg-muted/50 hover:border-border active:scale-[0.98]"
-                            )}
+                            className={cn("rounded-md border bg-background/60 p-3 text-left transition-all", hasFs && "cursor-pointer hover:bg-muted/50 hover:border-border active:scale-[0.98]")}
                             onClick={() => hasFs && setTabState({ tab: "files" })}
                             disabled={!hasFs}
                           >
-                            <MetricCard
-                              label={d.mountPoint}
-                              icon={<HardDrive className="h-3 w-3" />}
-                              value={`${formatBytes(d.usedBytes)} / ${formatBytes(d.totalBytes)}`}
-                              progress={percent}
-                            />
+                            <MetricCard label={d.mountPoint} icon={<HardDrive className="h-3 w-3" />} value={`${formatBytes(d.usedBytes)} / ${formatBytes(d.totalBytes)}`} progress={percent} />
                           </button>
                         );
-                      })
-                    ) : (
-                      <div className="text-sm text-muted-foreground">-</div>
-                    )}
+                      })}
+                    </div>
                   </div>
-                </div>
+                )}
               </TabsContent>
 
               {/* Files Tab */}
@@ -530,7 +465,9 @@ function ViewInstance() {
                         </div>
                         <CollapsibleContent className="mt-2 ml-6">
                           {(instance?.publicKey || "-").split("\n").map((line, idx) => (
-                            <div className="font-mono text-xs" key={idx}>{line}</div>
+                            <div className="font-mono text-xs" key={idx}>
+                              {line}
+                            </div>
                           ))}
                         </CollapsibleContent>
                       </Collapsible>
@@ -550,29 +487,11 @@ function ViewInstance() {
                                   </div>
                                   <div className="flex items-center gap-1">
                                     {d.status === "pending" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-6 px-2"
-                                        onClick={() => verifyDomain(d.domain)}
-                                        disabled={isVerifying || cooldown > 0}
-                                      >
-                                        {isVerifying ? (
-                                          <Loader2 className="h-3 w-3 animate-spin" />
-                                        ) : cooldown > 0 ? (
-                                          `Check Status (${cooldown}s)`
-                                        ) : (
-                                          "Check Status"
-                                        )}
+                                      <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => verifyDomain(d.domain)} disabled={isVerifying || cooldown > 0}>
+                                        {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : cooldown > 0 ? `Check Status (${cooldown}s)` : "Check Status"}
                                       </Button>
                                     )}
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 px-2 text-destructive hover:text-destructive"
-                                      onClick={() => deleteDnsAsync(d.domain)}
-                                      disabled={isDeleting}
-                                    >
+                                    <Button variant="ghost" size="sm" className="h-6 px-2 text-destructive hover:text-destructive" onClick={() => deleteDnsAsync(d.domain)} disabled={isDeleting}>
                                       {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
                                     </Button>
                                   </div>
@@ -608,7 +527,7 @@ function ViewInstance() {
                   </div>
 
                   {/* DNS Setup Instructions Dialog */}
-                  <Dialog open={!!verifySetupDetails} onOpenChange={(open) => !open && clearVerifySetupDetails()}>
+                  <Dialog open={!!verifySetupDetails} onOpenChange={open => !open && clearVerifySetupDetails()}>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Configuration Required</DialogTitle>
@@ -631,21 +550,13 @@ function ViewInstance() {
                                   <div className="grid grid-cols-3 gap-2 text-xs font-mono">
                                     <div className="flex items-center gap-1">
                                       <span className="break-all">{verifySetupDetails?.record?.name}</span>
-                                      <button
-                                        onClick={() => navigator.clipboard.writeText(verifySetupDetails?.record?.name || "")}
-                                        className="shrink-0 p-1 hover:bg-muted rounded"
-                                        title="Copy name"
-                                      >
+                                      <button onClick={() => navigator.clipboard.writeText(verifySetupDetails?.record?.name || "")} className="shrink-0 p-1 hover:bg-muted rounded" title="Copy name">
                                         <Copy className="h-3 w-3" />
                                       </button>
                                     </div>
                                     <div className="flex items-center gap-1">
                                       <span className="break-all">{verifySetupDetails?.record?.value}</span>
-                                      <button
-                                        onClick={() => navigator.clipboard.writeText(verifySetupDetails?.record?.value || "")}
-                                        className="shrink-0 p-1 hover:bg-muted rounded"
-                                        title="Copy value"
-                                      >
+                                      <button onClick={() => navigator.clipboard.writeText(verifySetupDetails?.record?.value || "")} className="shrink-0 p-1 hover:bg-muted rounded" title="Copy value">
                                         <Copy className="h-3 w-3" />
                                       </button>
                                     </div>
@@ -710,9 +621,9 @@ function ViewInstance() {
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button 
-                                variant="default" 
-                                size="sm" 
+                              <Button
+                                variant="default"
+                                size="sm"
                                 onClick={() => {
                                   const domain = verifySetupDetails.domain;
                                   clearVerifySetupDetails();
@@ -776,22 +687,19 @@ function ViewInstance() {
               {canViewAdvanced && (
                 <TabsContent value="advanced" className="mt-4 space-y-4">
                   <div className="relative flex min-h-0 flex-1 flex-col gap-3 rounded-xl border bg-background/40 p-4 mb-6">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-3 top-3 h-7 w-7 text-muted-foreground hover:text-foreground"
-                      onClick={handleCopyStatus}
-                    >
+                    <Button variant="ghost" size="icon" className="absolute right-3 top-3 h-7 w-7 text-muted-foreground hover:text-foreground" onClick={handleCopyStatus}>
                       <Copy className="h-3 w-3" />
                     </Button>
                     <FormattedFile language="json" value={updatePayload ?? status} />
                   </div>
-                  
+
                   {debugEvents.length > 0 && (
                     <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-xl border bg-background/40 p-4">
                       <p className="text-sm font-medium mb-1">Debug events</p>
                       <div className="flex-1 overflow-auto rounded-md bg-neutral-950/90 p-3 text-xs text-neutral-100 space-y-1">
-                        {debugEvents.map((evt, idx) => <div key={`${idx}-${evt}`}>{evt}</div>)}
+                        {debugEvents.map((evt, idx) => (
+                          <div key={`${idx}-${evt}`}>{evt}</div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -810,7 +718,9 @@ function ViewInstance() {
                 </DialogHeader>
                 <div className="space-y-4 py-2">
                   <Field>
-                    <FieldLabel htmlFor="rotate-bootstrap-token" className="text-xs">Bootstrap token</FieldLabel>
+                    <FieldLabel htmlFor="rotate-bootstrap-token" className="text-xs">
+                      Bootstrap token
+                    </FieldLabel>
                     <textarea
                       id="rotate-bootstrap-token"
                       value={rotateValue}
@@ -824,8 +734,22 @@ function ViewInstance() {
                   </Field>
                 </div>
                 <DialogFooter className="gap-2 sm:gap-0">
-                  <Button variant="ghost" size="sm" onClick={() => { setRotateOpen(false); setRotateValue(""); setRotateError(""); }} disabled={isRotating} className="h-8 text-xs mr-2">Cancel</Button>
-                  <Button size="sm" onClick={handleRotateSubmit} disabled={isRotating || !rotateValue.trim()} className="h-8 text-xs">{isRotating ? "Rotating..." : "Rotate"}</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setRotateOpen(false);
+                      setRotateValue("");
+                      setRotateError("");
+                    }}
+                    disabled={isRotating}
+                    className="h-8 text-xs mr-2"
+                  >
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleRotateSubmit} disabled={isRotating || !rotateValue.trim()} className="h-8 text-xs">
+                    {isRotating ? "Rotating..." : "Rotate"}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -845,7 +769,9 @@ function ViewInstance() {
                   </div>
                 )}
                 <DialogFooter className="gap-2 sm:gap-0">
-                  <Button size="sm" onClick={() => setShowBootstrapInfo(false)} className="h-8 text-xs">Got it</Button>
+                  <Button size="sm" onClick={() => setShowBootstrapInfo(false)} className="h-8 text-xs">
+                    Got it
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -859,11 +785,24 @@ function ViewInstance() {
                 <div className="space-y-4 py-2">
                   <div className="flex items-center space-x-2">
                     <input type="checkbox" id="force-restart" checked={forceRestart} onChange={e => setForceRestart(e.target.checked)} className="h-4 w-4 rounded border-input" />
-                    <label htmlFor="force-restart" className="text-xs text-muted-foreground">Force restart (skip pending tasks)</label>
+                    <label htmlFor="force-restart" className="text-xs text-muted-foreground">
+                      Force restart (skip pending tasks)
+                    </label>
                   </div>
                 </div>
                 <DialogFooter className="gap-2 sm:gap-0">
-                  <Button variant="ghost" size="sm" onClick={() => { setRestartOpen(false); setForceRestart(false); }} disabled={isRestarting} className="h-8 text-xs mr-2">Cancel</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setRestartOpen(false);
+                      setForceRestart(false);
+                    }}
+                    disabled={isRestarting}
+                    className="h-8 text-xs mr-2"
+                  >
+                    Cancel
+                  </Button>
                   <Button size="sm" onClick={handleRestartSubmit} disabled={isRestarting} className="h-8 text-xs">
                     {isRestarting && <Loader2 className="h-3 w-3 animate-spin" />} Restart
                   </Button>
@@ -880,11 +819,24 @@ function ViewInstance() {
                 <div className="space-y-4 py-2">
                   <div className="flex items-center space-x-2">
                     <input type="checkbox" id="force-reboot" checked={forceReboot} onChange={e => setForceReboot(e.target.checked)} className="h-4 w-4 rounded border-input" />
-                    <label htmlFor="force-reboot" className="text-xs text-muted-foreground">Force reboot (skip pending tasks)</label>
+                    <label htmlFor="force-reboot" className="text-xs text-muted-foreground">
+                      Force reboot (skip pending tasks)
+                    </label>
                   </div>
                 </div>
                 <DialogFooter className="gap-2 sm:gap-0">
-                  <Button variant="ghost" size="sm" onClick={() => { setRebootOpen(false); setForceReboot(false); }} disabled={isRestarting} className="h-8 text-xs mr-2">Cancel</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setRebootOpen(false);
+                      setForceReboot(false);
+                    }}
+                    disabled={isRestarting}
+                    className="h-8 text-xs mr-2"
+                  >
+                    Cancel
+                  </Button>
                   <Button size="sm" onClick={handleRebootSubmit} disabled={isRestarting} className="h-8 text-xs">
                     {isRestarting && <Loader2 className="h-3 w-3 animate-spin" />} Reboot
                   </Button>
