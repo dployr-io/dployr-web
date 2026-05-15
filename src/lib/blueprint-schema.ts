@@ -148,6 +148,13 @@ export function validateBlueprint(data: unknown): ValidationResult {
     }
   }
 
+  // Mutual exclusivity: image and remote cannot both be present
+  const hasImage = Boolean(obj.image);
+  const hasRemote = Boolean(obj.remote && typeof obj.remote === "object" && (obj.remote as Record<string, unknown>).url);
+  if (hasImage && hasRemote) {
+    errors.push({ message: "image and remote are mutually exclusive — use one or the other based on source", path: "source", severity: "error" });
+  }
+
   // Source-specific validation
   if (obj.source === "remote") {
     const runtime = typeof obj.runtime === "object" ? (obj.runtime as Record<string, unknown>).type : obj.runtime;
@@ -267,17 +274,12 @@ export function getFileExtension(format: BlueprintFormat): string {
 export function getDefaultTemplate(format: BlueprintFormat): string {
   const template = {
     name: "",
-    description: "",
     source: "remote",
+    type: "web",
     runtime: {
       type: "nodejs",
       version: "22",
     },
-    port: 3001,
-    run_cmd: "",
-    build_cmd: "",
-    working_dir: "/app",
-    env_vars: {},
     remote: {
       url: "",
       branch: "main",

@@ -145,14 +145,9 @@ export function useDeploymentCreator(instanceId?: string) {
       fromBlueprint(
         JSON.stringify({
           name: "",
-          description: "",
           source: "remote",
           type: "web",
           runtime: { type: "nodejs", version: "22" },
-          run_cmd: "",
-          build_cmd: "",
-          working_dir: "/app",
-          env_vars: {},
           remote: { url: "", branch: "main" },
         })
       );

@@ -13,10 +13,12 @@ interface TwoFactorDialogProps {
   onOpenChange: (open: boolean) => void;
   onVerify: (code: string) => Promise<void>;
   email?: string;
+  title?: string;
+  description?: string;
   isSubmitting?: boolean;
 }
 
-export function TwoFactorDialog({ open, onOpenChange, onVerify, email, isSubmitting = false }: TwoFactorDialogProps) {
+export function TwoFactorDialog({ open, onOpenChange, onVerify, email, title = "Verify Code", description, isSubmitting = false }: TwoFactorDialogProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -57,8 +59,8 @@ export function TwoFactorDialog({ open, onOpenChange, onVerify, email, isSubmitt
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Verify Code</DialogTitle>
-          <DialogDescription className="text-xs">{email ? `Enter the 2FA code sent to ${email}` : "Enter the 2FA code from your authenticator app"}</DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="text-xs">{description || (email ? `Enter the 2FA code sent to ${email}` : "Enter the 2FA code from your authenticator app")}</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <Field>

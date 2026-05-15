@@ -75,7 +75,7 @@ export function useStandardizedTabs<T extends TabValue>(
 }
 
 export const DEPLOYMENT_TABS = ["logs", "blueprint"] as const;
-export const SERVICE_TABS = ["overview", "env", "blueprint"] as const;
+export const SERVICE_TABS = ["overview", "logs", "env", "settings", "blueprint"] as const;
 export const INSTANCE_TABS = ["overview", "system", "files", "config", "logs", "advanced"] as const;
 
 export type DeploymentTab = typeof DEPLOYMENT_TABS[number];

@@ -13,7 +13,7 @@ export interface ServiceWithInstance extends NormalizedService {
 }
 
 export function useServices(instanceTag?: string | null, pageOptions?: { externalPage?: number; onPageChange?: (page: number) => void }) {
-  const { instances } = useInstances();
+  const { instances, isLoading: isInstancesLoading } = useInstances();
 
   const serviceQueries = useQueries({
     queries: instances.map(instance => ({
@@ -68,6 +68,7 @@ export function useServices(instanceTag?: string | null, pageOptions?: { externa
     selectedService,
     selectedInstanceName,
     isLoading: false,
+    isInstancesLoading,
     isConnected: true,
     error: null,
     ...pagination,

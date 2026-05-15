@@ -4,91 +4,293 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
-import { type BreadcrumbItem, type BlueprintFormat, type Runtime, type NormalizedService, denormalize, type InstanceStreamUpdateV1_1 } from "@/types";
+import { type BreadcrumbItem, type BlueprintFormat, type Runtime, type NormalizedService } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtectedRoute } from "@/components/protected-route";
-import { ArrowUpRightIcon, ChevronLeft, Edit2, ExternalLink, FileX2, Globe, Loader2 } from "lucide-react";
+import { ArrowUpRightIcon, ChevronLeft, ExternalLink, FileX2, Globe, Loader2, Plus, Trash2, Copy, Download, CheckCircle2, Clock, XCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
-import { ConfigTable } from "@/components/config-table";
-import { useServiceEnv } from "@/hooks/use-service-env";
-import { useServiceEditor } from "@/hooks/use-service-editor";
-import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
-import { MetricCard } from "@/components/metric-card";
+import { useServiceEnvs } from "@/hooks/use-service-envs";
+import { useServiceSecrets } from "@/hooks/use-service-secrets";
 import TimeAgo from "react-timeago";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useClusters } from "@/hooks/use-clusters";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { useServiceRemove } from "@/hooks/use-service-remove";
-import { BlueprintSection } from "@/components/blueprint";
-import { toJson, toYaml } from "@/lib/utils";
-import { useCallback, useMemo, useState } from "react";
+import { toJson, toYaml, cn } from "@/lib/utils";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
 import { useServiceTabs } from "@/hooks/use-standardized-tabs";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NormalizedInstanceData } from "@/types";
 import { Label } from "@/components/ui/label";
+import { LogsWindow } from "@/components/logs-window";
+import { useServiceLogs } from "@/hooks/use-standardized-logs";
+import { useServiceTraffic } from "@/hooks/use-service-traffic";
+import { ServiceTrafficChart } from "@/components/service-traffic-chart";
+import { usePlanFeatures } from "@/hooks/use-plan-features";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
 });
 
+const DOMAIN_LIMITS: Record<string, number> = { hobby: 1, indie: 10, pro: 25 };
+
 const viewServiceBreadcrumbs = (service: NormalizedService | null, clusterId?: string): BreadcrumbItem[] => {
   const base = clusterId ? `/clusters/${clusterId}/services` : "/services";
-
   return [
-    {
-      title: "Services",
-      href: base,
-    },
-    {
-      title: service?.name || "",
-      href: service?.id ? `${base}/${service.id}` : base,
-    },
+    { title: "Services", href: base },
+    { title: service?.name || "", href: service?.id ? `${base}/${service.id}` : base },
   ];
 };
 
+function StatusDot({ status }: { status: "pending" | "active" | "failed" }) {
+  if (status === "active") return <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />;
+  if (status === "failed") return <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />;
+  return <Clock className="h-3.5 w-3.5 text-yellow-500 animate-pulse shrink-0" />;
+}
+
+interface BlueprintViewerProps {
+  name: string;
+  yamlConfig: string;
+  jsonConfig: string;
+  blueprintFormat: BlueprintFormat;
+  setBlueprintFormat: (f: BlueprintFormat) => void;
+}
+
+function BlueprintViewer({ name, yamlConfig, jsonConfig, blueprintFormat, setBlueprintFormat }: BlueprintViewerProps) {
+  const [copied, setCopied] = useState(false);
+  const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
+  const lines = content ? content.split("\n") : [];
+  const hasContent = content.trim().length > 0;
+
+  const handleCopy = useCallback(() => {
+    if (!content) return;
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [content]);
+
+  const handleDownload = useCallback(() => {
+    if (!content) return;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name}.${blueprintFormat === "yaml" ? "yml" : "json"}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [content, name, blueprintFormat]);
+
+  return (
+    <div className="rounded-xl border bg-background/40 overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b bg-muted/20">
+        <code className="text-sm font-mono bg-muted px-2 py-0.5 rounded-md">{name}</code>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center rounded-md border overflow-hidden">
+            <button
+              onClick={() => setBlueprintFormat("yaml")}
+              className={cn("px-2.5 py-1 text-xs transition-colors", blueprintFormat === "yaml" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}
+            >
+              YAML
+            </button>
+            <button
+              onClick={() => setBlueprintFormat("json")}
+              className={cn("px-2.5 py-1 text-xs transition-colors border-l", blueprintFormat === "json" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}
+            >
+              JSON
+            </button>
+          </div>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleCopy} disabled={!hasContent}>
+            {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleDownload} disabled={!hasContent}>
+            <Download className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Code area */}
+      {hasContent ? (
+        <div className="overflow-auto max-h-[600px] bg-muted/20">
+          <table className="w-full border-collapse text-xs font-mono">
+            <tbody>
+              {lines.map((line, i) => (
+                <tr key={i} className="hover:bg-muted/40 group">
+                  <td className="select-none pr-4 pl-4 py-0 text-right text-muted-foreground/40 w-10 border-r border-border/40 group-hover:text-muted-foreground/70 leading-5 align-top">
+                    {i + 1}
+                  </td>
+                  <td className="pl-4 pr-6 py-0 text-foreground leading-5 whitespace-pre">
+                    {line || " "}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 gap-2">
+          <p className="text-sm text-muted-foreground">No blueprint data</p>
+          <p className="text-xs text-muted-foreground/60">Connect an instance to generate the service blueprint</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Env section ──────────────────────────────────────────────────────────────
+interface EnvSectionProps {
+  title: string;
+  subtitle: string;
+  entries: Record<string, string>;
+  isSecret?: boolean;
+  onAdd: (key: string, value: string) => void;
+  onDelete: (key: string) => void;
+}
+
+function EnvSection({ title, subtitle, entries, isSecret = false, onAdd, onDelete }: EnvSectionProps) {
+  const [adding, setAdding] = useState(false);
+  const [newKey, setNewKey] = useState("");
+  const [newValue, setNewValue] = useState("");
+  const [keyError, setKeyError] = useState("");
+
+  const entryList = Object.entries(entries);
+
+  const handleAdd = useCallback(() => {
+    const k = newKey.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
+    if (!k) { setKeyError("Key is required"); return; }
+    if (entries[k] !== undefined) { setKeyError("Key already exists"); return; }
+    onAdd(k, newValue);
+    setNewKey("");
+    setNewValue("");
+    setKeyError("");
+    setAdding(false);
+  }, [newKey, newValue, entries, onAdd]);
+
+  const handleCancel = useCallback(() => {
+    setAdding(false);
+    setNewKey("");
+    setNewValue("");
+    setKeyError("");
+  }, []);
+
+  return (
+    <div className="rounded-xl border overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/20">
+        <div>
+          <p className="text-sm font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+        </div>
+        {!adding && (
+          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setAdding(true)}>
+            <Plus className="h-3.5 w-3.5" /> Add
+          </Button>
+        )}
+      </div>
+
+      {entryList.length === 0 && !adding ? (
+        <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+          No {title.toLowerCase()} configured
+        </div>
+      ) : (
+        <div className="divide-y">
+          {entryList.map(([key]) => (
+            <div key={key} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/10 group">
+              <span className="font-mono text-xs w-48 shrink-0 truncate">{key}</span>
+              <span className="font-mono text-xs text-muted-foreground flex-1 truncate">
+                {isSecret ? "••••••••" : entries[key] || <span className="italic opacity-50">empty</span>}
+              </span>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
+                onClick={() => onDelete(key)}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          ))}
+
+          {adding && (
+            <div className="px-4 py-3 bg-muted/10 space-y-2">
+              <div className="flex gap-2">
+                <div className="flex-1 space-y-1">
+                  <Input
+                    autoFocus
+                    placeholder="VARIABLE_NAME"
+                    value={newKey}
+                    onChange={e => { setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "")); setKeyError(""); }}
+                    className="font-mono text-xs h-8"
+                  />
+                  {keyError && <p className="text-xs text-destructive">{keyError}</p>}
+                </div>
+                <Input
+                  placeholder={isSecret ? "secret value" : "value"}
+                  type={isSecret ? "password" : "text"}
+                  value={newValue}
+                  onChange={e => setNewValue(e.target.value)}
+                  className="flex-1 font-mono text-xs h-8"
+                  onKeyDown={e => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") handleCancel(); }}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handleCancel}>Cancel</Button>
+                <Button size="sm" className="h-7 text-xs" onClick={handleAdd}>Add</Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 function ViewService() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  // useServices now includes selectedInstanceName from the aggregated data
-  const { selectedService: service, selectedInstanceName, isLoading } = useServices();
-  const { handleStartCreate } = useDeploymentCreator();
-  const { clusterId, userCluster } = useClusters();
+  const { selectedService: service, selectedInstanceName, isInstancesLoading } = useServices();
+  const { clusterId } = useClusters();
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
+  const { plan } = usePlanFeatures();
 
-  // Use standardized tabs hook
-  const { currentTab, setTabState } = useServiceTabs();
+  const { currentTab, setTabState, logTimeRange, selectedLogLevel, logDuration } = useServiceTabs();
   const navigate = useNavigate();
   const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("yaml");
 
-  const { config, editValue, editingKey, setEditValue, handleCancel, handleEdit, handleKeyboardPress, handleSave } = useServiceEnv(service);
+  // Service editor state (now lives in Settings)
+  const [editedName, setEditedName] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
+  const [isSavingDetails, setIsSavingDetails] = useState(false);
 
-  const {
-    isEditMode,
-    editedName,
-    editedDescription,
-    setEditedName,
-    setEditedDescription,
-    handleStartEdit,
-    handleCancelEdit,
-    handleSave: handleSaveEdit,
-  } = useServiceEditor(service, clusterId || "", selectedInstanceName || "");
+  // Env vars
+  const { envs: allEnvs, setEnvs, deleteEnv } = useServiceEnvs(service?.id ?? null);
+  // Secrets
+  const { secrets, setSecrets, deleteSecret } = useServiceSecrets(service?.id ?? null);
+
+  // Custom domains
+  const [newDomain, setNewDomain] = useState("");
+  const [customDomains, setCustomDomains] = useState<{ domain: string; status: "pending" | "active" | "failed" }[]>([]);
+  const domainLimit = DOMAIN_LIMITS[plan?.toLowerCase() ?? "hobby"] ?? 1;
+
+  const handleAddDomain = useCallback(() => {
+    const trimmed = newDomain.trim().toLowerCase();
+    if (!trimmed || customDomains.some(d => d.domain === trimmed)) return;
+    setCustomDomains(prev => [...prev, { domain: trimmed, status: "pending" }]);
+    setNewDomain("");
+  }, [newDomain, customDomains]);
 
   const { handleRemoveService } = useServiceRemove();
 
-  // Get instance status for blueprint - now using the instance name from useServices
-  const { update } = useInstanceStatus(selectedInstanceName);
-  const denormalizedData = useMemo(() => denormalize(update, "v1.1") as InstanceStreamUpdateV1_1 | null, [update]);
-
-  // Get proxy route for this service
+  useInstanceStatus(selectedInstanceName);
   const proxyRoute = useMemo(() => {
     if (!selectedInstanceName || !service) return null;
     const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", selectedInstanceName]);
     if (!instanceData?.proxy?.routes) return null;
-
     return (
       instanceData.proxy.routes.find(route => {
         const upstreamPort = route.upstream?.match(/:([\d]+)/)?.[1];
@@ -100,81 +302,74 @@ function ViewService() {
   const serviceDomain = useMemo(() => {
     if (proxyRoute?.domain) return proxyRoute.domain;
     return `${service?.name}.dployr.run`;
-  }, [proxyRoute, service?.name, userCluster?.name]);
+  }, [proxyRoute, service?.name]);
 
-  const yamlConfig = useMemo(() => {
-    if (!denormalizedData?.workloads?.services?.length) return "";
-    // Find the specific service in the denormalized data
-    const serviceBlueprint = denormalizedData.workloads.services.find((s: any) => s.id === service?.id);
-    if (!serviceBlueprint) return "";
-    return toYaml(serviceBlueprint);
-  }, [denormalizedData, service?.id]);
+  // Build a clean Blueprint-schema object — no id, timestamps, or raw internals
+  const blueprintData = useMemo(() => {
+    if (!service) return null;
+    const bp: Record<string, unknown> = {
+      name: service.name,
+      type: service.type,
+      source: service.source,
+      runtime: {
+        type: service.runtime?.type,
+        ...(service.runtime?.version ? { version: service.runtime.version } : {}),
+      },
+    };
+    if (service.description) bp.description = service.description;
+    if (service.remote) {
+      bp.remote = {
+        url: service.remote.url,
+        branch: service.remote.branch,
+      };
+    }
+    if (service.runCmd) bp.run_cmd = service.runCmd;
+    if (service.buildCmd) bp.build_cmd = service.buildCmd;
+    if (service.workingDir) bp.working_dir = service.workingDir;
+    if (service.port) bp.port = service.port;
+    if (allEnvs && Object.keys(allEnvs).length > 0) bp.env_vars = allEnvs;
+    return bp;
+  }, [service, allEnvs]);
 
-  const jsonConfig = useMemo(() => {
-    if (!denormalizedData?.workloads?.services?.length) return "";
-    // Find the specific service in the denormalized data
-    const serviceBlueprint = denormalizedData.workloads.services.find((s: any) => s.id === service?.id);
-    if (!serviceBlueprint) return "";
-    return toJson(serviceBlueprint);
-  }, [denormalizedData, service?.id]);
+  const yamlConfig = useMemo(() => blueprintData ? toYaml(blueprintData) : "", [blueprintData]);
+  const jsonConfig = useMemo(() => blueprintData ? toJson(blueprintData) : "", [blueprintData]);
 
-  const handleBlueprintCopy = useCallback(() => {
-    const content = blueprintFormat === "yaml" ? yamlConfig : jsonConfig;
-    navigator.clipboard.writeText(content);
-  }, [blueprintFormat, yamlConfig, jsonConfig]);
+  // Traffic
+  const { trafficData, summary, isLoading: isTrafficLoading } = useServiceTraffic(service?.id ?? null);
 
-  if (isLoading) {
-    return (
-      <ProtectedRoute>
-        <AppLayout breadcrumbs={breadcrumbs}>
-          <div className="flex h-full min-h-[500px] items-center justify-center">
-            <Empty>
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                </EmptyMedia>
-                <EmptyTitle>Retrieving Service...</EmptyTitle>
-                <EmptyDescription>This shouldn&apos;t take too long! Try refreshing your browser if you see this.</EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <div className="flex justify-center gap-2">
-                  <Button onClick={handleStartCreate}>Deploy Service</Button>
-                  <Button variant="link" asChild className="text-muted-foreground" size="sm">
-                    <a href="#">
-                      Learn More <ArrowUpRightIcon />
-                    </a>
-                  </Button>
-                </div>
-              </EmptyContent>
-            </Empty>
-          </div>
-        </AppLayout>
-      </ProtectedRoute>
-    );
-  }
+  // Logs
+  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, handleScrollPositionChange } = useServiceLogs(
+    service?.id,
+    service?.name,
+    selectedInstanceName ?? undefined,
+    { currentTab, logTimeRange, selectedLogLevel, logDuration }
+  );
+
+  // Sync editor fields when service loads
+  useEffect(() => {
+    if (service) {
+      setEditedName(service.name ?? "");
+      setEditedDescription(service.description ?? "");
+    }
+  }, [service?.id]);
 
   if (!service) {
+    if (isInstancesLoading) return null;
     return (
       <ProtectedRoute>
         <AppLayout breadcrumbs={breadcrumbs}>
           <div className="flex h-full min-h-[500px] items-center justify-center">
             <Empty>
               <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <FileX2 />
-                </EmptyMedia>
-                <EmptyTitle>No Service Found!</EmptyTitle>
-                <EmptyDescription>The requested service was not found. Please verify the ID and try again.</EmptyDescription>
+                <EmptyMedia variant="icon"><FileX2 /></EmptyMedia>
+                <EmptyTitle>No Service Found</EmptyTitle>
+                <EmptyDescription>The requested service was not found. Verify the ID and try again.</EmptyDescription>
               </EmptyHeader>
               <EmptyContent>
                 <div className="flex justify-center gap-2">
-                  <Button onClick={() => router.history.back()}>
-                    <ChevronLeft /> Back
-                  </Button>
+                  <Button onClick={() => router.history.back()}><ChevronLeft /> Back</Button>
                   <Button variant="link" asChild className="text-muted-foreground" size="sm">
-                    <a href="#">
-                      Learn More <ArrowUpRightIcon />
-                    </a>
+                    <a href="#">Learn More <ArrowUpRightIcon /></a>
                   </Button>
                 </div>
               </EmptyContent>
@@ -194,166 +389,246 @@ function ViewService() {
               <div className="flex items-center justify-between">
                 <TabsList className="flex justify-between w-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="logs">Logs</TabsTrigger>
                   <TabsTrigger value="env">Environment</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
                   <TabsTrigger value="blueprint">Blueprint</TabsTrigger>
                 </TabsList>
-
-                <div className="flex gap-3">
-                  <Button size="sm" variant="ghost" onClick={() => router.history.back()} className="h-8 px-3 text-muted-foreground">
-                    <ChevronLeft /> Back
-                  </Button>
-
-                  {currentTab === "overview" && !isEditMode && (
-                    <Button size="sm" onClick={handleStartEdit}>
-                      <Edit2 className="h-4 w-4" />
-                      Edit
-                    </Button>
-                  )}
-                </div>
+                <Button size="sm" variant="ghost" onClick={() => router.history.back()} className="h-8 px-3 text-muted-foreground">
+                  <ChevronLeft /> Back
+                </Button>
               </div>
 
+              {/* ── Overview ── */}
               <TabsContent value="overview" className="mt-4 space-y-4">
-                {!isEditMode ? (
-                  <>
-                    <div className="flex justify-between gap-x-6 gap-y-4 rounded-xl border bg-background/40 p-4">
-                      <MetricCard label="Name" value={service.name} />
-                      <MetricCard label="Port" value={<span className="font-mono">{service.port ?? "3000"}</span>} />
-                      <MetricCard
-                        label="Runtime"
-                        value={
-                          <div className="flex items-center gap-2">
-                            {getRuntimeIcon((service.runtime?.type || "custom") as Runtime)}
-                            <span>{service.runtime?.type}</span>
-                          </div>
-                        }
-                      />
-                      <MetricCard label="Created" value={<TimeAgo date={service.createdAt} />} />
-                    </div>
-
-                    {service.description && (
-                      <div className="rounded-xl border bg-background/40 p-2">
-                        <div className="px-2 py-1">
-                          <p className="text-sm text-muted-foreground">{service.description}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="rounded-xl border bg-background/40 p-2">
-                      <div className="p-1">
-                        <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
-                          <Globe className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-mono text-sm flex-1">{serviceDomain}</span>
-                          <a
-                            href={`https://${serviceDomain}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border bg-background/40 p-2">
-                      <div className="px-2 py-1 space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name" className="text-muted-foreground">
-                            Name
-                          </Label>
-                          <Input id="name" value={editedName} onChange={e => setEditedName(e.target.value)} placeholder="Enter service name" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="description" className="text-muted-foreground">
-                            Description
-                          </Label>
-                          <Textarea id="description" value={editedDescription} onChange={e => setEditedDescription(e.target.value)} placeholder="Enter service description" rows={3} />
-                        </div>
-                        {currentTab === "overview" && isEditMode && (
-                          <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
-                              Cancel
-                            </Button>
-                            <Button size="sm" onClick={handleSaveEdit}>
-                              Save
-                            </Button>
-                          </div>
+                {/* Hero card */}
+                <div className="rounded-xl border bg-background/40 p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="shrink-0">{getRuntimeIcon((service.runtime?.type || "custom") as Runtime)}</div>
+                      <div className="min-w-0">
+                        <h2 className="text-xl font-semibold truncate">{service.name}</h2>
+                        {service.description && (
+                          <p className="text-sm text-muted-foreground mt-0.5 truncate">{service.description}</p>
                         )}
                       </div>
                     </div>
-
-                    <div className="rounded-xl border bg-background/40 p-2">
-                      <div className="px-2 py-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex flex-col gap-1">
-                            <div className="text-base font-semibold">Remove Service</div>
-                            <div className="text-sm text-muted-foreground">This will remove the service from the instance. This action cannot be undone.</div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={async () => {
-                              const result = await handleRemoveService(service?.id || "");
-                              if (result.success) {
-                                navigate({ to: "/clusters/$clusterId/services", params: { clusterId } });
-                              }
-                            }}
-                          >
-                            Stop & Remove
-                          </Button>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                      <span>Port <span className="font-mono text-foreground">{service.port ?? 3000}</span></span>
+                      <span className="text-border">·</span>
+                      <span><TimeAgo date={service.createdAt} /></span>
                     </div>
                   </div>
-                )}
-              </TabsContent>
 
-              <TabsContent value="env" className="mt-4">
-                {config && Object.keys(config).length > 0 ? (
-                  <ConfigTable
-                    config={config}
-                    editingKey={editingKey}
-                    editValue={editValue}
-                    setEditValue={setEditValue}
-                    handleEdit={handleEdit}
-                    handleSave={handleSave}
-                    handleKeyboardPress={handleKeyboardPress}
-                    handleCancel={handleCancel}
-                  />
-                ) : (
-                  <div className="flex h-[400px] items-center justify-center">
-                    <Empty>
-                      <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                          <FileX2 />
-                        </EmptyMedia>
-                        <EmptyTitle>No Environment Variables</EmptyTitle>
-                        <EmptyDescription>This service doesn&apos;t have any environment variables configured yet.</EmptyDescription>
-                      </EmptyHeader>
-                    </Empty>
+                  <div className="mt-4 pt-4 border-t flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <a
+                      href={`https://${serviceDomain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-sm hover:underline underline-offset-4 flex-1 truncate"
+                    >
+                      {serviceDomain}
+                    </a>
+                    <a
+                      href={`https://${serviceDomain}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   </div>
-                )}
+                </div>
+
+                {/* Traffic metrics */}
+                <ServiceTrafficChart data={trafficData} summary={summary} isLoading={isTrafficLoading} />
               </TabsContent>
 
+              {/* ── Logs ── */}
+              <TabsContent value="logs" className="flex min-h-0 flex-1 flex-col mt-4">
+                <LogsWindow
+                  logs={logs}
+                  filteredLogs={filteredLogs}
+                  selectedLevel={selectedLogLevel}
+                  setSelectedLevel={level => setTabState({ logLevel: level })}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  logsEndRef={logsEndRef}
+                  onScrollPositionChange={handleScrollPositionChange}
+                  timeRange={logTimeRange}
+                  onTimeRangeChange={range => setTabState({ logRange: range, duration: range })}
+                  isStreaming={isStreaming}
+                  showTimeFilter={false}
+                />
+              </TabsContent>
+
+              {/* ── Environment ── */}
+              <TabsContent value="env" className="mt-4 space-y-4">
+                <EnvSection
+                  title="Environment Variables"
+                  subtitle="Plain text, available at runtime"
+                  entries={allEnvs}
+                  onAdd={(key, value) => setEnvs.mutate({ ...allEnvs, [key]: value })}
+                  onDelete={key => deleteEnv.mutate(key)}
+                />
+                <EnvSection
+                  title="Secrets"
+                  subtitle="Secret values are never shown after saving"
+                  entries={secrets}
+                  isSecret
+                  onAdd={(key, value) => setSecrets.mutate({ ...secrets, [key]: value })}
+                  onDelete={key => deleteSecret.mutate(key)}
+                />
+              </TabsContent>
+
+              {/* ── Settings ── */}
+              <TabsContent value="settings" className="mt-4 space-y-4 overflow-y-auto pb-6">
+                {/* Service details */}
+                <div className="rounded-xl border bg-background/40 overflow-hidden">
+                  <div className="px-4 py-3 border-b bg-muted/20">
+                    <p className="text-sm font-medium">Service Details</p>
+                  </div>
+                  <div className="px-4 py-4 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="svc-name" className="text-xs text-muted-foreground">Name</Label>
+                      <Input
+                        id="svc-name"
+                        value={editedName}
+                        onChange={e => setEditedName(e.target.value)}
+                        placeholder="Service name"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="svc-desc" className="text-xs text-muted-foreground">Description</Label>
+                      <Textarea
+                        id="svc-desc"
+                        value={editedDescription}
+                        onChange={e => setEditedDescription(e.target.value)}
+                        placeholder="Optional description"
+                        rows={2}
+                        className="text-sm resize-none"
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        disabled={isSavingDetails}
+                        onClick={async () => {
+                          setIsSavingDetails(true);
+                          // wire up to service update API
+                          setIsSavingDetails(false);
+                        }}
+                      >
+                        {isSavingDetails ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Custom domains */}
+                <div className="rounded-xl border bg-background/40 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/20">
+                    <div>
+                      <p className="text-sm font-medium">Custom Domains</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {domainLimit} domain{domainLimit !== 1 ? "s" : ""} on the <span className="capitalize">{plan}</span> plan
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs capitalize">{plan}</Badge>
+                  </div>
+
+                  <div className="px-4 py-3 space-y-3">
+                    {/* Default domain */}
+                    <div className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
+                      <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="font-mono text-xs flex-1 text-muted-foreground">{serviceDomain}</span>
+                      <Badge variant="secondary" className="text-[10px] py-0 px-1.5">default</Badge>
+                      <a href={`https://${serviceDomain}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+
+                    {/* Custom domain list */}
+                    {customDomains.map(({ domain, status }) => (
+                      <div key={domain} className="flex items-center gap-2 rounded-lg border px-3 py-2">
+                        <StatusDot status={status} />
+                        <span className="font-mono text-xs flex-1">{domain}</span>
+                        <Badge variant={status === "active" ? "default" : status === "failed" ? "destructive" : "secondary"} className="text-[10px] py-0 px-1.5">
+                          {status}
+                        </Badge>
+                        <a href={`https://${domain}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                        <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => setCustomDomains(p => p.filter(d => d.domain !== domain))}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    {/* Add domain */}
+                    {customDomains.length < domainLimit ? (
+                      <div className="flex gap-2 pt-1">
+                        <Input
+                          placeholder="yourdomain.com"
+                          value={newDomain}
+                          onChange={e => setNewDomain(e.target.value)}
+                          className="font-mono text-xs h-8"
+                          onKeyDown={e => { if (e.key === "Enter") handleAddDomain(); }}
+                        />
+                        <Button size="sm" className="h-8 shrink-0" onClick={handleAddDomain} disabled={!newDomain.trim()}>
+                          <Plus className="h-3.5 w-3.5" /> Add
+                        </Button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground pt-1">
+                        Domain limit reached.{" "}
+                        <a href={`/clusters/${clusterId}/settings/billing`} className="underline underline-offset-2 hover:text-foreground">
+                          Upgrade your plan
+                        </a>{" "}
+                        to add more.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Danger zone */}
+                <div className="rounded-xl border border-destructive/30 bg-background/40 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-destructive/20 bg-destructive/5">
+                    <p className="text-sm font-medium text-destructive">Danger Zone</p>
+                  </div>
+                  <div className="px-4 py-4 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Remove Service</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Stops and removes this service from the instance. This cannot be undone.</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="shrink-0"
+                      onClick={async () => {
+                        const result = await handleRemoveService(service?.id || "");
+                        if (result.success) {
+                          navigate({ to: "/clusters/$clusterId/services", params: { clusterId } });
+                        }
+                      }}
+                    >
+                      Decommission
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* ── Blueprint ── */}
               <TabsContent value="blueprint" className="mt-4">
-                {service ? (
-                  <BlueprintSection
-                    name={service.name}
-                    blueprintFormat={blueprintFormat}
-                    yamlConfig={yamlConfig}
-                    jsonConfig={jsonConfig}
-                    setBlueprintFormat={setBlueprintFormat}
-                    handleBlueprintCopy={handleBlueprintCopy}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center p-8 gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <p className="text-muted-foreground">Loading blueprint...</p>
-                  </div>
-                )}
+                <BlueprintViewer
+                  name={service.name}
+                  blueprintFormat={blueprintFormat}
+                  yamlConfig={yamlConfig}
+                  jsonConfig={jsonConfig}
+                  setBlueprintFormat={setBlueprintFormat}
+                />
               </TabsContent>
             </Tabs>
           </div>

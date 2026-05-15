@@ -25,6 +25,7 @@ export function useLogs({ instanceName, path, initialMode, duration = "live", se
   const [currentStreamId, setCurrentStreamId] = useState<string | null>(null);
   const [lastOffset, setLastOffset] = useState(0);
   const [isStreaming, setIsStreaming] = useState(false);
+  const isStreamingRef = useRef(false);
   const logsEndRef = useRef<HTMLDivElement | null>(null);
   const logCounterRef = useRef(0);
   const logBufferRef = useRef<Log[]>([]);
@@ -109,15 +110,21 @@ export function useLogs({ instanceName, path, initialMode, duration = "live", se
     (fromOffset?: number) => {
       if (!path) return;
 
-      if (!isStreaming) {
+      // Use ref to avoid isStreaming state in deps — prevents the feedback loop where
+      // setIsStreaming(true) causes startStreaming to get a new ref, re-triggering the
+      // useStandardizedLogs effect and sending a duplicate log_subscribe to the server.
+      if (!isStreamingRef.current) {
+        isStreamingRef.current = true;
         subscribe(subscriberId, handleMessage);
         setIsStreaming(true);
       }
 
-      const startOffset = fromOffset ?? (duration === "live" ? lastOffsetRef.current : 0);
-      sendSubscribe(startOffset);
+      if (!hasSubscribedRef.current) {
+        const startOffset = fromOffset ?? (duration === "live" ? lastOffsetRef.current : 0);
+        sendSubscribe(startOffset);
+      }
     },
-    [path, isStreaming, duration, subscriberId, subscribe, handleMessage, sendSubscribe]
+    [path, duration, subscriberId, subscribe, handleMessage, sendSubscribe]
   );
 
   // Stop streaming logs
@@ -132,6 +139,7 @@ export function useLogs({ instanceName, path, initialMode, duration = "live", se
 
     unsubscribe(subscriberId);
     hasSubscribedRef.current = false;
+    isStreamingRef.current = false;
     setIsStreaming(false);
     setCurrentStreamId(null);
     if (flushTimerRef.current) {

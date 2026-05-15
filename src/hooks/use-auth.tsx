@@ -19,7 +19,7 @@ interface AuthContextType {
   handleGoogleSignIn: () => Promise<void>;
   handleMicrosoftSignIn: () => Promise<void>;
   handleGitHubSignIn: (redirectUrl: string) => void;
-  updateProfile: (data: { name: string; picture: string }) => Promise<User | Error>;
+  updateProfile: (data: { name: string; picture: string; email?: string; code?: string }) => Promise<any>;
   logout: () => void;
   refetch: () => void;
   verifyOTP: boolean;
@@ -119,19 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { name: string; picture: string }) => {
+    mutationFn: async (data: { name: string; picture: string; email?: string; code?: string }) => {
       const res = await axios.patch(
         `${import.meta.env.VITE_BASE_URL}/v1/users/me`,
-        {
-          name: data.name,
-          picture: data.picture,
-        },
+        data,
         {
           withCredentials: true,
         }
       );
 
-      return res.data as User;
+      return res.data;
     },
     onSuccess: () => {
       refetch();

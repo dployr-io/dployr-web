@@ -13,7 +13,7 @@ export interface DeploymentWithInstance extends NormalizedDeployment {
 }
 
 export function useDeployments(filterInstanceName?: string | null, pageOptions?: { externalPage?: number; onPageChange?: (page: number) => void }) {
-  const { instances } = useInstances();
+  const { instances, isLoading: isLoadingInstances } = useInstances();
 
   const deploymentQueries = useQueries({
     queries: instances.map(instance => ({
@@ -68,6 +68,7 @@ export function useDeployments(filterInstanceName?: string | null, pageOptions?:
     selectedDeployment,
     selectedInstanceName,
     isLoading: false,
+    isInstancesLoading: isLoadingInstances,
     isConnected: true,
     ...pagination,
     paginatedDeployments: pagination.paginatedItems,

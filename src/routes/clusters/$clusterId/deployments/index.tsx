@@ -95,6 +95,7 @@ function Deployments() {
     paginatedDeployments,
     deployments,
     isLoading: isDeploymentsLoading,
+    isInstancesLoading,
     currentPage,
     totalPages,
     paginationRange,
@@ -211,7 +212,7 @@ function Deployments() {
                   </div>
                 )}
 
-                {deployments?.length === 0 && !isDeploymentsLoading ? (
+                {deployments?.length === 0 && !isDeploymentsLoading && !isInstancesLoading ? (
                   <Empty>
                     <EmptyHeader>
                       <EmptyMedia variant="icon">
@@ -479,7 +480,17 @@ function Deployments() {
                         clusterId={clusterId}
                         instanceId={quickDeployInstanceId}
                         setField={setField}
-                        onSourceValueChanged={value => updateDraft("source", value)}
+                        onSourceValueChanged={value => {
+                          updateDraft("source", value);
+                          if (value === "image") {
+                            updateDraft("remote", { url: "", branch: "main", commit_hash: "" });
+                            updateDraft("run_cmd", "");
+                            updateDraft("build_cmd", "");
+                            updateDraft("working_dir", "");
+                          } else if (value === "remote") {
+                            updateDraft("image", "");
+                          }
+                        }}
                         onRuntimeValueChanged={value => updateDraft("runtime", value)}
                       />
                       <div className="flex justify-end">

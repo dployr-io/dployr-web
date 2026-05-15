@@ -249,28 +249,36 @@ export function useDeploymentDraft() {
   const toBlueprint = useCallback((): string => {
     if (!currentDraft) return "{}";
 
-    const blueprint: any = {
+    const blueprint: Record<string, unknown> = {
       name: currentDraft.name,
-      description: currentDraft.description,
       source: currentDraft.source,
       type: currentDraft.type,
       runtime: {
         type: currentDraft.runtime,
         version: currentDraft.version || "latest",
       },
-      run_cmd: currentDraft.run_cmd,
-      build_cmd: currentDraft.build_cmd,
-      working_dir: currentDraft.working_dir,
-      static_dir: currentDraft.static_dir,
-      image: currentDraft.image,
-      env_vars: currentDraft.env_vars,
-      secrets: currentDraft.secrets,
-      remote: currentDraft.remote,
-      domain: currentDraft.domain,
     };
 
-    if (currentDraft.port !== null && currentDraft.port !== undefined) {
-      blueprint.port = currentDraft.port;
+    if (currentDraft.description) blueprint.description = currentDraft.description;
+    if (currentDraft.port !== null && currentDraft.port !== undefined) blueprint.port = currentDraft.port;
+    if (currentDraft.domain) blueprint.domain = currentDraft.domain;
+    if (currentDraft.static_dir) blueprint.static_dir = currentDraft.static_dir;
+    if (Object.keys(currentDraft.env_vars).length > 0) blueprint.env_vars = currentDraft.env_vars;
+    if (Object.keys(currentDraft.secrets).length > 0) blueprint.secrets = currentDraft.secrets;
+
+    if (currentDraft.source === "image") {
+      if (currentDraft.image) blueprint.image = currentDraft.image;
+    } else if (currentDraft.source === "remote") {
+      if (currentDraft.run_cmd) blueprint.run_cmd = currentDraft.run_cmd;
+      if (currentDraft.build_cmd) blueprint.build_cmd = currentDraft.build_cmd;
+      if (currentDraft.working_dir) blueprint.working_dir = currentDraft.working_dir;
+      if (currentDraft.remote.url) {
+        blueprint.remote = {
+          url: currentDraft.remote.url,
+          branch: currentDraft.remote.branch || "main",
+          ...(currentDraft.remote.commit_hash ? { commit_hash: currentDraft.remote.commit_hash } : {}),
+        };
+      }
     }
 
     return JSON.stringify(blueprint, null, 2);

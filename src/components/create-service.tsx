@@ -277,7 +277,8 @@ export function CreateServiceForm({
                   <Info className="h-3.5 w-3.5 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  Defaults to <span className="font-mono bg-white/15 rounded px-1 py-0.5">your-app.dployr.run</span>.<br /> You can add your own domain for free.
+                  Defaults to <span className="font-mono bg-white/15 rounded px-1 py-0.5">your-app.dployr.run</span>
+                  <br /> You can add your own domain for free
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -311,25 +312,37 @@ export function CreateServiceForm({
         </div>
 
         {source === "remote" && (
-          <div className={`grid gap-2 ${source === "remote" && runtime === "static" ? "" : "md:col-span-2"}`}>
-            <Label htmlFor="working_dir">
-              Working Directory <span className="text-xs text-muted-foreground">(Defaults to root)</span>
-            </Label>
+          <div className={`grid gap-2 ${source === "remote"}`}>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="working_dir">Working Directory</Label>
+              <Tooltip>
+                <TooltipTrigger type="button">
+                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>Defaults to root folder</TooltipContent>
+              </Tooltip>
+            </div>
             <Input id="working_dir" name="working_dir" placeholder="src" value={workingDir!} onChange={e => setField("workingDir", e.target.value)} disabled={processing} />
             {(workingDirError || errors.working_dir) && <div className="text-sm text-destructive">{workingDirError || errors.working_dir}</div>}
           </div>
         )}
 
-        {source === "remote" && runtime === "static" && (
-          <div className="grid gap-2 md:col-span-1">
+        <div className="grid gap-2 md:col-span-1">
+          <div className="flex items-center gap-1.5">
             <Label htmlFor="static_dir">Static Directory</Label>
-            <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
-            {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
+            <Tooltip>
+              <TooltipTrigger type="button">
+                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>This directory will be mounted on your service</TooltipContent>
+            </Tooltip>
           </div>
-        )}
+          <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
+          {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
+        </div>
 
         {source === "image" && (
-          <div className="grid gap-2 md:col-span-2">
+          <div className="grid gap-2 md:col-span-1">
             <Label htmlFor="image">
               Docker Image <span className="text-destructive">*</span>
             </Label>

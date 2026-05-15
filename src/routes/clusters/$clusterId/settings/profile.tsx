@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { use2FA } from "@/hooks/use-2fa";
 import { useConfirmation } from "@/hooks/use-confirmation";
 import { useClusters } from "@/hooks/use-clusters";
+import { TwoFactorDialog } from "@/components/two-factor-dialog";
 
 export const Route = createFileRoute("/clusters/$clusterId/settings/profile")({
   component: System,
@@ -36,6 +37,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 function System() {
   const { user } = useAuth();
   const [editMode, setEditMode] = useState(false);
+  const [emailVerificationOpen, setEmailVerificationOpen] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
   const [clusterName, setClusterName] = useState("");
   const [clusterNameError, setClusterNameError] = useState("");
   const { form, error, submit: submitProfile } = useSettingsForm();
@@ -51,6 +54,8 @@ function System() {
 
   function cancelEditMode() {
     setEditMode(false);
+    setEmailVerificationOpen(false);
+    setPendingEmail("");
     setClusterNameError("");
   }
 
@@ -76,10 +81,26 @@ function System() {
       }
     }
 
-    const profileError = await submitProfile();
-    if (!profileError) {
+    const profileResult = await submitProfile();
+    if (typeof profileResult === "object" && profileResult?.verificationRequired) {
+      setPendingEmail(profileResult.email);
+      setEmailVerificationOpen(true);
+      return;
+    }
+
+    if (!profileResult) {
       setEditMode(false);
     }
+  }
+
+  async function handleEmailVerify(code: string) {
+    const profileResult = await submitProfile(code);
+    if (profileResult) {
+      throw new Error(typeof profileResult === "string" ? profileResult : "Verification is still required.");
+    }
+    setEmailVerificationOpen(false);
+    setPendingEmail("");
+    setEditMode(false);
   }
 
   const isSaving = renameCluster.isPending;
@@ -103,6 +124,30 @@ function System() {
             {editMode ? (
               <form onSubmit={handleSave}>
                 <FieldGroup>
+                  <form.Field
+                    name="email"
+                    children={field => {
+                      const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+                      return (
+                        <Field data-invalid={isInvalid}>
+                          <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                          <Input
+                            id={field.name}
+                            name={field.name}
+                            type="email"
+                            value={field.state.value}
+                            onBlur={field.handleBlur}
+                            onChange={e => field.handleChange(e.target.value)}
+                            aria-invalid={isInvalid}
+                            placeholder="Enter email"
+                            autoComplete="email"
+                          />
+                          {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                        </Field>
+                      );
+                    }}
+                  />
+
                   <form.Field
                     name="name"
                     children={field => {
@@ -197,6 +242,15 @@ function System() {
                 </div>
               </div>
             )}
+
+            <TwoFactorDialog
+              open={emailVerificationOpen}
+              onOpenChange={setEmailVerificationOpen}
+              onVerify={handleEmailVerify}
+              email={pendingEmail}
+              title="Verify Email"
+              description={`Enter the code sent to ${pendingEmail}`}
+            />
           </div>
         </SettingsLayout>
       </AppLayout>

@@ -231,11 +231,14 @@ export interface ClusterEvent {
   timezoneOffset: string;
 }
 
+export type NodeRole = "instance" | "build";
+
 export interface Instance {
   id: string;
   address: string;
   publicKey: string;
   tag: string;
+  role: NodeRole;
   resources?: {
     cpu: number; // usage percentage 0-100
     memory: number; // usage percentage 0-100
@@ -321,6 +324,7 @@ export interface ApiService {
   name: string;
   type: "docker" | "static";
   deploymentId: string | null;
+  icedAt: number | null;
   createdAt: number;
   updatedAt: number;
 }
@@ -336,6 +340,7 @@ export interface ApiDeployment {
   status: "pending" | "running" | "success" | "failed";
   blueprint: Record<string, any> | null;
   logs: string | null;
+  buildFingerprint: string | null;
   createdAt: number;
   finishedAt: number | null;
 }

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import type { Log, LogLevel, LogTimeRange } from "@/types";
 import { formatMetadata, getLabelColor } from "@/lib/format-metadata";
-import { ArrowDown, ChevronDown, ChevronRight, Pause } from "lucide-react";
+import { ArrowDown, ChevronDown, ChevronRight, Pause, Play } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -274,7 +274,7 @@ export function LogsWindow<TFilterValue extends string = string>({
               {followMode ? (
                 <Pause className="animate-pulse" />
               ) : (
-                <ArrowDown />
+                <Play />
               )}
             </Button>
           </TooltipTrigger>

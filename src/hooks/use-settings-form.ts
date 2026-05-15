@@ -7,9 +7,12 @@ import z from "zod";
 import { useAuth } from "./use-auth";
 
 const updateProfileSchema = z.object({
+    email: z.email('A valid email is required'),
     name: z.string().min(3, 'Name with a minimum of three (3) characters is required'),
     picture: z.string().optional(),
 });
+
+export type SettingsSubmitResult = null | string | { verificationRequired: true; email: string };
 
 export function useSettingsForm() {
     const [error, setError] = useState<string>('');
@@ -17,13 +20,14 @@ export function useSettingsForm() {
 
     const form = useForm({
         defaultValues: {
+            email: user?.email || '',
             name: user?.name,
             picture: user?.picture || '/img/chess.png',
         },
     });
 
     // Returns null on success, or an error string on failure.
-    async function submit(): Promise<string | null> {
+    async function submit(code?: string): Promise<SettingsSubmitResult> {
         const value = form.state.values;
         const result = updateProfileSchema.safeParse(value);
 
@@ -36,17 +40,24 @@ export function useSettingsForm() {
 
         const nameChanged = value.name !== user?.name;
         const pictureChanged = value.picture !== (user?.picture || '/img/chess.png');
+        const emailChanged = value.email !== user?.email;
 
-        if (!nameChanged && !pictureChanged) {
+        if (!nameChanged && !pictureChanged && !emailChanged) {
             setError('');
             return null;
         }
 
         try {
-            await updateProfile({
+            const response = await updateProfile({
+                email: emailChanged ? value.email : undefined,
+                code,
                 picture: value.picture || user?.picture || '',
                 name: value.name || '',
             });
+            if (response?.data?.verificationRequired) {
+                setError('');
+                return { verificationRequired: true, email: response.data.email };
+            }
             setError('');
             return null;
         } catch (err: any) {

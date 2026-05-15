@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { LogLevel, LogStreamMode, LogTimeRange } from "@/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLogs } from "@/hooks/use-instance-logs";
 
 export interface StandardizedLogsOptions {
@@ -54,6 +54,7 @@ export function useStandardizedLogs(
     } else {
       stopStreaming();
     }
+    return () => stopStreaming();
   }, [currentTab, path, startStreaming, stopStreaming, logsTabName]);
 
   return {
@@ -82,11 +83,38 @@ export function useDeploymentLogs(
     logDuration: LogTimeRange;
   }
 ) {
+  const stablePath = useRef(deploymentName || deploymentId || "");
+  const stableInstance = useRef(instanceName);
+  const resolvedPath = deploymentName || deploymentId || stablePath.current;
+  if (resolvedPath) stablePath.current = resolvedPath;
+  if (instanceName) stableInstance.current = instanceName;
+
   return useStandardizedLogs(
-    {
-      instanceName,
-      path: deploymentName || deploymentId || "",
-    },
+    { instanceName: stableInstance.current, path: stablePath.current },
+    tabState,
+    "logs"
+  );
+}
+
+export function useServiceLogs(
+  serviceId: string | undefined,
+  serviceName: string | undefined,
+  instanceName: string | undefined,
+  tabState: {
+    currentTab: string;
+    logTimeRange: LogTimeRange;
+    selectedLogLevel: "ALL" | LogLevel;
+    logDuration: LogTimeRange;
+  }
+) {
+  const stablePath = useRef(serviceName || serviceId || "");
+  const stableInstance = useRef(instanceName);
+  const resolvedPath = serviceName || serviceId || stablePath.current;
+  if (resolvedPath) stablePath.current = resolvedPath;
+  if (instanceName) stableInstance.current = instanceName;
+
+  return useStandardizedLogs(
+    { instanceName: stableInstance.current, path: stablePath.current },
     tabState,
     "logs"
   );

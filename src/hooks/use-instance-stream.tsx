@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useClusterId } from "./use-cluster-id";
 import { useQueryClient } from "@tanstack/react-query";
 import type { NormalizedInstanceData } from "@/types";
@@ -279,14 +279,10 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
     };
   }, [clusterId, connect, clearReconnectTimeout]);
 
-  const value: InstanceStreamContextValue = {
-    isConnected,
-    state,
-    error,
-    sendJson,
-    subscribe,
-    unsubscribe,
-  };
+  const value = useMemo<InstanceStreamContextValue>(
+    () => ({ isConnected, state, error, sendJson, subscribe, unsubscribe }),
+    [isConnected, state, error, sendJson, subscribe, unsubscribe]
+  );
 
   return <InstanceStreamContext.Provider value={value}>{children}</InstanceStreamContext.Provider>;
 }
