@@ -4,49 +4,50 @@
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 
-export interface TrafficDataPoint {
-  timestamp: number;
+export interface TrafficBucket {
+  bucket: number;
   time: string;
-  requestsPerSecond: number;
-  p50LatencyMs: number;
-  p99LatencyMs: number;
-  errorRate: number;
-  activeConnections: number;
+  requests: number;
+  bytesIn: number;
+  bytesOut: number;
 }
 
-export interface TrafficSummary {
-  totalRequests: number;
-  currentRps: number;
-  p99LatencyMs: number;
-  errorRate: number;
-  activeConnections: number;
+export interface TrafficTotals {
+  requests: number;
+  bytesIn: number;
+  bytesOut: number;
 }
 
-export interface ServiceTrafficData {
-  timeseries: TrafficDataPoint[];
-  summary: TrafficSummary;
-}
-
-export function useServiceTraffic(serviceId: string | null) {
-  const { data, isLoading } = useQuery<ServiceTrafficData>({
-    queryKey: ["service-traffic", serviceId],
+export function useServiceTraffic(serviceName: string | null, clusterId: string | null) {
+  const { data, isLoading } = useQuery<{ buckets: TrafficBucket[]; totals: TrafficTotals }>({
+    queryKey: ["service-traffic", serviceName, clusterId],
     queryFn: async () => {
-      const response = await axios.get(
-        `${import.meta.env.VITE_BASE_URL}/v1/services/${serviceId}/metrics`,
-        { withCredentials: true }
+      const res = await axios.get(
+        `${import.meta.env.VITE_BASE_URL}/v1/services/metrics/${serviceName}?clusterId=${clusterId}`,
+        { withCredentials: true },
       );
-      return response.data.data;
+      const raw = res.data.data;
+      const buckets: TrafficBucket[] = (raw.buckets ?? []).map((b: Record<string, number>) => ({
+        bucket: b.bucket,
+        time: new Date(b.bucket).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        requests: b.requests,
+        bytesIn: b.bytesIn,
+        bytesOut: b.bytesOut,
+      }));
+      return {
+        buckets,
+        totals: raw.totals ?? { requests: 0, bytesIn: 0, bytesOut: 0 },
+      };
     },
-    enabled: !!serviceId,
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-    // Suppress errors — endpoint may not exist yet
+    enabled: !!serviceName && !!clusterId,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
     retry: false,
   });
 
   return {
-    trafficData: data?.timeseries ?? [],
-    summary: data?.summary ?? null,
+    trafficData: data?.buckets ?? [],
+    totals: data?.totals ?? null,
     isLoading,
   };
 }

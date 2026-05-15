@@ -335,7 +335,7 @@ function ViewService() {
   const jsonConfig = useMemo(() => blueprintData ? toJson(blueprintData) : "", [blueprintData]);
 
   // Traffic
-  const { trafficData, summary, isLoading: isTrafficLoading } = useServiceTraffic(service?.id ?? null);
+  const { trafficData, totals, isLoading: isTrafficLoading } = useServiceTraffic(service?.name ?? null, clusterId);
 
   // Logs
   const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, handleScrollPositionChange } = useServiceLogs(
@@ -400,49 +400,39 @@ function ViewService() {
               </div>
 
               {/* ── Overview ── */}
-              <TabsContent value="overview" className="mt-4 space-y-4">
-                {/* Hero card */}
-                <div className="rounded-xl border bg-background/40 p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="shrink-0">{getRuntimeIcon((service.runtime?.type || "custom") as Runtime)}</div>
-                      <div className="min-w-0">
-                        <h2 className="text-xl font-semibold truncate">{service.name}</h2>
-                        {service.description && (
-                          <p className="text-sm text-muted-foreground mt-0.5 truncate">{service.description}</p>
-                        )}
+              <TabsContent value="overview" className="mt-4 space-y-3">
+                <div className="rounded-xl border bg-background/40 px-4 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="shrink-0">{getRuntimeIcon((service.runtime?.type || "custom") as Runtime)}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h2 className="text-base font-semibold shrink-0">{service.name}</h2>
+                        <span className="text-border shrink-0">·</span>
+                        <a
+                          href={`https://${serviceDomain}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-foreground hover:underline underline-offset-4 truncate"
+                        >
+                          <Globe className="h-3 w-3 shrink-0" />
+                          {serviceDomain}
+                          <ExternalLink className="h-3 w-3 opacity-50 shrink-0" />
+                        </a>
                       </div>
+                      {service.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{service.description}</p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
                       <span>Port <span className="font-mono text-foreground">{service.port ?? 3000}</span></span>
                       <span className="text-border">·</span>
-                      <span><TimeAgo date={service.createdAt} /></span>
+                      <TimeAgo date={service.createdAt} />
                     </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t flex items-center gap-2">
-                    <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <a
-                      href={`https://${serviceDomain}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-sm hover:underline underline-offset-4 flex-1 truncate"
-                    >
-                      {serviceDomain}
-                    </a>
-                    <a
-                      href={`https://${serviceDomain}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
                   </div>
                 </div>
 
                 {/* Traffic metrics */}
-                <ServiceTrafficChart data={trafficData} summary={summary} isLoading={isTrafficLoading} />
+                <ServiceTrafficChart data={trafficData} totals={totals} isLoading={isTrafficLoading} />
               </TabsContent>
 
               {/* ── Logs ── */}
