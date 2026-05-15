@@ -4,7 +4,11 @@
 import { LogsWindow } from '@/components/logs-window';
 import { Log } from '@/types';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, test, vi } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
+
+beforeAll(() => {
+    Element.prototype.scrollIntoView = vi.fn();
+});
 
 vi.mock('@/components/ui/button', () => ({
     Button: (props: any) => <button {...props}>{props.children}</button>,
@@ -16,6 +20,20 @@ vi.mock('@/components/ui/input', () => ({
 
 vi.mock('@/components/ui/separator', () => ({
     Separator: () => <hr data-testid="separator" />,
+}));
+
+vi.mock('@tanstack/react-virtual', () => ({
+    useVirtualizer: ({ count, estimateSize }: any) => ({
+        getVirtualItems: () =>
+            Array.from({ length: count }, (_, i) => ({
+                key: i,
+                index: i,
+                start: i * estimateSize(),
+                size: estimateSize(),
+            })),
+        getTotalSize: () => count * estimateSize(),
+        measureElement: vi.fn(),
+    }),
 }));
 
 vi.mock('@/components/ui/dropdown-menu', () => ({
@@ -32,6 +50,10 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
 
 vi.mock('lucide-react', () => ({
     ChevronDown: () => <span data-testid="chevron-icon" />,
+    ChevronRight: () => <span data-testid="chevron-right-icon" />,
+    ArrowDown: () => <span data-testid="arrow-down-icon" />,
+    Pause: () => <span data-testid="pause-icon" />,
+    Play: () => <span data-testid="play-icon" />,
 }));
 
 // Sample data

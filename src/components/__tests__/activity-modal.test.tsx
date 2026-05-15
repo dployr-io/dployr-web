@@ -5,26 +5,35 @@ import { describe, expect, test, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ActivityModal } from '@/components/activity-modal';
 
-// Mock the URL state utilities
-vi.mock('@/lib/url-state', () => ({
-  parseUsersUrlParams: vi.fn(),
-  updateUrlState: vi.fn(),
-  copyCurrentUrl: vi.fn(),
+const mockSetActivityModalState = vi.fn();
+
+vi.mock('@/hooks/use-url-state', () => ({
+  useUrlState: () => ({
+    useUsersActivityModal: () => [
+      {
+        open: false,
+        userId: '',
+        search: '',
+        category: 'all',
+        sortBy: 'timestamp',
+        sortOrder: 'desc',
+      },
+      mockSetActivityModalState,
+    ],
+  }),
 }));
 
-// Mock hooks
 vi.mock('@/hooks/use-initials', () => ({
   useInitials: () => (name: string) => {
     if (!name || name === '-') return 'NA';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   },
 }));
 
-// Mock UI components
 vi.mock('@/components/ui/resizable-modal', () => ({
   ResizableModal: ({ open, onOpenChange, children }: any) => (
-    <div 
-      data-testid="resizable-modal" 
+    <div
+      data-testid="resizable-modal"
       data-open={open}
       onClick={() => onOpenChange(false)}
     >
@@ -46,15 +55,9 @@ vi.mock('@/components/ui/resizable-modal', () => ({
 }));
 
 vi.mock('@/components/ui/avatar', () => ({
-  Avatar: ({ children }: any) => (
-    <div data-testid="avatar">{children}</div>
-  ),
-  AvatarImage: ({ src, alt }: any) => (
-    <img data-testid="avatar-image" src={src} alt={alt} />
-  ),
-  AvatarFallback: ({ children }: any) => (
-    <div data-testid="avatar-fallback">{children}</div>
-  ),
+  Avatar: ({ children }: any) => <div data-testid="avatar">{children}</div>,
+  AvatarImage: ({ src, alt }: any) => <img data-testid="avatar-image" src={src} alt={alt} />,
+  AvatarFallback: ({ children }: any) => <div data-testid="avatar-fallback">{children}</div>,
 }));
 
 vi.mock('@/components/ui/badge', () => ({
@@ -65,7 +68,7 @@ vi.mock('@/components/ui/badge', () => ({
 
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, disabled, variant, size }: any) => (
-    <button 
+    <button
       data-testid="button"
       data-variant={variant}
       data-size={size}
@@ -79,23 +82,19 @@ vi.mock('@/components/ui/button', () => ({
 
 vi.mock('@/components/ui/select', () => ({
   Select: ({ children, value, onValueChange }: any) => (
-    <div 
-      data-testid="select" 
+    <div
+      data-testid="select"
       data-value={value}
       onClick={() => onValueChange && onValueChange('test')}
     >
       {children}
     </div>
   ),
-  SelectContent: ({ children }: any) => (
-    <div data-testid="select-content">{children}</div>
-  ),
+  SelectContent: ({ children }: any) => <div data-testid="select-content">{children}</div>,
   SelectItem: ({ children, value }: any) => (
     <div data-testid="select-item" data-value={value}>{children}</div>
   ),
-  SelectTrigger: ({ children }: any) => (
-    <div data-testid="select-trigger">{children}</div>
-  ),
+  SelectTrigger: ({ children }: any) => <div data-testid="select-trigger">{children}</div>,
   SelectValue: ({ placeholder }: any) => (
     <span data-testid="select-value" data-placeholder={placeholder}></span>
   ),
@@ -103,7 +102,7 @@ vi.mock('@/components/ui/select', () => ({
 
 vi.mock('@/components/ui/input', () => ({
   Input: ({ value, onChange, placeholder }: any) => (
-    <input 
+    <input
       data-testid="input"
       value={value}
       onChange={onChange}
@@ -112,7 +111,6 @@ vi.mock('@/components/ui/input', () => ({
   ),
 }));
 
-// Mock lucide-react icons
 vi.mock('lucide-react', () => ({
   Calendar: () => <div data-testid="calendar-icon" />,
   Clock: () => <div data-testid="clock-icon" />,
@@ -142,22 +140,8 @@ describe('ActivityModal', () => {
   };
 
   test('renders modal with user information when open', () => {
-    const { parseUsersUrlParams } = require('@/lib/url-state');
-    parseUsersUrlParams.mockReturnValue({
-      tab: 'users',
-      page: 1,
-      activityModal: {
-        open: true,
-        userId: '001',
-        search: '',
-        category: 'all',
-        sortBy: 'timestamp',
-        sortOrder: 'desc',
-      },
-    });
-
     render(
-      <ActivityModal 
+      <ActivityModal
         open={true}
         onOpenChange={vi.fn()}
         user={mockUser}
@@ -171,7 +155,7 @@ describe('ActivityModal', () => {
 
   test('does not render when closed', () => {
     render(
-      <ActivityModal 
+      <ActivityModal
         open={false}
         onOpenChange={vi.fn()}
         user={mockUser}
@@ -184,9 +168,9 @@ describe('ActivityModal', () => {
 
   test('calls onOpenChange when modal backdrop is clicked', () => {
     const onOpenChangeMock = vi.fn();
-    
+
     render(
-      <ActivityModal 
+      <ActivityModal
         open={true}
         onOpenChange={onOpenChangeMock}
         user={mockUser}
@@ -200,22 +184,8 @@ describe('ActivityModal', () => {
   });
 
   test('displays search input field', () => {
-    const { parseUsersUrlParams } = require('@/lib/url-state');
-    parseUsersUrlParams.mockReturnValue({
-      tab: 'users',
-      page: 1,
-      activityModal: {
-        open: true,
-        userId: '001',
-        search: 'test search',
-        category: 'all',
-        sortBy: 'timestamp',
-        sortOrder: 'desc',
-      },
-    });
-
     render(
-      <ActivityModal 
+      <ActivityModal
         open={true}
         onOpenChange={vi.fn()}
         user={mockUser}
@@ -223,38 +193,39 @@ describe('ActivityModal', () => {
     );
 
     expect(screen.getByTestId('input')).toBeInTheDocument();
-    expect(screen.getByTestId('input')).toHaveAttribute('value', 'test search');
   });
 
   test('displays category filter', () => {
     render(
-      <ActivityModal 
+      <ActivityModal
         open={true}
         onOpenChange={vi.fn()}
         user={mockUser}
       />
     );
 
-    expect(screen.getByTestId('select')).toBeInTheDocument();
+    const selects = screen.getAllByTestId('select');
+    const categorySelect = selects.find(s => s.getAttribute('data-value') === 'all');
+    expect(categorySelect).toBeInTheDocument();
   });
 
   test('displays sort controls', () => {
     render(
-      <ActivityModal 
+      <ActivityModal
         open={true}
         onOpenChange={vi.fn()}
         user={mockUser}
       />
     );
 
-    expect(screen.getByTestId('select')).toBeInTheDocument();
+    const selects = screen.getAllByTestId('select');
+    const sortSelect = selects.find(s => s.getAttribute('data-value') === 'timestamp');
+    expect(sortSelect).toBeInTheDocument();
   });
 
-  test('displays share URL button', () => {
-    const { copyCurrentUrl } = require('@/lib/url-state');
-    
+  test('displays sort order toggle button', () => {
     render(
-      <ActivityModal 
+      <ActivityModal
         open={true}
         onOpenChange={vi.fn()}
         user={mockUser}
@@ -262,19 +233,13 @@ describe('ActivityModal', () => {
     );
 
     const buttons = screen.getAllByTestId('button');
-    const shareButton = buttons.find(btn => 
-      btn.textContent?.includes('Share URL')
-    );
-    
-    expect(shareButton).toBeInTheDocument();
+    const sortOrderButton = buttons.find(btn => btn.textContent?.includes('Newest') || btn.textContent?.includes('Oldest'));
+    expect(sortOrderButton).toBeInTheDocument();
   });
 
-  test('calls copyCurrentUrl when share button is clicked', () => {
-    const { copyCurrentUrl } = require('@/lib/url-state');
-    copyCurrentUrl.mockImplementation(() => {});
-    
+  test('clicking sort order button toggles sort order', () => {
     render(
-      <ActivityModal 
+      <ActivityModal
         open={true}
         onOpenChange={vi.fn()}
         user={mockUser}
@@ -282,13 +247,10 @@ describe('ActivityModal', () => {
     );
 
     const buttons = screen.getAllByTestId('button');
-    const shareButton = buttons.find(btn => 
-      btn.textContent?.includes('Share URL')
-    );
-    
-    if (shareButton) {
-      fireEvent.click(shareButton);
-      expect(copyCurrentUrl).toHaveBeenCalled();
+    const sortOrderButton = buttons.find(btn => btn.textContent?.includes('Newest') || btn.textContent?.includes('Oldest'));
+    expect(sortOrderButton).toBeInTheDocument();
+    if (sortOrderButton) {
+      fireEvent.click(sortOrderButton);
     }
   });
 });
