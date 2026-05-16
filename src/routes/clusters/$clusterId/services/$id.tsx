@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useClusters } from "@/hooks/use-clusters";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { useServiceRemove } from "@/hooks/use-service-remove";
+import { KeyValueEditorModal } from "@/components/key-value-editor-modal";
 import { toJson, toYaml, cn } from "@/lib/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
@@ -142,112 +143,6 @@ function BlueprintViewer({ name, yamlConfig, jsonConfig, blueprintFormat, setBlu
   );
 }
 
-// ── Env section ──────────────────────────────────────────────────────────────
-interface EnvSectionProps {
-  title: string;
-  subtitle: string;
-  entries: Record<string, string>;
-  isSecret?: boolean;
-  onAdd: (key: string, value: string) => void;
-  onDelete: (key: string) => void;
-}
-
-function EnvSection({ title, subtitle, entries, isSecret = false, onAdd, onDelete }: EnvSectionProps) {
-  const [adding, setAdding] = useState(false);
-  const [newKey, setNewKey] = useState("");
-  const [newValue, setNewValue] = useState("");
-  const [keyError, setKeyError] = useState("");
-
-  const entryList = Object.entries(entries);
-
-  const handleAdd = useCallback(() => {
-    const k = newKey.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
-    if (!k) { setKeyError("Key is required"); return; }
-    if (entries[k] !== undefined) { setKeyError("Key already exists"); return; }
-    onAdd(k, newValue);
-    setNewKey("");
-    setNewValue("");
-    setKeyError("");
-    setAdding(false);
-  }, [newKey, newValue, entries, onAdd]);
-
-  const handleCancel = useCallback(() => {
-    setAdding(false);
-    setNewKey("");
-    setNewValue("");
-    setKeyError("");
-  }, []);
-
-  return (
-    <div className="rounded-xl border overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/20">
-        <div>
-          <p className="text-sm font-medium">{title}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
-        </div>
-        {!adding && (
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setAdding(true)}>
-            <Plus className="h-3.5 w-3.5" /> Add
-          </Button>
-        )}
-      </div>
-
-      {entryList.length === 0 && !adding ? (
-        <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-          No {title.toLowerCase()} configured
-        </div>
-      ) : (
-        <div className="divide-y">
-          {entryList.map(([key]) => (
-            <div key={key} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/10 group">
-              <span className="font-mono text-xs w-48 shrink-0 truncate">{key}</span>
-              <span className="font-mono text-xs text-muted-foreground flex-1 truncate">
-                {isSecret ? "••••••••" : entries[key] || <span className="italic opacity-50">empty</span>}
-              </span>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0"
-                onClick={() => onDelete(key)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
-
-          {adding && (
-            <div className="px-4 py-3 bg-muted/10 space-y-2">
-              <div className="flex gap-2">
-                <div className="flex-1 space-y-1">
-                  <Input
-                    autoFocus
-                    placeholder="VARIABLE_NAME"
-                    value={newKey}
-                    onChange={e => { setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "")); setKeyError(""); }}
-                    className="font-mono text-xs h-8"
-                  />
-                  {keyError && <p className="text-xs text-destructive">{keyError}</p>}
-                </div>
-                <Input
-                  placeholder={isSecret ? "secret value" : "value"}
-                  type={isSecret ? "password" : "text"}
-                  value={newValue}
-                  onChange={e => setNewValue(e.target.value)}
-                  className="flex-1 font-mono text-xs h-8"
-                  onKeyDown={e => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") handleCancel(); }}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handleCancel}>Cancel</Button>
-                <Button size="sm" className="h-7 text-xs" onClick={handleAdd}>Add</Button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Main component ───────────────────────────────────────────────────────────
 function ViewService() {
@@ -268,9 +163,8 @@ function ViewService() {
   const [isSavingDetails, setIsSavingDetails] = useState(false);
 
   // Env vars
-  const { envs: allEnvs, setEnvs, deleteEnv } = useServiceEnvs(service?.id ?? null);
-  // Secrets
-  const { secrets, setSecrets, deleteSecret } = useServiceSecrets(service?.id ?? null);
+  const { envs: allEnvs, setEnvs } = useServiceEnvs(service?.id ?? null);
+  const { secrets, setSecrets } = useServiceSecrets(service?.id ?? null);
 
   // Custom domains
   const [newDomain, setNewDomain] = useState("");
@@ -455,21 +349,23 @@ function ViewService() {
 
               {/* ── Environment ── */}
               <TabsContent value="env" className="mt-4 space-y-4">
-                <EnvSection
-                  title="Environment Variables"
-                  subtitle="Plain text, available at runtime"
-                  entries={allEnvs}
-                  onAdd={(key, value) => setEnvs.mutate({ ...allEnvs, [key]: value })}
-                  onDelete={key => deleteEnv.mutate(key)}
-                />
-                <EnvSection
-                  title="Secrets"
-                  subtitle="Secret values are never shown after saving"
-                  entries={secrets}
-                  isSecret
-                  onAdd={(key, value) => setSecrets.mutate({ ...secrets, [key]: value })}
-                  onDelete={key => deleteSecret.mutate(key)}
-                />
+                <div className="space-y-3">
+                  <KeyValueEditorModal
+                    title="Environment Variables"
+                    description="Add environment variables that will be available at runtime."
+                    triggerLabel="Configure Environment Variables"
+                    values={allEnvs}
+                    onChange={newEnvs => setEnvs.mutate(newEnvs)}
+                  />
+                  <KeyValueEditorModal
+                    title="Secrets"
+                    description="Add sensitive values like API keys and passwords. These are encrypted at rest."
+                    triggerLabel="Configure Secrets"
+                    values={secrets}
+                    isSecret
+                    onChange={newSecrets => setSecrets.mutate(newSecrets)}
+                  />
+                </div>
               </TabsContent>
 
               {/* ── Settings ── */}
