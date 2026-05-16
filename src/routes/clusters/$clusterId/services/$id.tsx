@@ -21,7 +21,7 @@ import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { useServiceRemove } from "@/hooks/use-service-remove";
 import { KeyValueEditorModal } from "@/components/key-value-editor-modal";
 import { toJson, toYaml, cn } from "@/lib/utils";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInstanceStatus } from "@/hooks/use-instance-status";
 import { useServiceTabs } from "@/hooks/use-standardized-tabs";
 import { useQueryClient } from "@tanstack/react-query";
@@ -144,11 +144,19 @@ function BlueprintViewer({ name, yamlConfig, jsonConfig, blueprintFormat, setBlu
 }
 
 
-// ── Main component ───────────────────────────────────────────────────────────
 function ViewService() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { selectedService: service, selectedInstanceName, isInstancesLoading } = useServices();
+  const { selectedService: _service, selectedInstanceName, isInstancesLoading, allServices } = useServices();
+
+  // Hold the last valid service so the page never briefly unmounts during stream re-syncs
+  // (e.g. a workloads broadcast arriving with node-internal IDs before enrichment propagates,
+  // or the list momentarily going empty while the delta settles). We clear the ref only when
+  // the service list has actually loaded and the service is genuinely absent from it.
+  const lastServiceRef = useRef<typeof _service>(null);
+  if (_service) lastServiceRef.current = _service;
+  const service = _service ?? (allServices.length > 0 ? null : lastServiceRef.current);
+
   const { clusterId } = useClusters();
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
   const { plan } = usePlanFeatures();

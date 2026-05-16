@@ -99,27 +99,43 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
 
       for (const [section, { data, version }] of Object.entries(sections)) {
         switch (section) {
-          case "node":        updated.node        = normalizeNode(data as any);        break;
-          case "status":      updated.status      = normalizeStatus(data as any);      break;
-          case "health":      updated.health      = normalizeHealth(data as any);      break;
+          case "node":
+            updated.node = normalizeNode(data as any);
+            break;
+          case "status":
+            updated.status = normalizeStatus(data as any);
+            break;
+          case "health":
+            updated.health = normalizeHealth(data as any);
+            break;
           case "resources": {
             const rawRes = data as any;
             const nr = normalizeResources(rawRes);
             const prev = (existing ?? base).resources;
             // Preserve existing sub-fields absent from this delta to avoid flicker
             updated.resources = {
-              cpu:    rawRes?.cpu    !== undefined ? nr.cpu    : (prev?.cpu    ?? null),
+              cpu: rawRes?.cpu !== undefined ? nr.cpu : (prev?.cpu ?? null),
               memory: rawRes?.memory !== undefined ? nr.memory : (prev?.memory ?? null),
-              swap:   rawRes?.swap   !== undefined ? nr.swap   : (prev?.swap   ?? null),
-              disks:  rawRes?.disks  !== undefined ? nr.disks  : (prev?.disks  ?? []),
+              swap: rawRes?.swap !== undefined ? nr.swap : (prev?.swap ?? null),
+              disks: rawRes?.disks !== undefined ? nr.disks : (prev?.disks ?? []),
             };
             break;
           }
-          case "workloads":   updated.workloads   = normalizeWorkloads(data as any);   break;
-          case "proxy":       updated.proxy       = normalizeProxy(data as any);       break;
-          case "processes":   updated.processes   = normalizeProcesses(data as any);   break;
-          case "filesystem":  updated.filesystem  = normalizeFilesystem(data as any);  break;
-          case "diagnostics": updated.diagnostics = normalizeDiagnostics(data as any); break;
+          case "workloads":
+            updated.workloads = normalizeWorkloads(data as any);
+            break;
+          case "proxy":
+            updated.proxy = normalizeProxy(data as any);
+            break;
+          case "processes":
+            updated.processes = normalizeProcesses(data as any);
+            break;
+          case "filesystem":
+            updated.filesystem = normalizeFilesystem(data as any);
+            break;
+          case "diagnostics":
+            updated.diagnostics = normalizeDiagnostics(data as any);
+            break;
         }
         const instanceVersions = clientVersionsRef.current[instanceId] ?? {};
         instanceVersions[section] = version;
@@ -128,9 +144,35 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
 
       queryClient.setQueryData<NormalizedInstanceData>(["instance-status", instanceId], updated);
 
-      if (updated.workloads) {
-        queryClient.setQueryData(["instance", instanceId, "services"], updated.workloads.services);
-        queryClient.setQueryData(["instance", instanceId, "deployments"], updated.workloads.deployments);
+      // Only sync services/deployments when this delta actually contained a workloads section.
+      // Spreading `base` always gives us a workloads ref, so checking `updated.workloads` alone
+      // would run on every resource/status delta and could overwrite good data with a stale ref.
+      if ("workloads" in sections && updated.workloads) {
+        const newServices = updated.workloads.services;
+        const newDeployments = updated.workloads.deployments;
+
+        const existingServices = queryClient.getQueryData<{ name: string; id: string }[]>(["instance", instanceId, "services"]);
+
+        if (newServices.length > 0) {
+          // Preserve the DB IDs that the heartbeat path already established.
+          // PS: ULIDs of entities from Nodes may drift after re-provision
+          const finalServices = existingServices?.length
+            ? (() => {
+                const idByName = new Map(existingServices.map(s => [s.name, s.id]));
+                return newServices.map(s => ({ ...s, id: idByName.get(s.name) ?? s.id }));
+              })()
+            : newServices;
+          queryClient.setQueryData(["instance", instanceId, "services"], finalServices);
+        } else if (!existingServices?.length) {
+          // Both old and new are empty — initialize to empty.
+          queryClient.setQueryData(["instance", instanceId, "services"], newServices);
+        }
+        // else: don't overwrite a non-empty list with empty (transient node startup state).
+
+        const existingDeployments = queryClient.getQueryData<unknown[]>(["instance", instanceId, "deployments"]);
+        if (newDeployments.length > 0 || !existingDeployments?.length) {
+          queryClient.setQueryData(["instance", instanceId, "deployments"], newDeployments);
+        }
       }
     },
     [queryClient]
@@ -207,7 +249,9 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
         }
 
         handlersRef.current.forEach(handler => {
-          try { handler(message); } catch {}
+          try {
+            handler(message);
+          } catch {}
         });
       } catch {}
     };
@@ -250,7 +294,11 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
         heartbeatIntervalRef.current = null;
       }
       if (socketRef.current) {
-        try { socketRef.current.close(); } finally { socketRef.current = null; }
+        try {
+          socketRef.current.close();
+        } finally {
+          socketRef.current = null;
+        }
       }
       retriesRef.current = 0;
       setIsConnected(false);
@@ -261,7 +309,11 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
     closeRequestedRef.current = false;
     clearReconnectTimeout();
     if (socketRef.current) {
-      try { socketRef.current.close(); } finally { socketRef.current = null; }
+      try {
+        socketRef.current.close();
+      } finally {
+        socketRef.current = null;
+      }
     }
 
     connect();
@@ -274,15 +326,16 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
         heartbeatIntervalRef.current = null;
       }
       if (socketRef.current) {
-        try { socketRef.current.close(); } finally { socketRef.current = null; }
+        try {
+          socketRef.current.close();
+        } finally {
+          socketRef.current = null;
+        }
       }
     };
   }, [clusterId, connect, clearReconnectTimeout]);
 
-  const value = useMemo<InstanceStreamContextValue>(
-    () => ({ isConnected, state, error, sendJson, subscribe, unsubscribe }),
-    [isConnected, state, error, sendJson, subscribe, unsubscribe]
-  );
+  const value = useMemo<InstanceStreamContextValue>(() => ({ isConnected, state, error, sendJson, subscribe, unsubscribe }), [isConnected, state, error, sendJson, subscribe, unsubscribe]);
 
   return <InstanceStreamContext.Provider value={value}>{children}</InstanceStreamContext.Provider>;
 }
