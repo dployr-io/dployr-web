@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import ProjectCard from '@/components/project-card';
-import { Project } from '@/types';
+import type { Project } from '@/types';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';

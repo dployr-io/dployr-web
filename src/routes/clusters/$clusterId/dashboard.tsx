@@ -95,7 +95,7 @@ function Dashboard() {
                 <Button 
                   size="lg"
                   className="flex items-center gap-2" 
-                  onClick={() => router.navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId }, search: { new: true } })}
+                  onClick={() => router.navigate({ to: "/clusters/$clusterId/services", params: { clusterId } })}
                 >
                   Deploy Your First Service
                 </Button>
@@ -242,7 +242,7 @@ function Dashboard() {
                   <div className="flex gap-3">
                     <Button 
                       size="lg"
-                      onClick={() => router.navigate({ to: "/clusters/$clusterId/deployments", params: { clusterId }, search: { new: true } })}
+                      onClick={() => router.navigate({ to: "/clusters/$clusterId/services", params: { clusterId } })}
                     >
                       Deploy Service
                     </Button>

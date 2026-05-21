@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { LogsWindow } from '@/components/logs-window';
-import { Log } from '@/types';
+import type { Log } from '@/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 
@@ -58,8 +58,8 @@ vi.mock('lucide-react', () => ({
 
 // Sample data
 const mockLogs: Log[] = [
-    { id: '1', message: 'First log', level_name: 'INFO', datetime: new Date() },
-    { id: '2', message: 'Error log', level_name: 'ERROR', datetime: new Date() },
+    { id: '1', message: 'First log', level: 'INFO', timestamp: new Date() },
+    { id: '2', message: 'Error log', level: 'ERROR', timestamp: new Date() },
 ];
 
 describe('LogsWindow', () => {

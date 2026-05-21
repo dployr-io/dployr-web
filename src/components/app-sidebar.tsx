@@ -6,7 +6,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 import { type NavItem } from "@/types";
-import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, Factory, LayoutGrid, MessageCircleQuestion, Server, Settings2, SquareChevronRight } from "lucide-react";
+import { ActivitySquare, BookOpen, BoxesIcon, ChevronsUpDown, LayoutGrid, MessageCircleQuestion, Server, Settings2, SquareChevronRight } from "lucide-react";
 import AppLogo from "./app-logo";
 import { useAuth } from "@/hooks/use-auth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -47,11 +47,6 @@ export function AppSidebar() {
       title: "Services",
       href: clusterId ? "/clusters/$clusterId/services" : "/services",
       icon: BoxesIcon,
-    },
-    {
-      title: "Deployments",
-      href: clusterId ? "/clusters/$clusterId/deployments" : "/deployments",
-      icon: Factory,
     },
     {
       title: "Console",

@@ -32,14 +32,10 @@ const dep = (overrides: Partial<NormalizedDeployment>): NormalizedDeployment => 
   id: "dep-1",
   name: "api",
   status: "success",
-  type: "web" as any,
   source: "remote",
   createdAt: new Date().toISOString(),
-  finishedAt: null,
-  logs: null,
-  blueprint: null,
   ...overrides,
-});
+} as NormalizedDeployment);
 
 describe("useDeployments", () => {
   beforeEach(() => {

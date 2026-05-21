@@ -245,9 +245,8 @@ export function KeyValueEditorModal({ title, description, triggerLabel, values, 
               className="font-mono text-xs bg-transparent outline-none placeholder:text-muted-foreground/40 focus:bg-muted/30 rounded px-1.5 py-1 -mx-1.5 transition-colors"
               onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddEntry(); } }}
             />
-            <button type="button" onClick={handleAddEntry} className="text-muted-foreground/40 hover:text-primary w-8 flex justify-center shrink-0 transition-colors">
-              <Trash2 className="h-3.5 w-3.5 hidden" />
-              <span className="text-xs font-medium leading-none">+</span>
+            <button type="button" onClick={handleAddEntry} title="Add entry" className="text-muted-foreground hover:text-primary w-8 flex justify-center shrink-0 transition-colors">
+              <span className="text-base font-semibold leading-none">+</span>
             </button>
           </div>
         </div>

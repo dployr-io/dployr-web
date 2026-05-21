@@ -194,11 +194,7 @@ export function CreateServiceForm({
             </SelectTrigger>
             <SelectContent>
               {runtimes
-                .filter(option => {
-                  const isImage = source === "image";
-                  const isRemote = source === "remote";
-                  return isImage ? option === "k3s" || option === "docker" : isRemote ? option !== "k3s" && option !== "docker" : true;
-                })
+                
                 .map(option => (
                   <SelectItem key={option} value={option}>
                     <div className="flex items-center gap-2">

@@ -36,7 +36,7 @@ export function useDeploymentCreator(instanceId?: string) {
   const [lastDeployedInstance, setLastDeployedInstance] = useState<string | null>(null);
 
   const [blueprintContent, setBlueprintContent] = useState("");
-  const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("json");
+  const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("yaml");
   const [schemaErrors, setSchemaErrors] = useState<SchemaError[]>([]);
   const lastSyncedDraftRef = useRef<string | null>(null);
 

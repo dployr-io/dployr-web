@@ -33,14 +33,12 @@ function makeWrapper(cacheEntries: Record<string, NormalizedService[]> = {}) {
 const svc = (overrides: Partial<NormalizedService>): NormalizedService => ({
   id: "svc-1",
   name: "api",
-  type: "web" as any,
-  status: "running",
+  type: "web",
   port: 3000,
-  deploymentId: null,
   updatedAt: new Date().toISOString(),
   createdAt: new Date().toISOString(),
   ...overrides,
-});
+} as NormalizedService);
 
 describe("useServices", () => {
   beforeEach(() => {

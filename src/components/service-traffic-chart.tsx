@@ -1,6 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
+import { useMemo } from "react";
 import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, ArrowDownToLine, ArrowUpFromLine, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,11 +14,20 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
+function formatBytesCompact(bytes: number): string {
+  if (bytes === 0) return "0B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${Math.round(bytes / Math.pow(1024, i))}${units[i]}`;
+}
+
 function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
 }
+
+const TICK = { fontSize: 10, fill: "currentColor" } as const;
 
 export function formatPeakWindow(startMs: number, startLabel: string): string {
   const endLabel = new Date(startMs + 60 * 60 * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -55,6 +65,17 @@ export function ServiceTrafficChart({ data, totals, isLoading }: ServiceTrafficC
   const hasData = data.length > 0 && (totals?.requests ?? 0) > 0;
   const peakBucket = data.reduce<TrafficBucket | null>((best, b) => (!best || b.requests > best.requests ? b : best), null);
   const peakWindow = peakBucket ? formatPeakWindow(peakBucket.bucket, peakBucket.time) : null;
+
+  // Compute a consistent set of ~5 evenly-spaced x-axis ticks shared by both charts
+  const xTicks = useMemo(() => {
+    if (data.length === 0) return [];
+    if (data.length <= 6) return data.map(d => d.time);
+    const step = Math.ceil((data.length - 1) / 4);
+    const result: string[] = [];
+    for (let i = 0; i < data.length; i += step) result.push(data[i].time);
+    if (result[result.length - 1] !== data[data.length - 1].time) result.push(data[data.length - 1].time);
+    return result;
+  }, [data]);
 
   return (
     <div className="space-y-3">
@@ -97,24 +118,12 @@ export function ServiceTrafficChart({ data, totals, isLoading }: ServiceTrafficC
       {hasData && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {/* Requests per window */}
-          <div className="rounded-xl border bg-background/40 p-4">
+          <div className="rounded-xl border bg-background/40 p-4 text-muted-foreground">
             <p className="text-xs text-muted-foreground mb-3">Requests / window</p>
             <ResponsiveContainer width="100%" height={150}>
-              <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 8 }}>
-                <XAxis
-                  dataKey="time"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  tickFormatter={formatCount}
-                  width={38}
-                />
+              <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 8 }}>
+                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={TICK} ticks={xTicks} />
+                <YAxis axisLine={false} tickLine={false} tick={TICK} tickFormatter={formatCount} width={32} />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload?.length) {
@@ -135,7 +144,7 @@ export function ServiceTrafficChart({ data, totals, isLoading }: ServiceTrafficC
           </div>
 
           {/* Bandwidth in/out */}
-          <div className="rounded-xl border bg-background/40 p-4">
+          <div className="rounded-xl border bg-background/40 p-4 text-muted-foreground">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs text-muted-foreground">Bandwidth</p>
               <div className="flex items-center gap-4 text-xs">
@@ -144,7 +153,7 @@ export function ServiceTrafficChart({ data, totals, isLoading }: ServiceTrafficC
               </div>
             </div>
             <ResponsiveContainer width="100%" height={150}>
-              <AreaChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 8 }}>
+              <AreaChart data={data} margin={{ top: 4, right: 12, left: 0, bottom: 8 }}>
                 <defs>
                   <linearGradient id="inGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -155,20 +164,8 @@ export function ServiceTrafficChart({ data, totals, isLoading }: ServiceTrafficC
                     <stop offset="100%" stopColor="#a855f7" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis
-                  dataKey="time"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  tickFormatter={(v) => formatBytes(v)}
-                  width={44}
-                />
+                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={TICK} ticks={xTicks} />
+                <YAxis axisLine={false} tickLine={false} tick={TICK} tickFormatter={formatBytesCompact} width={56} />
                 <Tooltip
                   content={({ active, payload }) => {
                     if (active && payload?.length) {
