@@ -126,7 +126,9 @@ function ViewService() {
     reset: resetNavigation,
     status: blockerStatus,
   } = useBlocker({
-    condition: hasChanges,
+    shouldBlockFn: ({ current, next }) =>
+      hasChanges && next.pathname !== current.pathname,
+    withResolver: true,
   });
 
   // Block browser-level navigation (refresh, close tab)
@@ -180,7 +182,7 @@ function ViewService() {
   const [decommissionOpen, setDecommissionOpen] = useState(false);
   const [decommissionConfirm, setDecommissionConfirm] = useState("");
   const handleDecommission = useCallback(async () => {
-    if (!service || decommissionConfirm !== service.name) return;
+    if (!service || !service.id || decommissionConfirm !== service.name) return;
     const result = await handleRemoveService(service.id);
     setDecommissionOpen(false);
     setDecommissionConfirm("");
@@ -373,7 +375,7 @@ function ViewService() {
                         Port <span className="font-mono text-foreground">{service.port ?? 3000}</span>
                       </span>
                       <span className="text-border">·</span>
-                      <TimeAgo date={service.createdAt} />
+                      {service.createdAt && <TimeAgo date={service.createdAt} />}
                     </div>
                   </div>
                 </div>

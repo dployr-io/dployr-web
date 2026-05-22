@@ -220,7 +220,7 @@ function Services() {
                                   <span className="truncate text-sm font-semibold">{service.name}</span>
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[100px] align-middle">
-                                  <StatusBadge status="running" variant="compact" />
+                                  <StatusBadge status={service.status ?? "running"} variant="compact" type="service" />
                                 </TableCell>
                                 <TableCell className="h-16 align-middle">
                                   {service._instanceName ? (

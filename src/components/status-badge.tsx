@@ -3,7 +3,7 @@
 
 import { cn } from "@/lib/utils";
 import type { DeploymentStatus, ServiceStatus } from "@/types";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Moon, XCircle } from "lucide-react";
 
 interface StatusBadgeProps {
   status: string | DeploymentStatus | ServiceStatus;
@@ -28,6 +28,9 @@ export function StatusBadge({ status, variant = "default", type }: StatusBadgePr
       }
       if (normalized === "unknown" || normalized === "in_progress") {
         return "bg-muted text-muted-foreground border-border";
+      }
+      if (normalized === "sleeping") {
+        return "bg-blue-500/10 text-blue-400 border-blue-500/20";
       }
     }
     
@@ -58,6 +61,9 @@ export function StatusBadge({ status, variant = "default", type }: StatusBadgePr
     }
     if (normalized === "stopped" || normalized === "failed") {
       return <XCircle width={iconSize} height={iconSize} className={iconClass} />;
+    }
+    if (normalized === "sleeping") {
+      return <Moon width={iconSize} height={iconSize} className={iconClass} />;
     }
     return null;
   };

@@ -112,6 +112,7 @@ export const serviceSchema = z.object({
   branch: z.string().optional(),
   commit_hash: z.string().optional(),
   blueprint: blueprintSchema.optional(),
+  status: z.string().optional(),
   created_at: z.string(),
   updated_at: z.string(),
 });

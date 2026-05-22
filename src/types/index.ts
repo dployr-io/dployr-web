@@ -325,6 +325,7 @@ export interface ApiService {
   type: "docker" | "static";
   deploymentId: string | null;
   icedAt: number | null;
+  status: "running" | "sleeping";
   createdAt: number;
   updatedAt: number;
 }
