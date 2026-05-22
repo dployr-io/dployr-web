@@ -17,7 +17,7 @@ export function useServiceStop(serviceId: string | null) {
         { withCredentials: true }
       );
     },
-    onSuccess: () => setNotification({ message: "Stop request sent — the service will shut down shortly", helpLink: "" }),
+    onSuccess: () => setNotification({ message: "Your service will shut down shortly", helpLink: "" }),
     onError: (err: any) => setAppError({ message: getApiErrorMessage(err, "Failed to stop service"), helpLink: "" }),
   });
 
@@ -29,7 +29,7 @@ export function useServiceStop(serviceId: string | null) {
         { withCredentials: true }
       );
     },
-    onSuccess: () => setNotification({ message: "Start request sent — the service will wake up shortly", helpLink: "" }),
+    onSuccess: () => setNotification({ message: "Your service will wake up shortly", helpLink: "" }),
     onError: (err: any) => setAppError({ message: getApiErrorMessage(err, "Failed to start service"), helpLink: "" }),
   });
 

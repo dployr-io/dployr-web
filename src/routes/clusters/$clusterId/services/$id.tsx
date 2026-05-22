@@ -159,7 +159,10 @@ function ViewService() {
   // Stop confirmation
   const [stopOpen, setStopOpen] = useState(false);
   const [stopConfirm, setStopConfirm] = useState("");
-  const [isStopped, setIsStopped] = useState(false);
+  const [isStopped, setIsStopped] = useState(() => service?.status === "sleeping");
+  useEffect(() => {
+    if (service?.status) setIsStopped(service.status === "sleeping");
+  }, [service?.status]);
 
   const handleStop = useCallback(() => {
     if (!service || stopConfirm !== service.name) return;
