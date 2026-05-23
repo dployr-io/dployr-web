@@ -148,9 +148,6 @@ export function CreateServiceForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="web">Web</SelectItem>
-              <SelectItem value="worker">Worker</SelectItem>
-              <SelectItem value="static">Static</SelectItem>
-              <SelectItem value="job">Job</SelectItem>
             </SelectContent>
           </Select>
           {(typeError || errors.type) && <div className="text-sm text-destructive">{typeError || errors.type}</div>}

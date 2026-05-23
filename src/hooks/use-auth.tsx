@@ -11,7 +11,7 @@ import { useUrlState } from "@/hooks/use-url-state";
 
 interface AuthContextType {
   user: User | null;
-  clusters: { id: string; name: string; owner: string }[];
+  clusters: { id: string; name: string; owner: string; metadata?: Record<string, string> }[];
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (data: { email: string }) => Promise<void>;
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // session data
   const user = (sessionData as any)?.user ?? null;
-  const clusters: { id: string; name: string; owner: string }[] = (sessionData as any)?.clusters ?? null;
+  const clusters: { id: string; name: string; owner: string; metadata?: Record<string, string> }[] = (sessionData as any)?.clusters ?? null;
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: { email: string }) => {

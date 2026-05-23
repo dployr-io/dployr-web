@@ -237,13 +237,13 @@ function denormalizeToV1_1(data: NormalizedInstanceData | null): InstanceStreamU
       ? {
           services:
             data.workloads.services?.map(s => ({
-              id: s.id,
+              id: s.id ?? "",
               name: s.name,
-              type: s.type,
+              type: s.type ?? "",
               description: s.description || undefined,
               source: s.source || "remote",
-              runtime: s.runtime.type,
-              runtime_version: s.runtime.version || undefined,
+              runtime: s.runtime?.type ?? "",
+              runtime_version: s.runtime?.version || undefined,
               remote: s.remote?.url || undefined,
               branch: s.remote?.branch || undefined,
               commit_hash: s.remote?.commitHash || undefined,
@@ -253,8 +253,8 @@ function denormalizeToV1_1(data: NormalizedInstanceData | null): InstanceStreamU
               working_dir: s.workingDir || undefined,
               env_vars: s.envVars || undefined,
               secrets: s.secrets || undefined,
-              created_at: s.createdAt,
-              updated_at: s.updatedAt,
+              created_at: s.createdAt ?? "",
+              updated_at: s.updatedAt ?? "",
             })) || [],
           deployments:
             data.workloads.deployments?.map(d => ({
@@ -410,14 +410,14 @@ function denormalizeToV1(data: NormalizedInstanceData): InstanceStreamUpdateV1 {
       : undefined,
     services:
       data.workloads?.services?.map(s => ({
-        id: s.id,
+        id: s.id ?? "",
         name: s.name,
         source: s.source || "remote",
-        runtime: s.runtime.type,
-        created_at: s.createdAt,
-        updated_at: s.updatedAt,
+        runtime: s.runtime?.type ?? "",
+        created_at: s.createdAt ?? "",
+        updated_at: s.updatedAt ?? "",
         description: s.description || undefined,
-        runtime_version: s.runtime.version || undefined,
+        runtime_version: s.runtime?.version || undefined,
         remote: s.remote?.url || undefined,
         branch: s.remote?.branch || undefined,
         commit_hash: s.remote?.commitHash || undefined,

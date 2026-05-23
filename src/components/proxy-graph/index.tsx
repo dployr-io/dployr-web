@@ -410,7 +410,7 @@ export function ProxyGraphVisualizer({
                   x={x}
                   y={y}
                   isSelected={selectedApp?.domain === domain}
-                  onMouseEnter={() => setHoveredNode({ id: domain || service.id, type: 'service', x, y, isProxied })}
+                  onMouseEnter={() => setHoveredNode({ id: domain || service.id || "", type: 'service', x, y, isProxied })}
                   onMouseLeave={() => setHoveredNode(null)}
                   onContextMenu={(e) => {
                     e.preventDefault();

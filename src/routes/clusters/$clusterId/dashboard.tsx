@@ -170,7 +170,7 @@ function Dashboard() {
                     <div
                       key={service.id}
                       className="group cursor-pointer rounded-xl border bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/50"
-                      onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.id } })}
+                      onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.id ?? "" } })}
                     >
                       <div className="p-5 pb-4">
                         <div className="flex items-start justify-between">
@@ -210,7 +210,7 @@ function Dashboard() {
                             )}
                           </div>
                           <span className="text-muted-foreground">
-                            <TimeAgo date={service.updatedAt} />
+                            <TimeAgo date={service.updatedAt ?? 0} />
                           </span>
                         </div>
                       </div>

@@ -14,6 +14,7 @@ import type { BreadcrumbItem } from "@/types";
 import HeadingSmall from "@/components/heading-small";
 import { ProtectedRoute } from "@/components/protected-route";
 import { useSettingsForm } from "@/hooks/use-settings-form";
+import { AVATARS } from "@/lib/constants";
 import { Edit2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
@@ -182,24 +183,11 @@ function System() {
                 <form.Field
                   name="picture"
                   children={field => {
-                    const avatars = [
-                      { src: "/img/chess.png", alt: "chess" },
-                      { src: "/img/circle.png", alt: "circle" },
-                      { src: "/img/compass.png", alt: "compass" },
-                      { src: "/img/hash.png", alt: "hash" },
-                      { src: "/img/pause.png", alt: "pause" },
-                      { src: "/img/play.png", alt: "play" },
-                      { src: "/img/puzzle.png", alt: "puzzle" },
-                      { src: "/img/rocket.png", alt: "rocket" },
-                      { src: "/img/sphere.png", alt: "sphere" },
-                      { src: "/img/target.png", alt: "target" },
-                    ];
-
                     return (
                       <div className="mt-8 space-y-4">
                         <FieldLabel>Avatar</FieldLabel>
                         <div className="flex flex-wrap gap-4">
-                          {avatars.map(avatar => (
+                          {AVATARS.map(avatar => (
                             <button
                               key={avatar.src}
                               type="button"

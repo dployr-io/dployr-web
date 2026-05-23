@@ -207,6 +207,20 @@ export function useClusters() {
     },
   });
 
+  // update cluster metadata
+  const updateMetadata = useMutation({
+    mutationFn: async (metadata: Record<string, string>): Promise<void> => {
+      await axios.patch(
+        `${import.meta.env.VITE_BASE_URL}/v1/clusters/${clusterId}`,
+        { metadata },
+        { withCredentials: true }
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+
   // transfer ownership
 
   // integrations
@@ -251,5 +265,6 @@ export function useClusters() {
     clusterId,
     userCluster,
     renameCluster,
+    updateMetadata,
   };
 }

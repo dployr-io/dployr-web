@@ -20,7 +20,7 @@ export type Runtime = (typeof runtimes)[number];
 export type DnsProvider = (typeof dnsProviders)[number];
 export type BlueprintFormat = "json" | "yaml" | "toml";
 export type LogLevel = (typeof logLevels)[number];
-export type ServiceType = "web" | "worker" | "static" | "job";
+export type ServiceType = "web";
 
 export interface Auth {
   user: User;
@@ -203,8 +203,18 @@ export interface Cluster {
   name: string;
   users: string[]; // Array of user ids
   roles: Record<string, string[]>; // role -> array of user roles
+  metadata?: Record<string, string>;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface OnboardingMetadata {
+  onboarding_team_size: "just-me" | "2-5" | "5-plus";
+  onboarding_first_deploy: "web-service" | "static-site" | "worker" | "not-sure";
+  onboarding_replacing: "heroku" | "render" | "railway" | "fly" | "digitalocean" | "aws" | "coolify" | "self-managed" | "fresh" | "other";
+  onboarding_source: "ai" | "github" | "hackernews" | "reddit" | "search" | "youtube" | "tiktok" | "twitter" | "friend" | "producthunt" | "newsletter" | "other";
+  onboarding_feedback_call: "true" | "false";
+  onboarding_completed_at: string;
 }
 
 export interface SessionData {

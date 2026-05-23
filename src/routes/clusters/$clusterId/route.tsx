@@ -3,10 +3,12 @@
 
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { InstanceStreamProvider } from "@/hooks/use-instance-stream";
+import { OnboardingModal } from "@/components/onboarding-modal";
 
 function ClusterLayout() {
   return (
     <InstanceStreamProvider>
+      <OnboardingModal />
       <Outlet />
     </InstanceStreamProvider>
   );

@@ -92,7 +92,7 @@ function GraphPage() {
 
   const _services = useMemo(() => {
     return services.map((service) => ({
-      id: service.id,
+      id: service.id ?? "",
       name: service.name,
       port: service.port || 80, // Default to port 80 if null
     }));
