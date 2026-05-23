@@ -163,11 +163,9 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
               })()
             : newServices;
           queryClient.setQueryData(["instance", instanceId, "services"], finalServices);
-        } else if (!existingServices?.length) {
-          // Both old and new are empty — initialize to empty.
+        } else {
           queryClient.setQueryData(["instance", instanceId, "services"], newServices);
         }
-        // else: don't overwrite a non-empty list with empty (transient node startup state).
 
         const existingDeployments = queryClient.getQueryData<unknown[]>(["instance", instanceId, "deployments"]);
         if (newDeployments.length > 0 || !existingDeployments?.length) {

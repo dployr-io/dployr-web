@@ -214,7 +214,7 @@ function Services() {
                               <TableRow
                                 key={service.id}
                                 className="h-16 cursor-pointer"
-                                onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.id } })}
+                                onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.name } })}
                               >
                                 <TableCell className="h-16 max-w-[200px] align-middle font-medium">
                                   <span className="truncate text-sm font-semibold">{service.name}</span>
@@ -247,7 +247,7 @@ function Services() {
                                   </div>
                                 </TableCell>
                                 <TableCell className="h-16 w-[140px] text-right align-middle whitespace-nowrap">
-                                  <TimeAgo date={service.updatedAt} />
+                                  {service.updatedAt ? <TimeAgo date={service.updatedAt} /> : <span className="text-xs text-muted-foreground">—</span>}
                                 </TableCell>
                               </TableRow>
                             ))

@@ -87,7 +87,7 @@ function ViewService() {
   const [editedStaticDir, setEditedStaticDir] = useState("");
   const [editedRuntime, setEditedRuntime] = useState("");
   const [editedVersion, setEditedVersion] = useState("");
-  const updateService = useServiceUpdate(service?.id ?? null);
+  const updateService = useServiceUpdate(service?.name ?? null);
 
   // Tracks the last values committed to the server so hasChanges clears immediately
   // on save success rather than waiting for the websocket to push back updated state.
@@ -154,7 +154,7 @@ function ViewService() {
   }, [newDomain, customDomains]);
 
   const { handleRemoveService } = useServiceRemove();
-  const { stop: stopService, start: startService } = useServiceStop(service?.id ?? null);
+  const { stop: stopService, start: startService } = useServiceStop(service?.name ?? null);
 
   // Stop confirmation
   const [stopOpen, setStopOpen] = useState(false);
@@ -185,8 +185,8 @@ function ViewService() {
   const [decommissionOpen, setDecommissionOpen] = useState(false);
   const [decommissionConfirm, setDecommissionConfirm] = useState("");
   const handleDecommission = useCallback(async () => {
-    if (!service || !service.id || decommissionConfirm !== service.name) return;
-    const result = await handleRemoveService(service.id);
+    if (!service || !service.name || decommissionConfirm !== service.name) return;
+    const result = await handleRemoveService(service.name);
     setDecommissionOpen(false);
     setDecommissionConfirm("");
     if (result.success) {

@@ -57,7 +57,7 @@ export function useServices(instanceTag?: string | null, pageOptions?: { externa
     const servicesIndex = pathSegments.indexOf("services");
     const id = servicesIndex >= 0 ? pathSegments[servicesIndex + 1] : null;
     if (!id) return null;
-    return allServices.find(s => s.id === id) || null;
+    return allServices.find(s => s.name === id) || null;
   }, [allServices]);
 
   const selectedInstanceName = selectedService?._instanceName;
