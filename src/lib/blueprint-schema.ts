@@ -121,7 +121,7 @@ export function validateBlueprint(data: unknown): ValidationResult {
   }
 
   // Required: type
-  const validTypes: ServiceType[] = ["web", "worker", "static", "job"];
+  const validTypes = ["web", "worker", "static", "job"];
   if (!obj.type || !validTypes.includes(obj.type as ServiceType)) {
     errors.push({ message: `type must be one of: ${validTypes.join(", ")}`, path: "type", severity: "error" });
   }

@@ -9,6 +9,7 @@ import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRightIcon, BoxesIcon, ChevronLeft, ChevronRight, ExternalLink, FileText, Globe, Rocket, Trash } from "lucide-react";
+import { getRuntimeIcon } from "@/lib/runtime-icon";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { useServices } from "@/hooks/use-services";
@@ -112,7 +113,7 @@ function Services() {
     setIsCreating(false);
   }, [handleBack]);
 
-  const getServiceDomain = (service: any) => {
+  const getFallbackDomain = (service: any) => {
     if (!service._instanceName) return `${service.name}.dployr.run`;
     const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", service._instanceName]);
     if (!instanceData?.proxy?.routes) return `${service.name}.dployr.run`;
@@ -121,6 +122,11 @@ function Services() {
       return route.domain.includes(service.name) || route.upstream?.includes(service.name) || upstreamPort === String(service.port);
     });
     return proxyRoute?.domain || `${service.name}.dployr.run`;
+  };
+
+  const getDisplayDomain = (service: any) => {
+    const custom = domains?.find(d => d.serviceName === service.name && d.status === "active");
+    return custom ? custom.domain : getFallbackDomain(service);
   };
 
   return (
@@ -201,11 +207,13 @@ function Services() {
                     <Table className="overflow-hidden rounded-t-lg">
                       <TableHeader className="gap-2 rounded-t-xl bg-neutral-50 p-2 dark:bg-neutral-900">
                         <TableRow className="h-14">
-                          <TableHead className="h-14 w-[200px] align-middle">Name</TableHead>
+                          <TableHead className="h-14 w-[180px] align-middle">Name</TableHead>
+                          <TableHead className="h-14 w-[120px] align-middle">Runtime</TableHead>
                           <TableHead className="h-14 w-[100px] align-middle">Status</TableHead>
                           <TableHead className="h-14 align-middle">Instance</TableHead>
                           <TableHead className="h-14 align-middle">Domains</TableHead>
-                          <TableHead className="h-14 w-[140px] text-right align-middle">Updated</TableHead>
+                          <TableHead className="h-14 w-[130px] text-right align-middle whitespace-nowrap">Created</TableHead>
+                          <TableHead className="h-14 w-[140px] text-right align-middle whitespace-nowrap">Last updated</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -216,8 +224,18 @@ function Services() {
                                 className="h-16 cursor-pointer"
                                 onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.name } })}
                               >
-                                <TableCell className="h-16 max-w-[200px] align-middle font-medium">
+                                <TableCell className="h-16 max-w-[180px] align-middle font-medium">
                                   <span className="truncate text-sm font-semibold">{service.name}</span>
+                                </TableCell>
+                                <TableCell className="h-16 w-[120px] align-middle">
+                                  {service.runtime?.type ? (
+                                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                                      <span className="shrink-0">{getRuntimeIcon(service.runtime.type)}</span>
+                                      <span className="text-xs capitalize">{service.runtime.type}</span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[100px] align-middle">
                                   <StatusBadge status={service.status ?? "running"} variant="compact" type="service" />
@@ -233,10 +251,10 @@ function Services() {
                                 </TableCell>
                                 <TableCell className="h-16 align-middle">
                                   <div className="flex items-center gap-2">
-                                    <Globe className="h-4 w-4 text-muted-foreground" />
-                                    <span className="truncate text-xs font-mono text-muted-foreground">{getServiceDomain(service)}</span>
+                                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <span className="truncate text-xs font-mono text-muted-foreground">{getDisplayDomain(service)}</span>
                                     <a
-                                      href={`https://${getServiceDomain(service)}`}
+                                      href={`https://${getDisplayDomain(service)}`}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       className="text-muted-foreground hover:text-foreground transition-colors"
@@ -246,6 +264,9 @@ function Services() {
                                     </a>
                                   </div>
                                 </TableCell>
+                                <TableCell className="h-16 w-[130px] text-right align-middle whitespace-nowrap">
+                                  {service.createdAt ? <TimeAgo date={service.createdAt} /> : <span className="text-xs text-muted-foreground">—</span>}
+                                </TableCell>
                                 <TableCell className="h-16 w-[140px] text-right align-middle whitespace-nowrap">
                                   {service.updatedAt ? <TimeAgo date={service.updatedAt} /> : <span className="text-xs text-muted-foreground">—</span>}
                                 </TableCell>
@@ -253,8 +274,11 @@ function Services() {
                             ))
                           : Array.from({ length: 3 }).map((_, idx) => (
                               <TableRow key={`skeleton-${idx}`} className="h-16">
-                                <TableCell className="h-16 max-w-[200px] overflow-hidden align-middle font-medium">
+                                <TableCell className="h-16 max-w-[180px] overflow-hidden align-middle font-medium">
                                   <Skeleton className="h-4 w-32" />
+                                </TableCell>
+                                <TableCell className="h-16 w-[120px] align-middle">
+                                  <Skeleton className="h-4 w-16" />
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[100px] align-middle">
                                   <Skeleton className="h-5 w-16 rounded-full" />
@@ -263,7 +287,10 @@ function Services() {
                                   <Skeleton className="h-4 w-12" />
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[120px] align-middle">
-                                  <Skeleton className="h-4 w-16" />
+                                  <Skeleton className="h-4 w-24" />
+                                </TableCell>
+                                <TableCell className="h-16 w-[130px] overflow-hidden text-right align-middle">
+                                  <Skeleton className="ml-auto h-4 w-16" />
                                 </TableCell>
                                 <TableCell className="h-16 w-[140px] overflow-hidden text-right align-middle">
                                   <Skeleton className="ml-auto h-4 w-20" />
@@ -371,7 +398,7 @@ function Services() {
                       portError={validationErrors.port || ""}
                       domain={currentDraft?.domain || ""}
                       domainError={validationErrors.domain || ""}
-                      availableDomains={domains?.map(d => ({ domain: d.domain, provider: d.provider }))}
+                      availableDomains={domains?.map(d => ({ domain: d.domain, provider: d.provider ?? "" }))}
                       isLoadingDomains={isLoadingDomains}
                       envVars={currentDraft?.env_vars || {}}
                       secrets={currentDraft?.secrets || {}}

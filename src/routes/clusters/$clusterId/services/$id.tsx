@@ -36,6 +36,8 @@ import { usePlanFeatures } from "@/hooks/use-plan-features";
 import { Badge } from "@/components/ui/badge";
 import { BlueprintViewer } from "@/components/blueprint-viewer";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useDns } from "@/hooks/use-dns";
+import { DomainConnectDialog } from "@/components/domain-connect-dialog";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
@@ -143,15 +145,38 @@ function ViewService() {
 
   // Custom domains
   const [newDomain, setNewDomain] = useState("");
-  const [customDomains, setCustomDomains] = useState<{ domain: string; status: "pending" | "active" | "failed" }[]>([]);
+  const [dnsDialogOpen, setDnsDialogOpen] = useState(false);
   const domainLimit = DOMAIN_LIMITS[plan?.toLowerCase() ?? "hobby"] ?? 1;
+  const { domains: allDomains, setupDns, isSettingUp, setupDetails, stopPolling, deleteDns, isDeleting: isDeletingDomain, verifyDomain, isVerifying, getVerifyCooldown } = useDns();
+  const customDomains = allDomains.filter(d => d.serviceName === service?.name);
+
+  // Domain delete confirmation
+  const [deleteDomainTarget, setDeleteDomainTarget] = useState<string | null>(null);
+  const [deleteDomainConfirm, setDeleteDomainConfirm] = useState("");
+  const handleDeleteDomain = useCallback(() => {
+    if (!deleteDomainTarget || deleteDomainConfirm !== deleteDomainTarget) return;
+    deleteDns(deleteDomainTarget, {
+      onSettled: () => {
+        setDeleteDomainTarget(null);
+        setDeleteDomainConfirm("");
+      },
+    });
+  }, [deleteDomainTarget, deleteDomainConfirm, deleteDns]);
 
   const handleAddDomain = useCallback(() => {
+    if (!service?.name) return;
     const trimmed = newDomain.trim().toLowerCase();
-    if (!trimmed || customDomains.some(d => d.domain === trimmed)) return;
-    setCustomDomains(prev => [...prev, { domain: trimmed, status: "pending" }]);
-    setNewDomain("");
-  }, [newDomain, customDomains]);
+    if (!trimmed) return;
+    setupDns(
+      { domain: trimmed, serviceName: service.name },
+      {
+        onSuccess: () => {
+          setNewDomain("");
+          setDnsDialogOpen(true);
+        },
+      }
+    );
+  }, [newDomain, service?.name, setupDns]);
 
   const { handleRemoveService } = useServiceRemove();
   const { stop: stopService, start: startService } = useServiceStop(service?.name ?? null);
@@ -226,9 +251,11 @@ function ViewService() {
   }, [selectedInstanceName, service, queryClient]);
 
   const serviceDomain = useMemo(() => {
+    const customDomain = customDomains.find(d => d.status === "active");
+    if (customDomain) return customDomain.domain;
     if (proxyRoute?.domain) return proxyRoute.domain;
     return `${service?.name}.dployr.run`;
-  }, [proxyRoute, service?.name]);
+  }, [customDomains, proxyRoute, service?.name]);
 
   // Build a clean Blueprint-schema object — no id, timestamps, or raw internals
   const blueprintData = useMemo(() => {
@@ -538,21 +565,35 @@ function ViewService() {
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     </div>
-                    {customDomains.map(({ domain, status }) => (
-                      <div key={domain} className="flex items-center gap-2 rounded-lg border px-3 py-2">
-                        <StatusDot status={status} />
-                        <span className="font-mono text-xs flex-1">{domain}</span>
-                        <Badge variant={status === "active" ? "default" : status === "failed" ? "destructive" : "secondary"} className="text-[10px] py-0 px-1.5">
-                          {status}
-                        </Badge>
-                        <a href={`https://${domain}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                        <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => setCustomDomains(p => p.filter(d => d.domain !== domain))}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
+                    {customDomains.map(({ domain, status }) => {
+                      const cooldown = getVerifyCooldown(domain);
+                      return (
+                        <div key={domain} className="flex items-center gap-2 rounded-lg border px-3 py-2">
+                          <StatusDot status={status} />
+                          <span className="font-mono text-xs flex-1 truncate">{domain}</span>
+                          <Badge variant={status === "active" ? "default" : "secondary"} className="text-[10px] py-0 px-1.5">
+                            {status}
+                          </Badge>
+                          {status === "pending" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 text-xs px-2"
+                              disabled={isVerifying || cooldown > 0}
+                              onClick={() => verifyDomain(domain)}
+                            >
+                              {cooldown > 0 ? `${cooldown}s` : "Verify"}
+                            </Button>
+                          )}
+                          <a href={`https://${domain}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                          <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => setDeleteDomainTarget(domain)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                     {customDomains.length < domainLimit ? (
                       <div className="flex gap-2">
                         <Input
@@ -563,9 +604,10 @@ function ViewService() {
                           onKeyDown={e => {
                             if (e.key === "Enter") handleAddDomain();
                           }}
+                          disabled={isSettingUp}
                         />
-                        <Button size="sm" className="h-8 shrink-0" onClick={handleAddDomain} disabled={!newDomain.trim()}>
-                          <Plus className="h-3.5 w-3.5" /> Add
+                        <Button size="sm" className="h-8 shrink-0" onClick={handleAddDomain} disabled={!newDomain.trim() || isSettingUp}>
+                          {isSettingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Plus className="h-3.5 w-3.5" /> Add</>}
                         </Button>
                       </div>
                     ) : (
@@ -706,6 +748,44 @@ function ViewService() {
           </DialogContent>
         </Dialog>
 
+        {/* Domain delete confirmation dialog */}
+        <Dialog
+          open={!!deleteDomainTarget}
+          onOpenChange={open => {
+            if (!open) { setDeleteDomainTarget(null); setDeleteDomainConfirm(""); }
+          }}
+        >
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Remove domain?</DialogTitle>
+              <DialogDescription>
+                This will remove <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{deleteDomainTarget}</span> and the service will no longer be reachable through it.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-1">
+              <p className="text-sm text-muted-foreground">
+                Type <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{deleteDomainTarget}</span> to confirm.
+              </p>
+              <Input
+                value={deleteDomainConfirm}
+                onChange={e => setDeleteDomainConfirm(e.target.value)}
+                placeholder={deleteDomainTarget ?? ""}
+                className="font-mono text-sm"
+                onKeyDown={e => { if (e.key === "Enter" && deleteDomainConfirm === deleteDomainTarget) handleDeleteDomain(); }}
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => { setDeleteDomainTarget(null); setDeleteDomainConfirm(""); }}>
+                Cancel
+              </Button>
+              <Button variant="destructive" size="sm" disabled={deleteDomainConfirm !== deleteDomainTarget || isDeletingDomain} onClick={handleDeleteDomain}>
+                {isDeletingDomain ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Remove domain"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Unsaved changes — tab switch */}
         <Dialog open={unsavedOpen} onOpenChange={setUnsavedOpen}>
           <DialogContent className="sm:max-w-[400px]">
@@ -756,6 +836,12 @@ function ViewService() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      <DomainConnectDialog
+        setupDetails={setupDetails}
+        domains={allDomains}
+        open={dnsDialogOpen}
+        onOpenChange={open => { setDnsDialogOpen(open); if (!open) stopPolling(); }}
+      />
       </AppLayout>
     </ProtectedRoute>
   );

@@ -14,7 +14,6 @@ import { useClusters } from "@/hooks/use-clusters";
 import { use2FA } from "@/hooks/use-2fa";
 import { useConfirmation } from "@/hooks/use-confirmation";
 import { RemoteConnectDialog } from "@/components/remote-connect-dialog";
-import { DomainConnectDialog } from "@/components/domain-connect-dialog";
 import { NotificationsConnectDialog } from "@/components/notifications-connect-dialog";
 
 export const Route = createFileRoute("/clusters/$clusterId/settings/integrations")({
@@ -84,7 +83,7 @@ function Integrations() {
       title: "Remotes",
       description: "Connect and manage your version control repositories",
       integrations: integrations.filter(i => i.category === "remote"),
-    }
+    },
   ];
 
   return (
@@ -107,7 +106,6 @@ function Integrations() {
             ))}
           </div>
           <RemoteConnectDialog integration={selectedIntegration} integrations={apiIntegrations} open={dialogOpen && selectedIntegration?.category === "remote"} onOpenChange={setDialogOpen} />
-          <DomainConnectDialog integration={selectedIntegration} open={dialogOpen && selectedIntegration?.category === "domain"} onOpenChange={setDialogOpen} />
           <NotificationsConnectDialog integration={selectedIntegration} open={dialogOpen && selectedIntegration?.category === "notifications"} onOpenChange={setDialogOpen} />
         </SettingsLayout>
       </AppLayout>

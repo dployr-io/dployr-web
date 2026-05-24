@@ -13,6 +13,14 @@ vi.mock('@/hooks/use-auth', () => ({
     }),
 }));
 
+vi.mock('@/hooks/use-clusters', () => ({
+    useClusters: () => ({
+        clusterId: 'cluster-1',
+        userCluster: { id: 'cluster-1', name: 'Test Cluster' },
+        clusters: [{ id: 'cluster-1', name: 'Test Cluster' }],
+    }),
+}));
+
 vi.mock('@/hooks/use-cluster-id', () => ({
     useClusterId: () => 'cluster-1',
 }));

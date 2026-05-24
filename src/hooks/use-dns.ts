@@ -5,43 +5,37 @@ import type { ApiSuccessResponse } from "@/types";
 import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useClusterId } from "@/hooks/use-cluster-id";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAppAlert } from "@/contexts/app-alert-context";
 import { getApiErrorHelpLink, getApiErrorMessage } from "@/lib/api-error";
+import { useInstanceStream } from "@/hooks/use-instance-stream";
 
 export interface DnsDomain {
   id: string;
   domain: string;
-  status: "pending" | "active" | "failed";
-  provider: string;
+  status: "pending" | "active";
+  provider: string | null;
+  serviceName: string | null;
   createdAt: number;
-  activatedAt: number;
+  activatedAt: number | null;
 }
 
 export interface DnsListResponse {
   domains: DnsDomain[];
 }
 
+export interface DnsRecord {
+  type: "A" | "AAAA" | "CNAME" | "TXT";
+  name: string;
+  value: string;
+  ttl?: number;
+}
+
 export interface DnsSetupResponse {
   domain: string;
-  provider: "cloudflare" | "route53" | "digitalocean";
-  hasOAuth: boolean;
-  status: "pending" | "active" | "failed";
-  instanceId: string;
-  createdAt: number;
-  activatedAt: number;
-  record?: {
-    type: string;
-    name: string;
-    value: string;
-    ttl: number;
-  };
-  verification?: {
-    type: string;
-    name: string;
-    value: string;
-  };
-  autoSetupUrl?: string;
+  provider: string;
+  records: DnsRecord[];
+  verification: DnsRecord;
   manualGuideUrl?: string;
 }
 
@@ -49,13 +43,14 @@ export function useDns(instanceId?: string) {
   const queryClient = useQueryClient();
   const clusterId = useClusterId();
   const { setError } = useAppAlert();
+  const { subscribe, unsubscribe } = useInstanceStream();
   const [setupDetails, setSetupDetails] = useState<DnsSetupResponse | null>(null);
   const [verifySetupDetails, setVerifySetupDetails] = useState<DnsSetupResponse | null>(null);
   const [verifyCooldowns, setVerifyCooldowns] = useState<Map<string, number>>(new Map());
 
   // Get all DNS domains for an instance
   const { data: domains, isLoading: isLoadingDomains } = useQuery<DnsDomain[]>({
-    queryKey: ["dns-domains", instanceId, clusterId],
+    queryKey: ["dns-domains", clusterId],
     queryFn: async (): Promise<DnsDomain[]> => {
       if (!clusterId) return [];
 
@@ -74,6 +69,17 @@ export function useDns(instanceId?: string) {
     },
     enabled: Boolean(clusterId),
   });
+
+  // Invalidate domain list when base signals a domain was verified
+  useEffect(() => {
+    const id = "dns-refresh";
+    subscribe(id, (msg: any) => {
+      if (msg.kind === "refresh" && msg.entity === "domains" && msg.clusterId === clusterId) {
+        queryClient.invalidateQueries({ queryKey: ["dns-domains", clusterId] });
+      }
+    });
+    return () => unsubscribe(id);
+  }, [clusterId, subscribe, unsubscribe, queryClient]);
 
   // Cooldown timer effect
   useEffect(() => {
@@ -113,7 +119,7 @@ export function useDns(instanceId?: string) {
       return response.data.data;
     },
     onSuccess: (_, domain) => {
-      queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
+      queryClient.invalidateQueries({ queryKey: ["dns-domains", clusterId] });
       setVerifyCooldowns(prev => new Map(prev).set(domain, 10));
     },
     onError: async (_, domain) => {
@@ -130,20 +136,19 @@ export function useDns(instanceId?: string) {
 
   // Setup DNS for a domain
   const setupDnsMutation = useMutation({
-    mutationFn: async ({ domain, instanceId }: { domain: string; instanceId: string }) => {
+    mutationFn: async ({ domain, serviceName }: { domain: string; serviceName: string }) => {
       if (!clusterId) {
         throw new Error("Cluster ID is required to configure domains");
       }
       const response = await axios.post<ApiSuccessResponse<DnsSetupResponse>>(
         `${import.meta.env.VITE_BASE_URL}/v1/domains`,
-        { domain, instanceId },
+        { domain, clusterId, serviceName },
         {
-          params: { clusterId },
           withCredentials: true,
         }
       );
 
-      queryClient.invalidateQueries({ queryKey: ["dns-domains", instanceId, clusterId] });
+      queryClient.invalidateQueries({ queryKey: ["dns-domains", clusterId] });
       return response.data.data;
     },
     onSuccess: data => {
@@ -170,7 +175,7 @@ export function useDns(instanceId?: string) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dns-domains", instanceId, clusterId] });
+      queryClient.invalidateQueries({ queryKey: ["dns-domains", clusterId] });
     },
     onError: (error: any) => {
       const errorMessage = getApiErrorMessage(error, "An error occurred while deleting domain.");

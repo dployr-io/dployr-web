@@ -6,9 +6,9 @@ import "@/css/app.css";
 import AppLayout from "@/layouts/app-layout";
 import type { BreadcrumbItem, LogType, LogStreamMode } from "@/types";
 import { ProtectedRoute } from "@/components/protected-route";
-import { useAppAlert } from "@/contexts/app-alert-context";
-import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Copy, Cpu, ExternalLink, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
+import { ArrowUpRightIcon, ChevronDown, ChevronLeft, ChevronUp, Copy, Cpu, FileX2, HardDrive, Loader2, MemoryStick, Power, RefreshCcw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { MetricCard } from "@/components/metric-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -30,13 +30,13 @@ import { useInstanceLogs } from "@/hooks/use-standardized-logs";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { usePlanFeatures } from "@/hooks/use-plan-features";
 import { FeatureGate, FileExplorerGatePlaceholder } from "@/components/feature-gate";
 import { LogsWindow } from "@/components/logs-window";
 import { VersionSelector } from "@/components/version-selector";
 import { useDns } from "@/hooks/use-dns";
-import { Input } from "@/components/ui/input";
+import { DomainConnectDialog } from "@/components/domain-connect-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileSystemBrowser } from "@/components/file-system-browser";
 import { InstanceMetricsChart } from "@/components/metrics-chart";
@@ -170,9 +170,18 @@ function ViewInstance() {
 
   const updatePayload = update ?? null;
   const [isCertOpen, setIsCertOpen] = useState(false);
-  const [domainInput, setDomainInput] = useState("");
-  const { domains, setupDnsAsync, isSettingUp, deleteDnsAsync, isDeleting, verifyDomain, isVerifying, getVerifyCooldown, verifySetupDetails, clearVerifySetupDetails } = useDns(instanceId);
-  const { setError: setAppError } = useAppAlert();
+  const { domains, deleteDnsAsync, isDeleting, verifyDomain, isVerifying, getVerifyCooldown, verifySetupDetails, clearVerifySetupDetails } = useDns(instanceId);
+  const handleVerifyDialogOpenChange = useCallback((open: boolean) => { if (!open) clearVerifySetupDetails(); }, [clearVerifySetupDetails]);
+
+  // Domain delete confirmation
+  const [deleteDomainTarget, setDeleteDomainTarget] = useState<string | null>(null);
+  const [deleteDomainConfirm, setDeleteDomainConfirm] = useState("");
+  const handleDeleteDomain = useCallback(async () => {
+    if (!deleteDomainTarget || deleteDomainConfirm !== deleteDomainTarget) return;
+    await deleteDnsAsync(deleteDomainTarget);
+    setDeleteDomainTarget(null);
+    setDeleteDomainConfirm("");
+  }, [deleteDomainTarget, deleteDomainConfirm, deleteDnsAsync]);
 
   // Set bootstrap token from update data
   useEffect(() => {
@@ -511,8 +520,8 @@ function ViewInstance() {
                                         {isVerifying ? <Loader2 className="h-3 w-3 animate-spin" /> : cooldown > 0 ? `Check Status (${cooldown}s)` : "Check Status"}
                                       </Button>
                                     )}
-                                    <Button variant="ghost" size="sm" className="h-6 px-2 text-destructive hover:text-destructive" onClick={() => deleteDnsAsync(d.domain)} disabled={isDeleting}>
-                                      {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove"}
+                                    <Button variant="ghost" size="sm" className="h-6 px-2 text-destructive hover:text-destructive" onClick={() => setDeleteDomainTarget(d.domain)} disabled={isDeleting}>
+                                      Remove
                                     </Button>
                                   </div>
                                 </div>
@@ -524,151 +533,15 @@ function ViewInstance() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Input placeholder="example.com" value={domainInput} onChange={e => setDomainInput(e.target.value)} className="flex-1" />
-                        <Button
-                          onClick={async () => {
-                            if (!domainInput.trim()) return;
-                            try {
-                              await setupDnsAsync({ domain: domainInput, instanceId: instanceId! });
-                              setDomainInput("");
-                            } catch (error: any) {
-                              setAppError({ message: error?.response?.data?.error || "Failed to setup DNS" });
-                            }
-                          }}
-                          disabled={isSettingUp || !domainInput.trim()}
-                          size="sm"
-                          variant="outline"
-                        >
-                          {isSettingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
-                        </Button>
-                      </div>
                     </div>
                   </div>
 
-                  {/* DNS Setup Instructions Dialog */}
-                  <Dialog open={!!verifySetupDetails} onOpenChange={open => !open && clearVerifySetupDetails()}>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Configuration Required</DialogTitle>
-                        <DialogDescription className="text-xs">
-                          Please configure the DNS records below for <span className="font-semibold font-mono">{verifySetupDetails?.domain}</span>
-                        </DialogDescription>
-                      </DialogHeader>
-                      {verifySetupDetails && (
-                        <div className="space-y-4">
-                          <div className="space-y-3">
-                            {verifySetupDetails.record && (
-                              <div>
-                                <div className="text-xs font-semibold mb-2">DNS Record (A Record)</div>
-                                <div className="rounded-lg border p-3 space-y-2 bg-muted/50">
-                                  <div className="grid grid-cols-3 gap-2 text-xs">
-                                    <div className="font-medium">Name</div>
-                                    <div className="font-medium">Value</div>
-                                    <div className="font-medium">TTL</div>
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-2 text-xs font-mono">
-                                    <div className="flex items-center gap-1">
-                                      <span className="break-all">{verifySetupDetails?.record?.name}</span>
-                                      <button onClick={() => navigator.clipboard.writeText(verifySetupDetails?.record?.name || "")} className="shrink-0 p-1 hover:bg-muted rounded" title="Copy name">
-                                        <Copy className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <span className="break-all">{verifySetupDetails?.record?.value}</span>
-                                      <button onClick={() => navigator.clipboard.writeText(verifySetupDetails?.record?.value || "")} className="shrink-0 p-1 hover:bg-muted rounded" title="Copy value">
-                                        <Copy className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                    <div>{verifySetupDetails.record.ttl}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {verifySetupDetails.verification && (
-                              <div>
-                                <div className="text-xs font-semibold mb-2">Verification Record (TXT Record)</div>
-                                <div className="rounded-lg border p-3 space-y-2 bg-muted/50">
-                                  <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div className="font-medium">Name</div>
-                                    <div className="font-medium">Value</div>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                                    <div className="flex items-center gap-1">
-                                      <span className="break-all">{verifySetupDetails.verification.name}</span>
-                                      <button
-                                        onClick={() => navigator.clipboard.writeText(verifySetupDetails?.verification?.name || "")}
-                                        className="shrink-0 p-1 hover:bg-muted rounded"
-                                        title="Copy name"
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <span className="break-all">{verifySetupDetails.verification.value}</span>
-                                      <button
-                                        onClick={() => navigator.clipboard.writeText(verifySetupDetails?.verification?.value || "")}
-                                        className="shrink-0 p-1 hover:bg-muted rounded"
-                                        title="Copy value"
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center justify-between gap-2 pt-2">
-                            <div className="flex items-center gap-2">
-                              {verifySetupDetails.autoSetupUrl && (
-                                <Button variant="default" size="sm" asChild className="h-8 text-xs">
-                                  <a href={verifySetupDetails.autoSetupUrl} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-3 w-3" />
-                                    Auto Setup
-                                  </a>
-                                </Button>
-                              )}
-                              {verifySetupDetails.manualGuideUrl && (
-                                <Button variant="outline" size="sm" asChild className="h-8 text-xs">
-                                  <a href={verifySetupDetails.manualGuideUrl} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="h-3 w-3" />
-                                    Manual Guide
-                                  </a>
-                                </Button>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => {
-                                  const domain = verifySetupDetails.domain;
-                                  clearVerifySetupDetails();
-                                  verifyDomain(domain);
-                                }}
-                                disabled={isVerifying || getVerifyCooldown(verifySetupDetails.domain) > 0}
-                                className="h-8 text-xs"
-                              >
-                                {isVerifying ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : getVerifyCooldown(verifySetupDetails.domain) > 0 ? (
-                                  `Check Status (${getVerifyCooldown(verifySetupDetails.domain)}s)`
-                                ) : (
-                                  "Check Status"
-                                )}
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => clearVerifySetupDetails()} className="h-8 text-xs">
-                                Close
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
+                  <DomainConnectDialog
+                    setupDetails={verifySetupDetails}
+                    domains={domains}
+                    open={!!verifySetupDetails}
+                    onOpenChange={handleVerifyDialogOpenChange}
+                  />
                 </TabsContent>
               )}
 
@@ -859,6 +732,44 @@ function ViewInstance() {
                   </Button>
                   <Button size="sm" onClick={handleRebootSubmit} disabled={isRestarting} className="h-8 text-xs">
                     {isRestarting && <Loader2 className="h-3 w-3 animate-spin" />} Reboot
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Domain delete confirmation */}
+            <Dialog
+              open={!!deleteDomainTarget}
+              onOpenChange={open => {
+                if (!open) { setDeleteDomainTarget(null); setDeleteDomainConfirm(""); }
+              }}
+            >
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle>Remove domain?</DialogTitle>
+                  <DialogDescription className="text-xs">
+                    This will remove <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{deleteDomainTarget}</span> and the service will no longer be reachable through it.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 py-1">
+                  <p className="text-sm text-muted-foreground">
+                    Type <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{deleteDomainTarget}</span> to confirm.
+                  </p>
+                  <Input
+                    value={deleteDomainConfirm}
+                    onChange={e => setDeleteDomainConfirm(e.target.value)}
+                    placeholder={deleteDomainTarget ?? ""}
+                    className="font-mono text-sm"
+                    onKeyDown={e => { if (e.key === "Enter" && deleteDomainConfirm === deleteDomainTarget) handleDeleteDomain(); }}
+                    autoFocus
+                  />
+                </div>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button variant="ghost" size="sm" className="h-8 text-xs mr-2" onClick={() => { setDeleteDomainTarget(null); setDeleteDomainConfirm(""); }}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" size="sm" className="h-8 text-xs" disabled={deleteDomainConfirm !== deleteDomainTarget || isDeleting} onClick={handleDeleteDomain}>
+                    {isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Remove domain"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
