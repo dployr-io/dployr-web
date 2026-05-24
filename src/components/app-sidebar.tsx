@@ -13,28 +13,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSepar
 import { Link } from "@tanstack/react-router";
 import { useClusterId } from "@/hooks/use-cluster-id";
 import { usePlanFeatures } from "@/hooks/use-plan-features";
+import { useClusterName } from "@/hooks/use-cluster-name";
 
 export function AppSidebar() {
   const clusterId = useClusterId();
+  const clusterName = useClusterName();
   const { clusters } = useAuth();
 
-  function getClusterName(
-    clusters: {
-      id: string;
-      name: string;
-      owner: string;
-    }[]
-  ) {
-    let name = "";
-    clusters.forEach(cluster => {
-      if (cluster.id === clusterId) {
-        name = cluster.name;
-      }
-    });
-    return name;
-  }
-
-  const clusterName = getClusterName(clusters);
+  
   const { hasConsole } = usePlanFeatures();
 
   const mainNavItems: NavItem[] = [
