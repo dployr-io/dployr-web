@@ -56,7 +56,7 @@ export function useBilling() {
       return response.data.data.checkoutUrl;
     },
     onSuccess: (checkoutUrl: string) => {
-      window.location.href = checkoutUrl;
+      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
     },
     onError: (error: any) => {
       const errorMessage = getApiErrorMessage(error, "Failed to start checkout.");

@@ -546,14 +546,16 @@ export const INTEGRATIONS_METADATA: Record<string, IntegrationMetadata> = {
     name: "Discord",
     description: "Send to Discord channels",
     category: "notifications",
-    connectType: "oauth",
+    connectType: "form",
+    fields: [{ id: "discordWebhookUrl", label: "Webhook URL", type: "text", placeholder: "https://discord.com/api/webhooks/…", required: true }],
   },
   slack: {
     icon: FaSlack,
     name: "Slack",
     description: "Send to Slack workspaces",
     category: "notifications",
-    connectType: "oauth",
+    connectType: "form",
+    fields: [{ id: "slackWebhookUrl", label: "Webhook URL", type: "text", placeholder: "https://hooks.slack.com/services/…", required: true }],
   },
   namecheap: {
     icon: SiNamecheap,

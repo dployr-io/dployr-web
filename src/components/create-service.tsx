@@ -54,6 +54,8 @@ interface Props {
   isLoadingDomains?: boolean;
   envVars?: Record<string, string>;
   secrets?: Record<string, string>;
+  healthCheck?: string | null;
+  healthCheckError?: string;
 
   // Route parameters
   clusterId?: string;
@@ -90,18 +92,14 @@ export function CreateServiceForm({
   runCmdPlaceholder,
   port,
   portError,
-  domain,
-  domainError,
-  availableDomains,
-  isLoadingDomains,
   envVars = {},
   secrets = {},
+  healthCheck,
+  healthCheckError,
   remote,
   remotes,
   isRemotesLoading,
   remoteError,
-  clusterId,
-  instanceId,
   setField,
   onSourceValueChanged,
   onRuntimeValueChanged,
@@ -190,16 +188,14 @@ export function CreateServiceForm({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {runtimes
-                
-                .map(option => (
-                  <SelectItem key={option} value={option}>
-                    <div className="flex items-center gap-2">
-                      {getRuntimeIcon(option)}
-                      <span>{option}</span>
-                    </div>
-                  </SelectItem>
-                ))}
+              {runtimes.map(option => (
+                <SelectItem key={option} value={option}>
+                  <div className="flex items-center gap-2">
+                    {getRuntimeIcon(option)}
+                    <span>{option}</span>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {(runtimeError || errors.runtime) && <div className="text-sm text-destructive">{runtimeError || errors.runtime}</div>}
@@ -261,88 +257,48 @@ export function CreateServiceForm({
           />
         </div>
 
-        <div className="grid gap-2">
-          <div className="flex items-center justify-between">
+        {/* Working Dir + Static Dir always paired side-by-side; Docker Image replaces Working Dir for image source */}
+        <div className="md:col-span-3 grid grid-cols-2 gap-4">
+          {source === "remote" && (
+            <div className="grid gap-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="working_dir">Working Directory</Label>
+                <Tooltip>
+                  <TooltipTrigger type="button">
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>Defaults to root folder</TooltipContent>
+                </Tooltip>
+              </div>
+              <Input id="working_dir" name="working_dir" placeholder="src" value={workingDir!} onChange={e => setField("workingDir", e.target.value)} disabled={processing} />
+              {(workingDirError || errors.working_dir) && <div className="text-sm text-destructive">{workingDirError || errors.working_dir}</div>}
+            </div>
+          )}
+
+          {source === "image" && (
+            <div className="grid gap-2">
+              <Label htmlFor="image">
+                Docker Image <span className="text-destructive">*</span>
+              </Label>
+              <Input id="image" name="image" placeholder="node:18-alpine" value={image || ""} onChange={e => setField("image", e.target.value)} disabled={processing} />
+              {(imageError || errors.image) && <div className="text-sm text-destructive">{imageError || errors.image}</div>}
+            </div>
+          )}
+
+          <div className="grid gap-2">
             <div className="flex items-center gap-1.5">
-              <Label htmlFor="domain">Domain</Label>
+              <Label htmlFor="static_dir">Static Directory</Label>
               <Tooltip>
                 <TooltipTrigger type="button">
                   <Info className="h-3.5 w-3.5 text-muted-foreground" />
                 </TooltipTrigger>
-                <TooltipContent>
-                  Defaults to <span className="font-mono bg-white/15 rounded px-1 py-0.5">your-app.dployr.run</span>
-                  <br /> You can add your own domain for free
-                </TooltipContent>
+                <TooltipContent>This directory will be mounted on your service</TooltipContent>
               </Tooltip>
             </div>
-            {clusterId && instanceId && (
-              <Link
-                to="/clusters/$clusterId/instances/$id"
-                params={{ clusterId, id: instanceId }}
-                search={{ tab: "config" }}
-                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-              >
-                Manage domains <ExternalLink className="h-3 w-3" />
-              </Link>
-            )}
+            <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
+            {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
           </div>
-          <Select value={domain || ""} onValueChange={(value: string) => setField("domain", value)} disabled={processing || isLoadingDomains || availableDomains?.length === 0}>
-            <SelectTrigger id="domain">
-              <SelectValue placeholder={isLoadingDomains ? "Loading..." : availableDomains?.length === 0 ? "No domains available" : "Select domain"} />
-            </SelectTrigger>
-            <SelectContent>
-              {availableDomains?.map(d => (
-                <SelectItem key={d.domain} value={d.domain}>
-                  <div className="flex items-center gap-2">
-                    <span>{d.domain}</span>
-                    {d.provider && d.provider !== "unknown" && <span className="text-xs text-muted-foreground">({d.provider})</span>}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {(domainError || errors.domain) && <div className="text-sm text-destructive">{domainError || errors.domain}</div>}
         </div>
-
-        {source === "remote" && (
-          <div className={`grid gap-2 ${source === "remote"}`}>
-            <div className="flex items-center gap-1.5">
-              <Label htmlFor="working_dir">Working Directory</Label>
-              <Tooltip>
-                <TooltipTrigger type="button">
-                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>Defaults to root folder</TooltipContent>
-              </Tooltip>
-            </div>
-            <Input id="working_dir" name="working_dir" placeholder="src" value={workingDir!} onChange={e => setField("workingDir", e.target.value)} disabled={processing} />
-            {(workingDirError || errors.working_dir) && <div className="text-sm text-destructive">{workingDirError || errors.working_dir}</div>}
-          </div>
-        )}
-
-        <div className="grid gap-2 md:col-span-1">
-          <div className="flex items-center gap-1.5">
-            <Label htmlFor="static_dir">Static Directory</Label>
-            <Tooltip>
-              <TooltipTrigger type="button">
-                <Info className="h-3.5 w-3.5 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent>This directory will be mounted on your service</TooltipContent>
-            </Tooltip>
-          </div>
-          <Input id="static_dir" name="static_dir" placeholder="dist" value={staticDir || ""} onChange={e => setField("staticDir", e.target.value)} disabled={processing} />
-          {(staticDirError || errors.static_dir) && <div className="text-sm text-destructive">{staticDirError || errors.static_dir}</div>}
-        </div>
-
-        {source === "image" && (
-          <div className="grid gap-2 md:col-span-1">
-            <Label htmlFor="image">
-              Docker Image <span className="text-destructive">*</span>
-            </Label>
-            <Input id="image" name="image" placeholder="node:18-alpine" value={image || ""} onChange={e => setField("image", e.target.value)} disabled={processing} />
-            {(imageError || errors.image) && <div className="text-sm text-destructive">{imageError || errors.image}</div>}
-          </div>
-        )}
 
         {source === "remote" && (
           <>
@@ -363,6 +319,34 @@ export function CreateServiceForm({
             </div>
           </>
         )}
+
+        {/* Health Check */}
+        <div className="grid gap-2 md:col-span-3">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="health_check">Health Check Path</Label>
+            <Tooltip>
+              <TooltipTrigger type="button">
+                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>HTTP path your service responds on</TooltipContent>
+            </Tooltip>
+          </div>
+          <Input
+            id="health_check"
+            name="health_check"
+            placeholder="/health"
+            value={healthCheck || ""}
+            onChange={e => setField("healthCheck", e.target.value)}
+            onBlur={e => {
+              let v = e.target.value.trim();
+              if (v && !v.startsWith("/")) v = `/${v}`;
+              if (v.length > 1) v = v.replace(/\/+$/, "");
+              setField("healthCheck", v);
+            }}
+            disabled={processing}
+          />
+          {healthCheckError && <div className="text-sm text-destructive">{healthCheckError}</div>}
+        </div>
 
         {/* Environment Variables & Secrets */}
         <div className="grid gap-2 md:col-span-3">

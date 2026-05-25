@@ -11,12 +11,13 @@ import { useServices } from "@/hooks/use-services";
 import { useDeployments } from "@/hooks/use-deployments";
 import { useInstances } from "@/hooks/use-instances";
 import { Button } from "@/components/ui/button";
-import { BoxesIcon, Globe, ExternalLink } from "lucide-react";
+import { BoxesIcon, ExternalLink, Globe, Rocket, ChevronRight } from "lucide-react";
 import TimeAgo from "react-timeago";
 import { useClusters } from "@/hooks/use-clusters";
 import { useQueryClient } from "@tanstack/react-query";
-import type { NormalizedInstanceData } from "@/types";
+import type { NormalizedInstanceData, Runtime } from "@/types";
 import { useMemo } from "react";
+import { getRuntimeIcon } from "@/lib/runtime-icon";
 
 export const Route = createFileRoute("/clusters/$clusterId/dashboard")({
   component: Dashboard,
@@ -39,9 +40,9 @@ function Dashboard() {
 
   const lastDeployment = useMemo(() => {
     if (!deployments || deployments.length === 0) return null;
-    return deployments.reduce((latest, current) => {
-      return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
-    });
+    return deployments.reduce((latest, current) =>
+      new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
+    );
   }, [deployments]);
 
   const clusterHealth = useMemo(() => {
@@ -50,208 +51,206 @@ function Dashboard() {
       const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", instance.tag]);
       return instanceData?.health?.overall || "healthy";
     });
-    
-    if (healthStatuses.some(status => status === "critical")) return "critical";
-    if (healthStatuses.some(status => status === "degraded")) return "degraded";
-    if (healthStatuses.every(status => status === "healthy")) return "healthy";
+    if (healthStatuses.some(s => s === "critical")) return "critical";
+    if (healthStatuses.some(s => s === "degraded")) return "degraded";
     return "healthy";
   }, [instances, queryClient]);
 
   const getServiceDomain = (service: any) => {
     if (!service._instanceName) return `${service.name}.dployr.run`;
-    
     const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", service._instanceName]);
     if (!instanceData?.proxy?.routes) return `${service.name}.dployr.run`;
-    
     const proxyRoute = instanceData.proxy.routes.find(route => {
       const upstreamPort = route.upstream?.match(/:(\d+)/)?.[1];
-      return route.domain.includes(service.name) || 
-             route.upstream?.includes(service.name) ||
-             upstreamPort === String(service.port);
+      return route.domain.includes(service.name) || route.upstream?.includes(service.name) || upstreamPort === String(service.port);
     });
-    
     return proxyRoute?.domain || `${service.name}.dployr.run`;
   };
 
   const hasServices = services.length > 0;
+  const runningServices = services.filter(s => s.status === "running" || !s.status);
+  const degradedServices = services.filter(s => s.health === "degraded");
 
   return (
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
         <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-          <div className="flex w-full flex-col gap-8 px-9 py-6">
-            {/* Welcome Section */}
+          <div className="flex w-full flex-col gap-6 px-9 py-4">
+
+            {/* ── Header ── */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-black tracking-tight">Welcome back</h1>
-                <p className="mt-2 text-base text-muted-foreground">
-                  {hasServices 
-                    ? `You have ${services.length} ${services.length === 1 ? 'service' : 'services'} running`
-                    : "Get started by deploying your first service"
-                  }
+                <h1 className="text-2xl font-black tracking-tight">Dashboard</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {hasServices
+                    ? `${runningServices.length} of ${services.length} ${services.length === 1 ? "service" : "services"} running`
+                    : "No services deployed yet"}
                 </p>
               </div>
-              {!hasServices && (
-                <Button 
-                  size="lg"
-                  className="flex items-center gap-2" 
-                  onClick={() => router.navigate({ to: "/clusters/$clusterId/services", params: { clusterId } })}
-                >
-                  Deploy Your First Service
-                </Button>
-              )}
+              <Button
+                onClick={() => router.navigate({ to: "/clusters/$clusterId/services", params: { clusterId }, search: { deploy: true, page: 1 } })}
+              >
+                <Rocket className="h-4 w-4" />
+                Deploy Service
+              </Button>
             </div>
 
-            {/* Stats Grid - Only show if there are services */}
-            {hasServices && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border bg-linear-to-br from-background to-muted/20 p-6 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-muted-foreground">Active Services</p>
-                      <p className="mt-2 text-3xl font-bold">{services.length}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Across {instances.length} {instances.length === 1 ? 'instance' : 'instances'}
-                      </p>
-                    </div>
-                    <div className="rounded-full bg-primary/10 p-3">
-                      <BoxesIcon className="h-6 w-6 text-primary" />
-                    </div>
-                  </div>
+            {/* ── Metric strip ── */}
+            <div className="grid grid-cols-3 gap-3">
+              {/* Active services */}
+              <div className="rounded-xl border bg-background px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground">Active Services</p>
+                  <p className="text-2xl font-bold mt-0.5">{runningServices.length}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    across {instances.length} {instances.length === 1 ? "instance" : "instances"}
+                  </p>
                 </div>
-
-                <div className="rounded-xl border bg-linear-to-br from-background to-muted/20 p-6 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-muted-foreground">Cluster Health</p>
-                      <div className="mt-2">
-                        <StatusBadge status={clusterHealth} />
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {instances.length} {instances.length === 1 ? 'instance' : 'instances'} monitored
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border bg-linear-to-br from-background to-muted/20 p-6 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-muted-foreground">Last Deployment</p>
-                      <p className="mt-2 text-lg font-semibold">
-                        {lastDeployment ? <TimeAgo date={lastDeployment.createdAt} /> : "No deployments yet"}
-                      </p>
-                      {lastDeployment && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {deployments.length} total {deployments.length === 1 ? 'deployment' : 'deployments'}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                <div className="rounded-full bg-muted p-2.5">
+                  <BoxesIcon className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
-            )}
 
-            {/* Services Section */}
+              {/* Cluster health */}
+              <div className="rounded-xl border bg-background px-4 py-3">
+                <p className="text-xs text-muted-foreground">Cluster Health</p>
+                <div className="mt-2">
+                  <StatusBadge status={clusterHealth} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {degradedServices.length > 0
+                    ? `${degradedServices.length} service${degradedServices.length > 1 ? "s" : ""} degraded`
+                    : "All services healthy"}
+                </p>
+              </div>
+
+              {/* Last deployment */}
+              <div className="rounded-xl border bg-background px-4 py-3">
+                <p className="text-xs text-muted-foreground">Last Deployment</p>
+                <p className="text-base font-semibold mt-2 truncate">
+                  {lastDeployment ? <TimeAgo date={lastDeployment.createdAt} /> : "—"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {deployments.length > 0
+                    ? `${deployments.length} total ${deployments.length === 1 ? "deployment" : "deployments"}`
+                    : "No deployments yet"}
+                </p>
+              </div>
+            </div>
+
+            {/* ── Services list ── */}
             {hasServices ? (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">Your Services</h2>
-                  <Button 
-                    variant="outline"
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Services</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-muted-foreground"
                     onClick={() => router.navigate({ to: "/clusters/$clusterId/services", params: { clusterId } })}
                   >
-                    View All
+                    View all <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {services.slice(0, 6).map(service => (
-                    <div
-                      key={service.id}
-                      className="group cursor-pointer rounded-xl border bg-card shadow-sm transition-all hover:shadow-md hover:border-primary/50"
-                      onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.name ?? "" } })}
-                    >
-                      <div className="p-5 pb-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors">
-                              {service.name}
-                            </h3>
-                            <div className="mt-2 flex items-center gap-2">
-                              <StatusBadge status="running" variant="compact" />
-                              
-                            </div>
-                          </div>
+                <div className="rounded-xl border overflow-hidden divide-y">
+                  {services.slice(0, 8).map(service => {
+                    const domain = getServiceDomain(service);
+                    return (
+                      <div
+                        key={service.id ?? service.name}
+                        className="flex items-center gap-4 px-4 py-3 hover:bg-muted/40 cursor-pointer transition-colors"
+                        onClick={() =>
+                          router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.name ?? "" } })
+                        }
+                      >
+                        {/* Runtime icon */}
+                        <div className="shrink-0 text-muted-foreground">
+                          {getRuntimeIcon((service.runtime?.type || "custom") as Runtime)}
                         </div>
-                        
-                        <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                          <Globe className="h-4 w-4 shrink-0" />
-                          <span className="truncate font-mono text-xs flex-1">{getServiceDomain(service)}</span>
+
+                        {/* Name + description */}
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold text-sm truncate block">{service.name}</span>
+                          {service.description && (
+                            <span className="text-xs text-muted-foreground truncate block">{service.description}</span>
+                          )}
+                        </div>
+
+                        {/* Status + Health */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <StatusBadge status={service.status ?? "running"} variant="compact" type="service" />
+                          {service.health && (
+                            <span className={`inline-flex items-center gap-1 text-xs font-medium ${service.health === "degraded" ? "text-amber-500" : "text-emerald-500"}`}>
+                              <span className={`h-1.5 w-1.5 rounded-full ${service.health === "degraded" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                              {service.health === "degraded" ? "Degraded" : "Healthy"}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Domain */}
+                        <div className="hidden md:flex items-center gap-1.5 shrink-0 min-w-0 max-w-[200px]">
+                          <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="font-mono text-xs text-muted-foreground truncate">{domain}</span>
                           <a
-                            href={`https://${getServiceDomain(service)}`}
+                            href={`https://${domain}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                            onClick={(e) => e.stopPropagation()}
+                            className="text-muted-foreground hover:text-foreground shrink-0"
+                            onClick={e => e.stopPropagation()}
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <ExternalLink className="h-3 w-3" />
                           </a>
                         </div>
-                      </div>
 
-                      <div className="border-t bg-muted/30 px-5 py-3 rounded-b-xl">
-                        <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            {service._instanceName && (
-                              <span className="font-mono">
-                                {service._instanceName}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-muted-foreground">
-                            <TimeAgo date={service.updatedAt ?? 0} />
-                          </span>
+                        {/* Instance + time */}
+                        <div className="hidden lg:flex items-center gap-3 shrink-0 text-xs text-muted-foreground">
+                          {service._instanceName && (
+                            <span className="font-mono px-1.5 py-0.5 rounded border border-border/60 bg-muted/50">
+                              {service._instanceName}
+                            </span>
+                          )}
+                          {service.updatedAt && <TimeAgo date={service.updatedAt} />}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
-                {services.length > 6 && (
-                  <div className="flex justify-center pt-2">
-                    <Button 
-                      variant="ghost"
+                {services.length > 8 && (
+                  <p className="text-xs text-muted-foreground text-center py-1">
+                    +{services.length - 8} more —{" "}
+                    <button
+                      className="underline underline-offset-2 hover:text-foreground"
                       onClick={() => router.navigate({ to: "/clusters/$clusterId/services", params: { clusterId } })}
                     >
-                      View {services.length - 6} more {services.length - 6 === 1 ? 'service' : 'services'}
-                    </Button>
-                  </div>
+                      view all
+                    </button>
+                  </p>
                 )}
               </div>
             ) : (
-              <div className="rounded-xl border-2 border-dashed bg-muted/30 p-12">
-                <div className="flex flex-col items-center text-center">
-                  <div className="rounded-full bg-primary/10 p-4 mb-4">
-                    <BoxesIcon className="h-12 w-12 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-2">Deploy your first service</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md">
-                    Get started by deploying a service from your repository. <br /> It only takes a few minutes.
+              /* ── Empty state ── */
+              <div className="rounded-xl border-2 border-dashed bg-muted/20 px-6 py-14 flex flex-col items-center text-center gap-4">
+                <div className="rounded-full bg-muted p-4">
+                  <BoxesIcon className="h-10 w-10 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">Deploy your first service</h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                    Connect a repository or push a Docker image and you'll be live in minutes.
                   </p>
-                  <div className="flex gap-3">
-                    <Button 
-                      size="lg"
-                      onClick={() => router.navigate({ to: "/clusters/$clusterId/services", params: { clusterId } })}
-                    >
-                      Deploy Service
-                    </Button>
-                    <Button variant="outline" size="lg" asChild>
-                      <a href="https://dployr.io/docs/quickstart.html" target="_blank" rel="noopener noreferrer">
-                        View Documentation
-                      </a>
-                    </Button>
-                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button onClick={() => router.navigate({ to: "/clusters/$clusterId/services", params: { clusterId }, search: { deploy: true, page: 1 } })}>
+                    <Rocket className="h-4 w-4" />
+                    Deploy Service
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <a href="https://dployr.io/docs/quickstart.html" target="_blank" rel="noopener noreferrer">
+                      Read the docs
+                    </a>
+                  </Button>
                 </div>
               </div>
             )}

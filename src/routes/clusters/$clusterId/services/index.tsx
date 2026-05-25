@@ -45,8 +45,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 function Services() {
   const { useServicesUrlState } = useUrlState();
-  const [{ page: servicesPage }, setServicesUrlState] = useServicesUrlState();
+  const [{ page: servicesPage, deploy }, setServicesUrlState] = useServicesUrlState();
   const currentPageRaw = servicesPage ?? 1;
+
+  // `deploy` in the URL is the single source of truth for whether the form is open.
+  // Navigating to ?deploy=true from any page (e.g. dashboard) opens the form directly.
+  const isCreating = deploy;
+  const openForm  = useCallback(() => setServicesUrlState({ deploy: true }),  [setServicesUrlState]);
+  const closeForm = useCallback(() => setServicesUrlState({ deploy: false }), [setServicesUrlState]);
 
   const { paginatedServices, services, isLoading, currentPage, totalPages, goToPage, goToPreviousPage, goToNextPage } = useServices(null, {
     externalPage: currentPageRaw,
@@ -59,7 +65,6 @@ function Services() {
   const { instances } = useInstances();
   const { remotes, isLoading: isRemotesLoading } = useRemotes();
 
-  const [isCreating, setIsCreating] = useState(false);
   const [quickDeployInstanceId, setQuickDeployInstanceId] = useState<string>("");
   const [blueprintInstanceId, setBlueprintInstanceId] = useState<string>("");
   const [showDrafts, setShowDrafts] = useState(false);
@@ -94,7 +99,15 @@ function Services() {
     syncDraftFromBlueprint,
   } = useDeploymentCreator(quickDeployInstanceId);
 
-  // Auto-select most recent instance when creation starts
+  // When the URL flips to deploy=true (e.g. deep-linked from the dashboard) and
+  // there is no current draft yet, initialise one so the form is ready to use.
+  useEffect(() => {
+    if (deploy && !currentDraft) {
+      handleStartCreate();
+    }
+  }, [deploy]); // intentionally only re-run when `deploy` changes
+
+  // Auto-select most recent instance once instances are loaded
   useEffect(() => {
     if (!quickDeployInstanceId && instances.length > 0 && isCreating) {
       const mostRecent = instances.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
@@ -105,13 +118,13 @@ function Services() {
 
   const handleStartDeploy = useCallback(() => {
     handleStartCreate();
-    setIsCreating(true);
-  }, [handleStartCreate]);
+    openForm();
+  }, [handleStartCreate, openForm]);
 
   const handleBackClick = useCallback(() => {
     handleBack();
-    setIsCreating(false);
-  }, [handleBack]);
+    closeForm();
+  }, [handleBack, closeForm]);
 
   const getFallbackDomain = (service: any) => {
     if (!service._instanceName) return `${service.name}.dployr.run`;
@@ -161,7 +174,7 @@ function Services() {
                           className="flex items-center justify-between rounded-md border bg-background p-3 cursor-pointer hover:bg-muted/50 transition-colors"
                           onClick={() => {
                             handleLoadDraft(draft.id);
-                            setIsCreating(true);
+                            openForm();
                           }}
                         >
                           <div className="flex flex-col gap-0.5">
@@ -210,6 +223,7 @@ function Services() {
                           <TableHead className="h-14 w-[180px] align-middle">Name</TableHead>
                           <TableHead className="h-14 w-[120px] align-middle">Runtime</TableHead>
                           <TableHead className="h-14 w-[100px] align-middle">Status</TableHead>
+                          <TableHead className="h-14 w-[100px] align-middle">Health</TableHead>
                           <TableHead className="h-14 align-middle">Instance</TableHead>
                           <TableHead className="h-14 align-middle">Domains</TableHead>
                           <TableHead className="h-14 w-[130px] text-right align-middle whitespace-nowrap">Created</TableHead>
@@ -239,6 +253,16 @@ function Services() {
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[100px] align-middle">
                                   <StatusBadge status={service.status ?? "running"} variant="compact" type="service" />
+                                </TableCell>
+                                <TableCell className="h-16 w-[100px] align-middle">
+                                  {service.health ? (
+                                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${service.health === "degraded" ? "text-amber-500" : "text-emerald-500"}`}>
+                                      <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${service.health === "degraded" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                                      {service.health === "degraded" ? "Degraded" : "Healthy"}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
                                 </TableCell>
                                 <TableCell className="h-16 align-middle">
                                   {service._instanceName ? (
@@ -282,6 +306,9 @@ function Services() {
                                 </TableCell>
                                 <TableCell className="h-16 max-w-[100px] align-middle">
                                   <Skeleton className="h-5 w-16 rounded-full" />
+                                </TableCell>
+                                <TableCell className="h-16 w-[100px] align-middle">
+                                  <Skeleton className="h-4 w-14" />
                                 </TableCell>
                                 <TableCell className="h-16 max-w-20 align-middle">
                                   <Skeleton className="h-4 w-12" />
@@ -402,6 +429,8 @@ function Services() {
                       isLoadingDomains={isLoadingDomains}
                       envVars={currentDraft?.env_vars || {}}
                       secrets={currentDraft?.secrets || {}}
+                      healthCheck={currentDraft?.health_check || ""}
+                      healthCheckError={validationErrors.health_check || ""}
                       clusterId={clusterId!}
                       instanceId={quickDeployInstanceId}
                       setField={setField}
@@ -424,7 +453,7 @@ function Services() {
                           const instance = instances.find(i => i.id === quickDeployInstanceId);
                           if (instance) {
                             handleDeploy(instance.tag);
-                            setIsCreating(false);
+                            closeForm();
                             queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] });
                           }
                         }}
@@ -470,7 +499,7 @@ function Services() {
                         const instance = instances.find(i => i.id === blueprintInstanceId);
                         if (instance) {
                           handleDeploy(instance.tag);
-                          setIsCreating(false);
+                          closeForm();
                           queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] });
                         }
                       }}
@@ -495,10 +524,10 @@ function Services() {
             <DialogDescription>You have an unfinished deployment. Would you like to save it as a draft and continue later?</DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => { handleDiscardAndExit(); setIsCreating(false); }}>
+            <Button variant="outline" onClick={() => { handleDiscardAndExit(); closeForm(); }}>
               Discard
             </Button>
-            <Button onClick={() => { handleSaveAndExit(); setIsCreating(false); }}>Save Draft</Button>
+            <Button onClick={() => { handleSaveAndExit(); closeForm(); }}>Save Draft</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

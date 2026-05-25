@@ -101,6 +101,7 @@ export function useUrlState() {
     function useServicesUrlState() {
         return useQueryStates({
             page: parseAsInteger.withDefault(1),
+            deploy: parseAsBoolean.withDefault(false),
         });
     }
 

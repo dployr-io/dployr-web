@@ -32,6 +32,7 @@ export const deploymentDraftSchema = z.object({
   secrets: z.record(z.string(), z.string()).default({}),
   remote: remoteSchema.default(REMOTE_DEFAULT),
   domain: z.string().default(""),
+  health_check: z.string().default(""),
   updated_at: z.number(),
 });
 
@@ -95,6 +96,7 @@ const blueprintParseSchema = z.object({
   secrets: z.record(z.string(), z.coerce.string()).default({}),
   remote: remoteSchema.default(REMOTE_DEFAULT),
   domain: z.string().default(""),
+  health_check: z.string().default(""),
 });
 
 const STORAGE_KEY = "dployr_deployment_drafts";
@@ -137,6 +139,7 @@ const DEFAULT_DRAFT: Omit<DeploymentDraft, "id" | "updated_at"> = {
   secrets: {},
   remote: REMOTE_DEFAULT,
   domain: "",
+  health_check: "",
 };
 
 export function useDeploymentDraft() {
@@ -224,6 +227,7 @@ export function useDeploymentDraft() {
     if (currentDraft.port != null) bp.port = currentDraft.port;
     if (currentDraft.domain) bp.domain = currentDraft.domain;
     if (currentDraft.static_dir) bp.static_dir = currentDraft.static_dir;
+    if (currentDraft.health_check) bp.health_check = currentDraft.health_check;
     if (Object.keys(currentDraft.env_vars).length > 0) bp.env_vars = currentDraft.env_vars;
     if (Object.keys(currentDraft.secrets).length > 0) bp.secrets = currentDraft.secrets;
     if (currentDraft.source === "image") {
@@ -256,6 +260,7 @@ export function useDeploymentDraft() {
           runtime: (parsed.runtime.type as DeploymentDraft["runtime"]) || "nodejs",
           version: parsed.runtime.version,
           port: parsed.port ?? currentDraft?.port ?? null,
+          health_check: parsed.health_check || currentDraft?.health_check || "",
         };
         setCurrentDraft(draft);
         setIsDirty(true);
@@ -264,7 +269,7 @@ export function useDeploymentDraft() {
         return false;
       }
     },
-    [currentDraft?.id, currentDraft?.port]
+    [currentDraft?.id, currentDraft?.port, currentDraft?.health_check]
   );
 
   const validate = useCallback((): DeploymentDraftValidation => {

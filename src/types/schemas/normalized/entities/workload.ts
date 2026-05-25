@@ -49,6 +49,8 @@ export const normalizedServiceSchema = z.object({
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
   status: z.enum(["running", "sleeping"]).optional(),
+  healthCheck: z.string().nullable().optional(),
+  health: z.enum(["healthy", "degraded"]).optional(),
 });
 
 /**

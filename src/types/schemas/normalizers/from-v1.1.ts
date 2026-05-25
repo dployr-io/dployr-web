@@ -144,6 +144,8 @@ export function normalizeWorkloads(workloads: InstanceStreamUpdateV1_1["workload
       envVars: s.env_vars || null,
       secrets: s.secrets || null,
       status: (s.status as "running" | "sleeping") || undefined,
+      healthCheck: (s as any).health_check ?? null,
+      health: ((s as any).health as "healthy" | "degraded") || undefined,
       createdAt: s.created_at,
       updatedAt: s.updated_at,
     })),

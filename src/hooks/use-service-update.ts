@@ -26,6 +26,7 @@ export interface ServiceUpdatePayload {
   version?: string | null;
   remote_url?: string | null;
   remote_branch?: string | null;
+  health_check?: string | null;
 }
 
 export function useServiceUpdate(serviceId: string | null) {

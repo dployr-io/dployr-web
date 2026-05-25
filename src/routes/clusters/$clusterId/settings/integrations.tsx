@@ -74,8 +74,7 @@ function Integrations() {
   const selectedIntegration = selectedIntegrationId ? integrations.find(i => i.id === selectedIntegrationId) || null : null;
 
   const handleSettings = (id: string) => {
-    // TODO: Implement settings modal/page
-    console.log("Open settings for:", id);
+
   };
 
   const sections = [
@@ -83,6 +82,11 @@ function Integrations() {
       title: "Remotes",
       description: "Connect and manage your version control repositories",
       integrations: integrations.filter(i => i.category === "remote"),
+    },
+    {
+      title: "Notifications",
+      description: "Configure Slack and Discord webhooks to receive service health alerts",
+      integrations: integrations.filter(i => i.category === "notifications"),
     },
   ];
 

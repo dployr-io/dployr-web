@@ -35,6 +35,7 @@ import { ServiceTrafficChart } from "@/components/service-traffic-chart";
 import { usePlanFeatures } from "@/hooks/use-plan-features";
 import { Badge } from "@/components/ui/badge";
 import { BlueprintViewer } from "@/components/blueprint-viewer";
+import { StatusBadge } from "@/components/status-badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useDns } from "@/hooks/use-dns";
 import { DomainConnectDialog } from "@/components/domain-connect-dialog";
@@ -89,11 +90,12 @@ function ViewService() {
   const [editedStaticDir, setEditedStaticDir] = useState("");
   const [editedRuntime, setEditedRuntime] = useState("");
   const [editedVersion, setEditedVersion] = useState("");
+  const [editedHealthCheck, setEditedHealthCheck] = useState("");
   const updateService = useServiceUpdate(service?.name ?? null);
 
   // Tracks the last values committed to the server so hasChanges clears immediately
   // on save success rather than waiting for the websocket to push back updated state.
-  const [originalValues, setOriginalValues] = useState({ description: "", runCmd: "", buildCmd: "", port: "", workingDir: "", staticDir: "", runtime: "", version: "" });
+  const [originalValues, setOriginalValues] = useState({ description: "", runCmd: "", buildCmd: "", port: "", workingDir: "", staticDir: "", runtime: "", version: "", healthCheck: "" });
 
   const hasChanges = useMemo(() => (
     editedDescription !== originalValues.description ||
@@ -103,8 +105,9 @@ function ViewService() {
     editedWorkingDir !== originalValues.workingDir ||
     editedStaticDir !== originalValues.staticDir ||
     editedRuntime !== originalValues.runtime ||
-    editedVersion !== originalValues.version
-  ), [editedDescription, editedRunCmd, editedBuildCmd, editedPort, editedWorkingDir, editedStaticDir, editedRuntime, editedVersion, originalValues]);
+    editedVersion !== originalValues.version ||
+    editedHealthCheck !== originalValues.healthCheck
+  ), [editedDescription, editedRunCmd, editedBuildCmd, editedPort, editedWorkingDir, editedStaticDir, editedRuntime, editedVersion, editedHealthCheck, originalValues]);
 
   // Unsaved changes guard
   const [unsavedOpen, setUnsavedOpen] = useState(false);
@@ -221,7 +224,7 @@ function ViewService() {
 
   const handleSaveDetails = useCallback(() => {
     if (!service || !selectedInstanceName) return;
-    const snapshot = { description: editedDescription, runCmd: editedRunCmd, buildCmd: editedBuildCmd, port: editedPort, workingDir: editedWorkingDir, staticDir: editedStaticDir, runtime: editedRuntime, version: editedVersion };
+    const snapshot = { description: editedDescription, runCmd: editedRunCmd, buildCmd: editedBuildCmd, port: editedPort, workingDir: editedWorkingDir, staticDir: editedStaticDir, runtime: editedRuntime, version: editedVersion, healthCheck: editedHealthCheck };
     updateService.mutate({
       instanceName: selectedInstanceName,
       description: editedDescription || null,
@@ -232,10 +235,11 @@ function ViewService() {
       static_dir: editedStaticDir || null,
       runtime: editedRuntime || null,
       version: editedVersion || null,
+      health_check: editedHealthCheck || null,
     }, {
       onSuccess: () => setOriginalValues(snapshot),
     });
-  }, [service, selectedInstanceName, updateService, editedDescription, editedRunCmd, editedBuildCmd, editedPort, editedWorkingDir, editedStaticDir, editedRuntime, editedVersion]);
+  }, [service, selectedInstanceName, updateService, editedDescription, editedRunCmd, editedBuildCmd, editedPort, editedWorkingDir, editedStaticDir, editedRuntime, editedVersion, editedHealthCheck]);
 
   useInstanceStatus(selectedInstanceName);
   const proxyRoute = useMemo(() => {
@@ -314,6 +318,7 @@ function ViewService() {
       staticDir: service.staticDir ?? "",
       runtime: service.runtime?.type ?? "",
       version: service.runtime?.version ?? "",
+      healthCheck: service.healthCheck ?? "",
     };
     setOriginalValues(vals);
     setEditedDescription(vals.description);
@@ -324,6 +329,7 @@ function ViewService() {
     setEditedStaticDir(vals.staticDir);
     setEditedRuntime(vals.runtime);
     setEditedVersion(vals.version);
+    setEditedHealthCheck(vals.healthCheck);
   }, [service?.id]);
 
   if (!service) {
@@ -400,7 +406,20 @@ function ViewService() {
                       </div>
                       {service.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{service.description}</p>}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2.5 shrink-0 text-xs text-muted-foreground">
+                      {/* Status badge */}
+                      <StatusBadge status={service.status ?? "running"} variant="compact" type="service" />
+                      {/* Health indicator */}
+                      {service.health && (
+                        <>
+                          <span className="text-border">·</span>
+                          <span className={`inline-flex items-center gap-1 font-medium ${service.health === "degraded" ? "text-amber-500" : "text-emerald-500"}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${service.health === "degraded" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                            {service.health === "degraded" ? "Degraded" : "Healthy"}
+                          </span>
+                        </>
+                      )}
+                      <span className="text-border">·</span>
                       <span>
                         Port <span className="font-mono text-foreground">{service.port ?? 3000}</span>
                       </span>
@@ -512,7 +531,7 @@ function ViewService() {
                       </Label>
                       <Input id="svc-working-dir" value={editedWorkingDir} onChange={e => setEditedWorkingDir(e.target.value)} placeholder="/app" className="font-mono text-xs" />
                     </div>
-                    <div className="col-span-2 space-y-1.5">
+                    <div className="col-span-1 space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Runtime</Label>
                       <Select value={editedRuntime} onValueChange={setEditedRuntime}>
                         <SelectTrigger className="text-xs">
@@ -537,11 +556,31 @@ function ViewService() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="col-span-2 space-y-1.5">
+                    <div className="col-span-1 space-y-1.5">
                       <Label htmlFor="svc-version" className="text-xs text-muted-foreground">
-                        Runtime Version
+                        Version
                       </Label>
                       <Input id="svc-version" value={editedVersion} onChange={e => setEditedVersion(e.target.value)} placeholder="e.g. 20, 3.11" className="font-mono text-xs" />
+                    </div>
+                    <div className="col-span-2 space-y-1.5">
+                      <Label htmlFor="svc-health-check" className="text-xs text-muted-foreground">
+                        Health Check Path
+                      </Label>
+                      <Input
+                        id="svc-health-check"
+                        value={editedHealthCheck}
+                        onChange={e => setEditedHealthCheck(e.target.value)}
+                        onBlur={e => {
+                          const v = e.target.value.trim();
+                          if (!v) { setEditedHealthCheck(""); return; }
+                          let p = v.replace(/\/+$/, "");
+                          if (!p) { setEditedHealthCheck(""); return; }
+                          if (!p.startsWith("/")) p = "/" + p;
+                          setEditedHealthCheck(p);
+                        }}
+                        placeholder="/health"
+                        className="font-mono text-xs"
+                      />
                     </div>
                   </div>
                 </div>

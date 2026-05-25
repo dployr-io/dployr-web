@@ -209,6 +209,7 @@ export function useDeploymentCreator(instanceId?: string) {
         secrets,
         remote: currentDraft.remote.url ? currentDraft.remote : undefined,
         domain: currentDraft.domain || undefined,
+        health_check: currentDraft.health_check || undefined,
       };
 
       const deployResult = await deploy(instanceName, payload);
@@ -313,6 +314,9 @@ export function useDeploymentCreator(instanceId?: string) {
           break;
         case "domain":
           updateDraft("domain", value as string);
+          break;
+        case "healthCheck":
+          updateDraft("health_check", value as string);
           break;
         case "envVars":
           updateDraft("env_vars", value as Record<string, string>);
