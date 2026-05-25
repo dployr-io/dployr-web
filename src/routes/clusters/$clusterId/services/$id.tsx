@@ -44,7 +44,7 @@ export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
 });
 
-const DOMAIN_LIMITS: Record<string, number> = { hobby: 1, indie: 10, pro: 25 };
+const DOMAIN_LIMITS: Record<string, number> = { hobby: 2, indie: 10, pro: 25 };
 
 const viewServiceBreadcrumbs = (service: NormalizedService | null, clusterId?: string): BreadcrumbItem[] => {
   const base = clusterId ? `/clusters/${clusterId}/services` : "/services";
