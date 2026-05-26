@@ -5,4 +5,3 @@ pages_build_output_dir = "./dist"
 [env.production.vars]
 VITE_APP_VERSION = ""
 VITE_BASE_URL = "https://base.dployr.io"
-VITE_TURNSTILE_SITE_KEY= ""
