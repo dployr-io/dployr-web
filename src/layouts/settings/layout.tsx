@@ -3,10 +3,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 import { type NavItem } from "@/types";
 import { type PropsWithChildren } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useConfirmation } from "@/hooks/use-confirmation";
 import { ConfirmationDialog } from "@/components/confirmation-dialog";
 import { TwoFactorDialog } from "@/components/two-factor-dialog";
@@ -22,7 +21,6 @@ interface SettingsLayoutProps extends PropsWithChildren {
 
 export default function SettingsLayout({ children, twoFactor, confirmation }: SettingsLayoutProps) {
   const clusterId = useClusterId();
-  const location = useLocation();
   const { pendingAction, setPendingAction } = confirmation;
   const { user } = useAuth();
   const { users } = useClusters();
@@ -72,11 +70,14 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
                 size="sm"
                 variant="ghost"
                 asChild
-                className={cn("w-full justify-start", {
-                  "bg-muted": location.pathname === item.href,
-                })}
+                className="w-full justify-start"
               >
-                <Link to={item.href}>
+                <Link
+                  to={item.href}
+                  params={clusterId ? { clusterId } : {}}
+                  activeOptions={{ exact: true }}
+                  activeProps={{ className: "bg-muted" }}
+                >
                   {item.icon && <item.icon className="h-4 w-4" />}
                   {item.title}
                 </Link>

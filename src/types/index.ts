@@ -492,7 +492,7 @@ export interface Plan {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: { monthly: number; annual: number };
   currency: string;
   interval: "month" | null;
   features?: string[];

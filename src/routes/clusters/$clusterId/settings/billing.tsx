@@ -85,7 +85,7 @@ function FeatureValue({ value }: { value: string | boolean }) {
 interface ComparePlan {
   id: string;
   name: string;
-  price: number;
+  price: { monthly: number; annual: number };
   interval: string | null;
 }
 
@@ -95,12 +95,14 @@ function CompareDialog({
   plans,
   selected,
   onSelectedChange,
+  interval,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   plans: ComparePlan[];
   selected: string[];
   onSelectedChange: (v: string[]) => void;
+  interval: "monthly" | "annual";
 }) {
   // Sort plans by tier order
   const orderedPlans = [...plans].sort((a, b) => TIER_ORDER.indexOf(a.id) - TIER_ORDER.indexOf(b.id));
@@ -157,11 +159,11 @@ function CompareDialog({
                   <th className="pb-2 text-left font-medium text-muted-foreground">Feature</th>
                   <th className="pb-2 text-center font-medium w-28">
                     <div>{planA.name}</div>
-                    <div className="text-muted-foreground font-normal">{planA.price === 0 ? "Free" : `$${planA.price}/${planA.interval}`}</div>
+                    <div className="text-muted-foreground font-normal">{planA.price[interval] === 0 ? "Free" : `$${planA.price[interval]}/mo`}</div>
                   </th>
                   <th className="pb-2 text-center font-medium w-28">
                     <div>{planB.name}</div>
-                    <div className="text-muted-foreground font-normal">{planB.price === 0 ? "Free" : `$${planB.price}/${planB.interval}`}</div>
+                    <div className="text-muted-foreground font-normal">{planB.price[interval] === 0 ? "Free" : `$${planB.price[interval]}/mo`}</div>
                   </th>
                 </tr>
               </thead>
@@ -200,6 +202,7 @@ function BillingPage() {
 
   const hasActiveSubscription = billingStatus?.subscription != null && billingStatus.subscription.status === "active" && billingStatus.subscription.polarSubscriptionId != null;
   const [checkingOutPlan, setCheckingOutPlan] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("annual");
 
   // Sort plans by tier order for display
   const sortedPlans = [...(plans ?? [])].sort((a, b) => TIER_ORDER.indexOf(a.id) - TIER_ORDER.indexOf(b.id));
@@ -213,7 +216,23 @@ function BillingPage() {
 
             {/* Plan cards */}
             <div>
-              <div className="flex items-center justify-end mb-3">
+              <div className="flex items-center justify-between mb-3">
+                {/* Billing interval toggle */}
+                <div className="flex items-center gap-1 rounded-full border p-0.5 text-xs">
+                  <button
+                    onClick={() => setBillingInterval("monthly")}
+                    className={`rounded-full px-3 py-1 font-medium transition-colors ${billingInterval === "monthly" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    onClick={() => setBillingInterval("annual")}
+                    className={`rounded-full px-3 py-1 font-medium transition-colors ${billingInterval === "annual" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Annual <span className="text-green-500 ml-0.5">–20%</span>
+                  </button>
+                </div>
+
                 {!isLoadingPlans && sortedPlans.length >= 2 && (
                   <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7" onClick={() => {
                       if (compareSelection.length === 0) setCompareSelection(["hobby", "pro"]);
@@ -242,7 +261,7 @@ function BillingPage() {
                     ))
                   : sortedPlans.map((plan, idx) => {
                       const isCurrent = plan.id === currentPlanId;
-                      const isUpgrade = plan.price > (billingStatus?.planDetails?.price ?? 0);
+                      const isUpgrade = plan.price[billingInterval] > (billingStatus?.planDetails?.price?.[billingInterval] ?? 0);
                       const newFeatures = PLAN_NEW_FEATURES[plan.id] ?? [];
                       const prevPlan = idx > 0 ? sortedPlans[idx - 1] : null;
 
@@ -263,12 +282,12 @@ function BillingPage() {
 
                           {/* Price */}
                           <div>
-                            {plan.price === 0 ? (
+                            {plan.price[billingInterval] === 0 ? (
                               <span className="text-2xl font-bold">Free</span>
                             ) : (
                               <span className="text-2xl font-bold">
-                                ${plan.price}
-                                <span className="text-sm font-normal text-muted-foreground">/{plan.interval}</span>
+                                ${plan.price[billingInterval]}
+                                <span className="text-sm font-normal text-muted-foreground">/mo</span>
                               </span>
                             )}
                           </div>
@@ -303,7 +322,7 @@ function BillingPage() {
                                 disabled={checkout.isPending}
                                 onClick={() => {
                                   setCheckingOutPlan(plan.id);
-                                  checkout.mutate({ plan: plan.id, successUrl });
+                                  checkout.mutate({ plan: plan.id, interval: billingInterval, successUrl });
                                 }}
                               >
                                 {checkingOutPlan === plan.id && checkout.isPending ? "Redirecting…" : `Upgrade to ${plan.name}`}
@@ -347,6 +366,7 @@ function BillingPage() {
               plans={sortedPlans}
               selected={compareSelection}
               onSelectedChange={setCompareSelection}
+              interval={billingInterval}
             />
           )}
         </SettingsLayout>

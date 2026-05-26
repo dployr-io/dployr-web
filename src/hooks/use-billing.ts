@@ -13,7 +13,7 @@ export function useBilling() {
   const { setError } = useAppAlert();
 
   const { data: plans, isLoading: isLoadingPlans } = useQuery<Plan[]>({
-    queryKey: ["plans"],
+    queryKey: ["plans", "v2"],
     queryFn: async (): Promise<Plan[]> => {
       try {
         const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/v1/billing/plans`, {
@@ -47,10 +47,10 @@ export function useBilling() {
   });
 
   const checkout = useMutation({
-    mutationFn: async ({ plan, successUrl }: { plan: string; successUrl: string }): Promise<string> => {
+    mutationFn: async ({ plan, interval, successUrl }: { plan: string; interval: "monthly" | "annual"; successUrl: string }): Promise<string> => {
       const response = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/v1/billing/checkout`,
-        { plan, clusterId, successUrl },
+        { plan, interval, clusterId, successUrl },
         { withCredentials: true }
       );
       return response.data.data.checkoutUrl;

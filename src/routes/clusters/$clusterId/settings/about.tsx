@@ -76,10 +76,10 @@ function AboutPage() {
                   <p className="text-xs text-muted-foreground">
                     {isLoadingStatus ? (
                       <Skeleton className="h-3 w-32 inline-block mt-0.5" />
-                    ) : billingStatus?.planDetails?.price === 0 || !billingStatus?.planDetails ? (
+                    ) : billingStatus?.planDetails?.price?.monthly === 0 || !billingStatus?.planDetails ? (
                       "You’re currently on the hobby plan, upgrade to unlock more features."
                     ) : (
-                      `$${billingStatus.planDetails.price}/${billingStatus.planDetails.interval}`
+                      `$${billingStatus.planDetails.price.monthly}/month`
                     )}
                   </p>
                 </div>
