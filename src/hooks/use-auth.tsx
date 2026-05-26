@@ -14,7 +14,7 @@ interface AuthContextType {
   clusters: { id: string; name: string; owner: string; metadata?: Record<string, string> }[];
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (data: { email: string }) => Promise<void>;
+  login: (data: { email: string; turnstileToken?: string }) => Promise<void>;
   verifyOtp: (data: { email: string; code: string }) => Promise<User>;
   handleGoogleSignIn: () => Promise<void>;
   handleMicrosoftSignIn: () => Promise<void>;
@@ -73,10 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clusters: { id: string; name: string; owner: string; metadata?: Record<string, string> }[] = (sessionData as any)?.clusters ?? null;
 
   const loginMutation = useMutation({
-    mutationFn: async (credentials: { email: string }) => {
+    mutationFn: async (credentials: { email: string; turnstileToken?: string }) => {
       const res = await axios.post(
         `${import.meta.env.VITE_BASE_URL}/v1/auth/login/email`,
-        { email: credentials.email },
+        {
+          email: credentials.email,
+          ...(credentials.turnstileToken ? { "cf-turnstile-response": credentials.turnstileToken } : {}),
+        },
         {
           withCredentials: true,
         }

@@ -8,7 +8,8 @@ import { useForm } from "@tanstack/react-form";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useAuth } from "@/hooks/use-auth";
 import { useUrlState } from "@/hooks/use-url-state";
 import { ChevronLeft, Loader2 } from "lucide-react";
@@ -32,6 +33,11 @@ function App() {
   const [{ authError }, setError] = useAuthError();
 
   const [email, setEmail] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance>(null);
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  const turnstileEnabled = !!turnstileSiteKey;
+
   const errorMessage = authError || "";
   const clearError = () => {
     setError({ authError: "" });
@@ -48,10 +54,14 @@ function App() {
 
         await login({
           email: value.email,
+          ...(turnstileToken ? { turnstileToken } : {}),
         });
       } catch (error: any) {
         const message = error?.response?.data?.error?.message;
         console.error("Login failed:", error);
+        // Reset the widget so the user can retry
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
         if (message) {
           setError({ authError: message });
         }
@@ -208,7 +218,22 @@ function App() {
                     />
                   </FieldGroup>
 
-                  <Button type="submit" className="mt-6 cursor-pointer" disabled={isSubmitting}>
+                  {turnstileEnabled && (
+                    <Turnstile
+                      ref={turnstileRef}
+                      siteKey={turnstileSiteKey!}
+                      className="mt-4"
+                      onSuccess={setTurnstileToken}
+                      onExpire={() => setTurnstileToken(null)}
+                      onError={() => setTurnstileToken(null)}
+                    />
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="mt-6 cursor-pointer"
+                    disabled={isSubmitting || (turnstileEnabled && !turnstileToken)}
+                  >
                     {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                     {isSubmitting ? "Signing in" : "Sign in"}
                   </Button>
