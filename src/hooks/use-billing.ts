@@ -65,11 +65,14 @@ export function useBilling() {
     },
   });
 
+  const portalUrl = `${import.meta.env.VITE_BASE_URL}/v1/billing/portal?clusterId=${clusterId}`;
+
   return {
     plans,
     isLoadingPlans,
     billingStatus,
     isLoadingStatus,
     checkout,
+    portalUrl,
   };
 }

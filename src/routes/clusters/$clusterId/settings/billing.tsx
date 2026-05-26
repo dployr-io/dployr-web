@@ -189,7 +189,7 @@ function CompareDialog({
 function BillingPage() {
   const twoFactor = use2FA({ enabled: true });
   const confirmation = useConfirmation();
-  const { plans, isLoadingPlans, billingStatus, checkout } = useBilling();
+  const { plans, isLoadingPlans, billingStatus, checkout, portalUrl } = useBilling();
   const { useBillingUrlState } = useUrlState();
   const [{ compare }, setBillingState] = useBillingUrlState();
   const [compareOpen, setCompareOpen] = useState(compare);
@@ -329,7 +329,7 @@ function BillingPage() {
                     <p className="text-sm font-medium">Manage subscription</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Update payment details, download invoices, or cancel your subscription.</p>
                   </div>
-                  <a href="https://polar.sh/purchases" target="_blank" rel="noreferrer">
+                  <a href={portalUrl} target="_blank" rel="noreferrer">
                     <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
                       <ExternalLink className="h-3.5 w-3.5" />
                       Manage subscription
