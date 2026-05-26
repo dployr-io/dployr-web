@@ -38,6 +38,7 @@ jobs:
         env:
           VITE_APP_VERSION: ${{ github.ref_name }}
           VITE_BASE_URL: https://base.dployr.io
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
 
       - name: Pack static bundle
         run: |
