@@ -229,6 +229,7 @@ export interface EventActor {
 
 export interface EventTarget {
   id: string;
+  name?: string;
 }
 
 export interface ClusterEvent {

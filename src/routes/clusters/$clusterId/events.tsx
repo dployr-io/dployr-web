@@ -33,7 +33,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 function Notifications() {
   const { users, clusterId } = useClusters();
   const { useEventsUrlState } = useUrlState();
-  const [{ type, search, sort, window, page }, setEventsUrlState] = useEventsUrlState();
+  const [{ type, search, sort, window, page, actor }, setEventsUrlState] = useEventsUrlState();
+  const actorFilter = actor ?? "all";
 
   const selectedType = type;
   const searchQuery = search;
@@ -46,6 +47,7 @@ function Notifications() {
     search: searchQuery || undefined,
     sort: sortOrder,
     window: timeWindow,
+    actor: actorFilter,
   });
 
   const eventsArray = Array.isArray(events) ? events : [];
@@ -138,7 +140,8 @@ function Notifications() {
   const hasActiveFilters =
     selectedType !== "ALL" ||
     (searchQuery != null && searchQuery.trim() !== "") ||
-    timeWindow !== "all";
+    timeWindow !== "all" ||
+    actorFilter !== "all";
 
   return (
     <ProtectedRoute>
@@ -243,6 +246,31 @@ function Notifications() {
                       </DropdownMenuContent>
                     </DropdownMenu>
 
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="default"
+                          variant="outline"
+                          className="group min-w-40 text-sidebar-accent-foreground data-[state=open]:bg-sidebar-accent"
+                        >
+                          {actorFilter === "all" ? "All actors" : actorFilter === "headless" ? "System only" : "Users only"}
+                          <ChevronDown className="ml-auto size-4 transition-transform group-data-[state=open]:rotate-180" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-40 rounded-lg" align="start">
+                        <DropdownMenuItem onClick={() => setEventsUrlState({ actor: "user", page: 1 })}>
+                          Users only
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setEventsUrlState({ actor: "all", page: 1 })}>
+                          All actors
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEventsUrlState({ actor: "headless", page: 1 })}>
+                          System only
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Input
                       id="search"
                       type="search"
@@ -259,12 +287,12 @@ function Notifications() {
                 </div>
 
                 <Table>
-                  <TableHeader className="bg-neutral-50 dark:bg-neutral-900">
-                    <TableRow>
-                      <TableHead>Actor</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Targets</TableHead>
-                      <TableHead className="w-[220px]">Timestamp</TableHead>
+                  <TableHeader>
+                    <TableRow className="border-b border-sidebar-border hover:bg-transparent">
+                      <TableHead className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Actor</TableHead>
+                      <TableHead className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Type</TableHead>
+                      <TableHead className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Targets</TableHead>
+                      <TableHead className="w-[220px] text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Timestamp</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -301,7 +329,7 @@ function Notifications() {
                                       key={target.id}
                                       className="inline-flex items-center rounded-full border border-sidebar-border px-2 py-0.5 text-xs font-mono text-muted-foreground"
                                     >
-                                      {target.id}
+                                      {target.name ?? target.id}
                                     </span>
                                   ))}
                                 </div>
@@ -309,7 +337,7 @@ function Notifications() {
                                 <span className="text-xs text-muted-foreground">-</span>
                               )}
                             </TableCell>
-                            <TableCell className="h-16 align-middle whitespace-nowrap">
+                            <TableCell className="h-16 align-middle whitespace-nowrap font-mono text-xs text-muted-foreground">
                               {formatTimestamp(event.timestamp, event.timezoneOffset)}
                             </TableCell>
                           </TableRow>

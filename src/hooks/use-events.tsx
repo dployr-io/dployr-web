@@ -12,6 +12,7 @@ type EventsFilters = {
   search?: string;
   sort?: "newest" | "oldest";
   window?: "all" | "24h" | "7d" | "30d";
+  actor?: "all" | "user" | "headless";
 };
 
 export function useEvents(clusterId?: string, page = 1, pageSize?: number, filters?: EventsFilters) {
@@ -26,7 +27,7 @@ export function useEvents(clusterId?: string, page = 1, pageSize?: number, filte
   const availableHeight = Math.max(0, viewportHeight - reservedHeight);
   const effectivePageSize = pageSize ?? Math.max(6, Math.floor(availableHeight / estimatedRowHeight));
 
-  const { type, search, sort, window } = filters ?? {};
+  const { type, search, sort, window, actor } = filters ?? {};
 
   const { data, isLoading } = useQuery<EventsResponse>({
     queryKey: [
@@ -38,6 +39,7 @@ export function useEvents(clusterId?: string, page = 1, pageSize?: number, filte
       search ?? null,
       sort ?? null,
       window ?? null,
+      actor ?? null,
     ],
     queryFn: async () => {
       try {
@@ -67,6 +69,7 @@ export function useEvents(clusterId?: string, page = 1, pageSize?: number, filte
               search,
               sort,
               window,
+              actor,
             },
           }
         );

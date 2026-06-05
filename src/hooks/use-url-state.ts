@@ -28,6 +28,7 @@ export function useUrlState() {
             sort: parseAsStringLiteral(["newest", "oldest"]).withDefault("newest"),
             window: parseAsStringLiteral(["all", "24h", "7d", "30d"]).withDefault("all"),
             page: parseAsInteger.withDefault(1),
+            actor: parseAsStringLiteral(["all", "user", "headless"]).withDefault("all"),
         });
     }
 
