@@ -17,6 +17,7 @@ import { FaGithub, FaGoogle, FaMicrosoft } from "react-icons/fa6";
 import { Separator } from "@/components/ui/separator";
 import { z } from "zod";
 import { AlertBanner } from "@/components/ui/alert-banner";
+import { APP_LINKS } from "@/lib/constants";
 
 const loginSchema = z.object({
   email: z.email("Please enter a valid email address"),
@@ -114,7 +115,7 @@ function App() {
       <div className="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0">
         <main className="w-full max-w-sm">
           <div className="mb-6 flex justify-center">
-            <a href="https://dployr.io">
+            <a href={APP_LINKS.HOME}>
               <img src="/img/wordmark.png" alt="dployr" className="h-8 dark:invert" />
             </a>
           </div>
@@ -143,9 +144,13 @@ function App() {
                     </Button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1"><Separator /></div>
+                    <div className="flex-1">
+                      <Separator />
+                    </div>
                     <div className="text-[#878580]">OR</div>
-                    <div className="flex-1"><Separator /></div>
+                    <div className="flex-1">
+                      <Separator />
+                    </div>
                   </div>
                 </>
               )}
@@ -238,11 +243,7 @@ function App() {
                     />
                   )}
 
-                  <Button
-                    type="submit"
-                    className="mt-6 w-full cursor-pointer"
-                    disabled={isSubmitting || (turnstileEnabled && !turnstileToken)}
-                  >
+                  <Button type="submit" className="mt-6 w-full cursor-pointer" disabled={isSubmitting || (turnstileEnabled && !turnstileToken)}>
                     {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                     {isSubmitting ? "Signing in" : "Sign in"}
                   </Button>
@@ -254,10 +255,18 @@ function App() {
       </div>
       <div className="hidden h-14.5 lg:block"></div>
       <footer className="flex gap-4 text-muted-foreground">
-        <a className="text-xs" href="https://dployr.io/legal/terms-of-service" target="_blank" rel="noopener noreferrer">Terms of service</a>
-        <a className="text-xs" href="https://dployr.io/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</a>
-        <a className="text-xs" href="https://dployr.io/docs/quickstart" target="_blank" rel="noopener noreferrer">Docs</a>
-        <a className="text-xs" href="https://dployr.io/changelog" target="_blank" rel="noopener noreferrer">Changelog</a>
+        <a className="text-xs" href={APP_LINKS.LEGAL.TERMS} target="_blank" rel="noopener noreferrer">
+          Terms of service
+        </a>
+        <a className="text-xs" href={APP_LINKS.LEGAL.PRIVACY} target="_blank" rel="noopener noreferrer">
+          Privacy policy
+        </a>
+        <a className="text-xs" href={APP_LINKS.DOCS.ROOT} target="_blank" rel="noopener noreferrer">
+          Docs
+        </a>
+        <a className="text-xs" href={APP_LINKS.CHANGELOG} target="_blank" rel="noopener noreferrer">
+          Changelog
+        </a>
       </footer>
     </div>
   );

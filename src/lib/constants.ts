@@ -18,6 +18,14 @@ export const AVATARS = [
 
 export const APP_LINKS = {
   DOCS: {
-    DEPLOYMENTS: "https://docs.dployr.io/deployments"
+    ROOT: "https://dployr.io/docs",
+    DEPLOYMENTS: "https://dployr.io/docs/dashboard",
+    ENV_VARS: "https://dployr.io/docs/env-vars",
   },
-}
+  HOME: "https://dployr.io",
+  LEGAL: {
+    TERMS: "https://dployr.io/legal/terms-of-service",
+    PRIVACY: "https://dployr.io/legal/privacy-policy",
+  },
+  CHANGELOG: "https://dployr.io/changelog",
+};

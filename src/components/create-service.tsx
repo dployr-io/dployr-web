@@ -8,6 +8,7 @@ import { KeyValueEditorModal } from "@/components/key-value-editor-modal";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { RemoteSelector } from "@/components/remote-selector";
 import { getRuntimeIcon } from "@/lib/runtime-icon";
+import { APP_LINKS } from "@/lib/constants";
 import type { Remote, Runtime, ServiceSource, ServiceType } from "@/types";
 import { runtimes } from "@/types/runtimes";
 import { ExternalLink, Info } from "lucide-react";
@@ -352,7 +353,7 @@ export function CreateServiceForm({
           <div className="flex items-center justify-between">
             <Label>Environment Variables & Secrets</Label>
             <a
-              href="https://docs.dployr.io/runtime/environments-and-secrets"
+              href={APP_LINKS.DOCS.ENV_VARS}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 underline underline-offset-2 transition-colors font-medium"

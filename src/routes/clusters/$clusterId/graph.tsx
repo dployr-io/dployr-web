@@ -101,7 +101,7 @@ function GraphPage() {
   // Handle error display
   useEffect(() => {
     if (proxyError) {
-      setAppError({ message: proxyError, helpLink: "https://docs.dployr.io/proxy/troubleshooting" });
+      setAppError({ message: proxyError, helpLink: "https://dployr.io/docs/custom-domains" });
     }
   }, [proxyError, setAppError]);
 
