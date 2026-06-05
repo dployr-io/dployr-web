@@ -99,45 +99,53 @@ function App() {
   }, [isAuthenticated, router]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]">
+    <div className="relative flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 text-[#1b1b18] dark:text-white"
+        style={{
+          backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          WebkitMaskImage: "radial-gradient(circle at 50% 42%, transparent 320px, black 560px)",
+          maskImage: "radial-gradient(circle at 50% 42%, transparent 320px, black 560px)",
+          opacity: 0.13,
+        }}
+      />
       <div className="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0">
-        <main className="flex w-full max-w-[335px] flex-col-reverse lg:max-w-4xl lg:flex-row">
-          <div className="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-5 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
-            <div className="flex flex-col gap-6 min-h-60">
+        <main className="w-full max-w-sm">
+          <div className="mb-6 flex justify-center">
+            <a href="https://dployr.io">
+              <img src="/img/wordmark.png" alt="dployr" className="h-8 dark:invert" />
+            </a>
+          </div>
+          <div className="rounded-lg bg-white p-8 text-[13px] leading-5 shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]">
+            <div className="flex flex-col gap-6">
               <div className="flex flex-col">
                 {errorMessage && <AlertBanner message={errorMessage} helpLink="" onDismiss={() => setError({ authError: "" })} />}
 
-                <div className="flex flex-col gap-2">
-                  <div className="text-xl font-bold">{verifyOTP ? "Verify 2FA" : "Sign in"}</div>
-                  <div>{verifyOTP ? "Enter the OTP sent to your email" : "Jump back into action!"}</div>
+                <div className="flex flex-col gap-1">
+                  <div className="text-xl font-bold">{verifyOTP ? "Verify your email" : "Sign in"}</div>
+                  <div className="text-[#878580]">{verifyOTP ? "Enter the code we sent to your inbox" : "Welcome back"}</div>
                 </div>
               </div>
 
               {!verifyOTP && (
                 <>
-                  <div className="flex items-center ">
-                    <div className="flex gap-4 justify-evenly">
-                      <Button onClick={handleGoogleSignIn} className="w-fit" disabled={isSubmitting}>
-                        <FaGoogle />
-                      </Button>
-
-                      <Button onClick={handleMicrosoftSignIn} className="w-fit" disabled={isSubmitting}>
-                        <FaMicrosoft />
-                      </Button>
-
-                      <Button onClick={() => handleGitHubSignIn} className="w-fit" disabled={isSubmitting}>
-                        <FaGithub />
-                      </Button>
-                    </div>
+                  <div className="flex justify-center gap-3">
+                    <Button onClick={handleGoogleSignIn} size="icon" variant="outline" disabled={isSubmitting}>
+                      <FaGoogle />
+                    </Button>
+                    <Button onClick={handleMicrosoftSignIn} size="icon" variant="outline" disabled={isSubmitting}>
+                      <FaMicrosoft />
+                    </Button>
+                    <Button onClick={() => handleGitHubSignIn("")} size="icon" variant="outline" disabled={isSubmitting}>
+                      <FaGithub />
+                    </Button>
                   </div>
-                  <div className="flex w-3/5 gap-2 align-middle items-center">
-                    <div className="w-full">
-                      <Separator />
-                    </div>
-                    <div>OR</div>
-                    <div className="w-full">
-                      <Separator />
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1"><Separator /></div>
+                    <div className="text-[#878580]">OR</div>
+                    <div className="flex-1"><Separator /></div>
                   </div>
                 </>
               )}
@@ -231,7 +239,7 @@ function App() {
 
                   <Button
                     type="submit"
-                    className="mt-6 cursor-pointer"
+                    className="mt-6 w-full cursor-pointer"
                     disabled={isSubmitting || (turnstileEnabled && !turnstileToken)}
                   >
                     {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -241,25 +249,14 @@ function App() {
               )}
             </div>
           </div>
-          <div className="relative -mb-px aspect-335/376 w-full shrink-0 overflow-hidden rounded-t-lg bg-[#fff2f2] lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px] lg:rounded-t-none lg:rounded-r-lg dark:bg-[#1D0002]">
-            <div className="absolute inset-0 rounded-t-lg shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-t-none lg:rounded-r-lg dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]" />
-          </div>
         </main>
       </div>
       <div className="hidden h-14.5 lg:block"></div>
       <footer className="flex gap-4 text-muted-foreground">
-        <a className="cursor-pointer" href="https://dployr.io/legal/terms-of-service">
-          <p className="text-xs">Terms of service</p>
-        </a>
-        <a className="cursor-pointer" href="https://dployr.io/legal/privacy-policy">
-          <p className="text-xs">Privacy policy</p>
-        </a>
-        <a className="cursor-pointer" href="https://dployr.io/docs/quickstart">
-          <p className="text-xs">Docs</p>
-        </a>
-        <a className="cursor-pointer" href="https://dployr.io/changelog">
-          <p className="text-xs">Changelog</p>
-        </a>
+        <a className="text-xs" href="https://dployr.io/legal/terms-of-service" target="_blank" rel="noopener noreferrer">Terms of service</a>
+        <a className="text-xs" href="https://dployr.io/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy policy</a>
+        <a className="text-xs" href="https://dployr.io/docs/quickstart" target="_blank" rel="noopener noreferrer">Docs</a>
+        <a className="text-xs" href="https://dployr.io/changelog" target="_blank" rel="noopener noreferrer">Changelog</a>
       </footer>
     </div>
   );
