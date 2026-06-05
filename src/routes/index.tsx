@@ -150,8 +150,9 @@ function App() {
                 </>
               )}
               {verifyOTP ? (
-                <div className="flex flex-col justify-center flex-1">
+                <div className="flex flex-col gap-4">
                   <InputOTP
+                    containerClassName="w-full"
                     maxLength={6}
                     value={otpValue}
                     onChange={value => {
@@ -162,20 +163,20 @@ function App() {
                     }}
                     disabled={isSubmitting}
                   >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
+                    <InputOTPGroup className="flex-1">
+                      <InputOTPSlot index={0} className="flex-1 h-12" />
+                      <InputOTPSlot index={1} className="flex-1 h-12" />
+                      <InputOTPSlot index={2} className="flex-1 h-12" />
                     </InputOTPGroup>
                     <InputOTPSeparator />
-                    <InputOTPGroup>
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
+                    <InputOTPGroup className="flex-1">
+                      <InputOTPSlot index={3} className="flex-1 h-12" />
+                      <InputOTPSlot index={4} className="flex-1 h-12" />
+                      <InputOTPSlot index={5} className="flex-1 h-12" />
                     </InputOTPGroup>
                   </InputOTP>
 
-                  <Button onClick={() => setVerifyOtp(false)} className="mt-6 cursor-pointer w-fit" disabled={isSubmitting}>
+                  <Button variant="ghost" size="sm" onClick={() => setVerifyOtp(false)} className="cursor-pointer self-start" disabled={isSubmitting}>
                     <ChevronLeft /> Back
                   </Button>
                 </div>
