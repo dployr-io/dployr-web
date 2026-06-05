@@ -108,11 +108,11 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
               Changelog
             </a>
             <span className="text-border">•</span>
-            <a href="https://dployr.io/legal/terms-of-service.html" className="hover:underline">
+            <a href="https://dployr.io/legal/terms-of-service" className="hover:underline">
               Terms of Use
             </a>
             <span className="text-border">•</span>
-            <a href="https://dployr.io/legal/privacy-policy.html" className="hover:underline">
+            <a href="https://dployr.io/legal/privacy-policy" className="hover:underline">
               Privacy Policy
             </a>
             <span className="text-border">•</span>

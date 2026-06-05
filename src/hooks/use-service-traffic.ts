@@ -40,8 +40,8 @@ export function useServiceTraffic(serviceName: string | null, clusterId: string 
       };
     },
     enabled: !!serviceName && !!clusterId,
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: 2_000,
+    staleTime: 1_000,
     retry: false,
   });
 

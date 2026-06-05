@@ -247,7 +247,7 @@ function Dashboard() {
                     Deploy Service
                   </Button>
                   <Button variant="outline" asChild>
-                    <a href="https://dployr.io/docs/quickstart.html" target="_blank" rel="noopener noreferrer">
+                    <a href="https://dployr.io/docs/quickstart" target="_blank" rel="noopener noreferrer">
                       Read the docs
                     </a>
                   </Button>

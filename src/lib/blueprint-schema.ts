@@ -129,7 +129,7 @@ export function validateBlueprint(data: unknown): ValidationResult {
   // Required: runtime
   if (!obj.runtime) {
     errors.push({ message: "runtime is required", path: "runtime", severity: "error" });
-  } else if (typeof obj.runtime === "object") {
+  } else if (typeof obj.runtime === "object" && obj.runtime !== null) {
     const rt = obj.runtime as Record<string, unknown>;
     if (!rt.type || !runtimes.includes(rt.type as Runtime)) {
       errors.push({ message: `runtime.type must be one of: ${runtimes.join(", ")}`, path: "runtime.type", severity: "error" });
@@ -157,7 +157,8 @@ export function validateBlueprint(data: unknown): ValidationResult {
 
   // Source-specific validation
   if (obj.source === "remote") {
-    const runtime = typeof obj.runtime === "object" ? (obj.runtime as Record<string, unknown>).type : obj.runtime;
+    const runtime =
+      typeof obj.runtime === "object" && obj.runtime !== null ? (obj.runtime as Record<string, unknown>).type : obj.runtime;
     if (runtime !== "static" && !obj.run_cmd) {
       errors.push({ message: "run_cmd is required for remote source (non-static)", path: "run_cmd", severity: "error" });
     }
