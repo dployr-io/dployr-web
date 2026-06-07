@@ -3,6 +3,7 @@
 
 import { Outlet, createRootRoute } from '@tanstack/react-router'
 import { NuqsAdapter } from 'nuqs/adapters/tanstack-router'
+import { TawkChat } from '@/components/tawk-chat'
 import { AuthProvider } from '@/hooks/use-auth'
 
 function RootComponent() {
@@ -10,6 +11,7 @@ function RootComponent() {
     <NuqsAdapter>
       <AuthProvider>
         <Outlet />
+        <TawkChat />
       </AuthProvider>
     </NuqsAdapter>
   )
