@@ -66,11 +66,6 @@ export function AppSidebar() {
       href: "https://dployr.io/docs/quickstart",
       icon: BookOpen,
     },
-    {
-      title: "Support",
-      href: "https://discord.gg/tY8ZbjvrSZ",
-      icon: MessageCircleQuestion,
-    },
   ];
 
   return (
