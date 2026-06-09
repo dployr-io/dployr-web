@@ -17,9 +17,25 @@ export interface LogBufferRefs {
  * Parse a raw log entry into a Log object
  */
 export function parseLogEntry(entry: any, logCounter: number): Log {
-  const { msg, message: entryMessage, level, time, timestamp, ...rest } = entry || {};
+  let { msg, message: entryMessage, level, time, timestamp, ...rest } = entry || {};
+
+  // Loki stores log lines verbatim, so msg may arrive as a JSON-stringified object.
+  // Unwrap it so the user sees structured fields rather than a raw JSON blob.
+  if (typeof msg === "string" && msg.startsWith("{")) {
+    try {
+      const inner = JSON.parse(msg) as Record<string, unknown>;
+      msg = (inner.msg ?? inner.message ?? msg) as string;
+      level = level ?? inner.level;
+      rest = { ...inner, ...rest };
+      delete (rest as any).msg;
+      delete (rest as any).message;
+      delete (rest as any).level;
+      delete (rest as any).time;
+      delete (rest as any).timestamp;
+    } catch {}
+  }
+
   const metadata: Record<string, unknown> = {};
-  
   for (const [key, value] of Object.entries(rest || {})) {
     if (value !== undefined && value !== null) {
       metadata[key] = value;

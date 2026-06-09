@@ -7,6 +7,8 @@ import type { LogLevel, LogTimeRange } from "@/types";
 
 const LOG_RANGES = ["live", "5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h"] as const;
 const LOG_LEVELS = ["ALL", "DEBUG", "INFO", "NOTICE", "WARNING", "ERROR", "CRITICAL", "ALERT", "EMERGENCY"] as const;
+const LOG_SOURCES = ["all", "runtime", "deployments"] as const;
+export type LogSourceFilter = typeof LOG_SOURCES[number];
 
 export type TabValue = string;
 
@@ -15,6 +17,7 @@ export interface TabsState<T extends TabValue> {
   logRange?: LogTimeRange;
   logLevel?: "ALL" | LogLevel;
   duration?: LogTimeRange;
+  logSource?: LogSourceFilter;
 }
 
 export interface TabsActions<T extends TabValue> {
@@ -33,12 +36,14 @@ export function useStandardizedTabs<T extends TabValue>(
     logRange: parseAsStringLiteral(LOG_RANGES).withDefault("live"),
     logLevel: parseAsStringLiteral(LOG_LEVELS).withDefault("ALL"),
     duration: parseAsStringLiteral(LOG_RANGES).withDefault("live"),
+    logSource: parseAsStringLiteral(LOG_SOURCES).withDefault("all"),
   });
 
   const currentTab = (state.tab || defaultTab) as T;
   const logTimeRange = (state.logRange || "live") as LogTimeRange;
   const selectedLogLevel = (state.logLevel || "ALL") as "ALL" | LogLevel;
   const logDuration = (state.duration || state.logRange || "live") as LogTimeRange;
+  const logSource = (state.logSource || "all") as LogSourceFilter;
 
   const setTab = useCallback(
     (tab: T) => setState({ tab }),
@@ -65,6 +70,7 @@ export function useStandardizedTabs<T extends TabValue>(
     logTimeRange,
     selectedLogLevel,
     logDuration,
+    logSource,
     setTab,
     setLogRange,
     setLogLevel,

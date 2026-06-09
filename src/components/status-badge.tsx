@@ -20,7 +20,7 @@ export function StatusBadge({ status, variant = "default", type }: StatusBadgePr
       if (normalized === "completed" || normalized === "running") {
         return "bg-green-500/10 text-green-500 border-green-500/20";
       }
-      if (normalized === "pending") {
+      if (normalized === "pending" || normalized === "deploying") {
         return "bg-orange-500/10 text-orange-500 border-orange-500/20";
       }
       if (normalized === "stopped" || normalized === "failed") {
@@ -56,7 +56,7 @@ export function StatusBadge({ status, variant = "default", type }: StatusBadgePr
     if (normalized === "running" || normalized === "completed") {
       return <CheckCircle2 width={iconSize} height={iconSize} className={iconClass} />;
     }
-    if (normalized === "pending" || normalized === "in_progress" || normalized === "unknown") {
+    if (normalized === "pending" || normalized === "in_progress" || normalized === "unknown" || normalized === "deploying") {
       return <Loader2 width={iconSize} height={iconSize} className={cn(iconClass, "animate-spin")} />;
     }
     if (normalized === "stopped" || normalized === "failed") {

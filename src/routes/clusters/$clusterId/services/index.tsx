@@ -234,7 +234,7 @@ function Services() {
                         {!isLoading && paginatedServices.length > 0
                           ? paginatedServices.map(service => (
                               <TableRow
-                                key={service.id}
+                                key={service.id ?? service.name}
                                 className="h-16 cursor-pointer"
                                 onClick={() => router.navigate({ to: "/clusters/$clusterId/services/$id", params: { clusterId, id: service.name } })}
                               >

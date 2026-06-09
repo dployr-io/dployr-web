@@ -41,6 +41,7 @@ interface Props<TFilterValue extends string = string> {
   onTimeRangeChange?: (range: LogTimeRange) => void;
   isStreaming?: boolean;
   showTimeFilter?: boolean;
+  error?: string;
 }
 
 const getLevelColor = (level: Log["level"]) => {
@@ -139,6 +140,7 @@ export function LogsWindow<TFilterValue extends string = string>({
   onTimeRangeChange,
   isStreaming,
   showTimeFilter = true,
+  error,
 }: Props<TFilterValue>) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [followMode, setFollowMode] = useState(true);
@@ -288,7 +290,7 @@ export function LogsWindow<TFilterValue extends string = string>({
         <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
           {timeFilteredLogs.length === 0 ? (
             <div className="flex h-32 items-center justify-center">
-              <p className="text-sm text-muted-foreground">No logs entries</p>
+              <p className="text-sm text-muted-foreground">{error ? `Error: ${error}` : "No logs entries"}</p>
             </div>
           ) : (
             <div

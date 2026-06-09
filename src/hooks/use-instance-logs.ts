@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Log, LogLevel, LogStreamMode, LogTimeRange } from "@/types";
+import type { LogSourceFilter } from "@/hooks/use-standardized-tabs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
 import { parseLogEntries, filterLogs, isNearBottom, sortLogsByTimestamp, mergeSortedLogs } from "@/lib/log-utils";
@@ -13,9 +14,10 @@ interface UseLogsOptions {
   initialMode?: LogStreamMode;
   duration?: LogTimeRange;
   selectedLevel?: "ALL" | LogLevel;
+  logSource?: LogSourceFilter;
 }
 
-export function useLogs({ instanceName, path, initialMode, duration = "live", selectedLevel = "ALL" }: UseLogsOptions) {
+export function useLogs({ instanceName, path, initialMode, duration = "live", selectedLevel = "ALL", logSource }: UseLogsOptions) {
   const subscriberIdRef = useRef<string>(ulid());
   const subscriberId = subscriberIdRef.current;
   const { isConnected, error: streamError, sendJson, subscribe, unsubscribe } = useInstanceStream();
@@ -66,6 +68,19 @@ export function useLogs({ instanceName, path, initialMode, duration = "live", se
               flushTimerRef.current = null;
             }, 100);
           }
+
+          if (message.hasMore && message.nextCursor) {
+            sendJson({
+              kind: "log_history_page",
+              streamId: message.streamId,
+              path,
+              cursor: message.nextCursor,
+              duration,
+              ...(message.deploymentId ? { deploymentId: message.deploymentId } : {}),
+              ...(message.source ? { source: message.source } : {}),
+              ...(instanceName ? { instanceName } : {}),
+            });
+          }
         }
 
         if (message.kind === "error") {
@@ -94,15 +109,15 @@ export function useLogs({ instanceName, path, initialMode, duration = "live", se
         duration,
       };
 
-      if (instanceName) {
-        payload.instanceName = instanceName;
-      }
+      if (instanceName) payload.instanceName = instanceName;
+      if (logSource === "runtime") payload.source = "runtime";
+      else if (logSource === "deployments") payload.source = "build|deploy";
 
       sendJson(payload);
       hasSubscribedRef.current = true;
       return true;
     },
-    [instanceName, path, isConnected, duration, sendJson]
+    [instanceName, path, isConnected, duration, logSource, sendJson]
   );
 
   // Start streaming logs on-demand

@@ -43,6 +43,11 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
       href: clusterId ? "/clusters/$clusterId/settings/integrations" : "/settings/integrations",
       icon: null,
     },
+    {
+      title: "Security",
+      href: clusterId ? "/clusters/$clusterId/settings/security" : "/settings/security",
+      icon: null,
+    },
     ...(isOwner
       ? [
           {
@@ -93,7 +98,7 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
 
           <TwoFactorDialog open={twoFactor.isOpen} onOpenChange={twoFactor.setIsOpen} onVerify={twoFactor.verify} isSubmitting={twoFactor.isVerifying} />
 
-          <section className="w-full space-y-12 overflow-y-auto max-h-full">{children}</section>
+          <section className="w-full space-y-12 overflow-y-auto max-h-full pb-8">{children}</section>
         </div>
       </div>
 

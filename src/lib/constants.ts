@@ -21,6 +21,7 @@ export const APP_LINKS = {
     ROOT: "https://dployr.io/docs",
     DEPLOYMENTS: "https://dployr.io/docs/dashboard",
     ENV_VARS: "https://dployr.io/docs/env-vars",
+    GITHUB_ACTIONS: "https://dployr.io/docs/github-actions",
   },
   HOME: "https://dployr.io",
   LEGAL: {

@@ -4,11 +4,13 @@
 import type { LogLevel, LogStreamMode, LogTimeRange } from "@/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLogs } from "@/hooks/use-instance-logs";
+import type { LogSourceFilter } from "@/hooks/use-standardized-tabs";
 
 export interface StandardizedLogsOptions {
   instanceName?: string;
   path: string;
   initialMode?: LogStreamMode;
+  logSource?: LogSourceFilter;
 }
 
 export function useStandardizedLogs(
@@ -21,7 +23,7 @@ export function useStandardizedLogs(
   },
   logsTabName: string = "logs"
 ) {
-  const { instanceName, path } = options;
+  const { instanceName, path, logSource } = options;
   const { currentTab, logDuration, selectedLogLevel } = tabState;
 
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -33,6 +35,7 @@ export function useStandardizedLogs(
     searchQuery,
     logsEndRef,
     isStreaming,
+    error,
     setSearchQuery,
     startStreaming,
     stopStreaming,
@@ -42,6 +45,7 @@ export function useStandardizedLogs(
     initialMode: logMode,
     duration: logDuration,
     selectedLevel: selectedLogLevel,
+    logSource,
   });
 
   const handleScrollPositionChange = useCallback((atBottom: boolean) => {
@@ -63,6 +67,7 @@ export function useStandardizedLogs(
     searchQuery,
     logsEndRef,
     isStreaming,
+    error,
     isAtBottom,
     logMode,
     setSearchQuery,
@@ -105,16 +110,22 @@ export function useServiceLogs(
     logTimeRange: LogTimeRange;
     selectedLogLevel: "ALL" | LogLevel;
     logDuration: LogTimeRange;
-  }
+    logSource?: LogSourceFilter;
+  },
+  // When the service is deploying (ghost row), pass the active deployment ID so
+  // we subscribe to the build/deploy node's log stream instead of the runtime stream.
+  activeDeploymentId?: string | null,
 ) {
-  const stablePath = useRef(serviceName || serviceId || "");
+  const stableName = useRef(serviceName || serviceId || "");
   const stableInstance = useRef(instanceName);
-  const resolvedPath = serviceName || serviceId || stablePath.current;
-  if (resolvedPath) stablePath.current = resolvedPath;
+  const resolvedName = serviceName || serviceId || stableName.current;
+  if (resolvedName) stableName.current = resolvedName;
   if (instanceName) stableInstance.current = instanceName;
 
+  const path = activeDeploymentId ?? `service:${stableName.current}`;
+
   return useStandardizedLogs(
-    { instanceName: stableInstance.current, path: stablePath.current },
+    { instanceName: stableInstance.current, path, logSource: tabState.logSource },
     tabState,
     "logs"
   );

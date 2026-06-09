@@ -167,9 +167,13 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
           queryClient.setQueryData(["instance", instanceId, "services"], newServices);
         }
 
-        const existingDeployments = queryClient.getQueryData<unknown[]>(["instance", instanceId, "deployments"]);
-        if (newDeployments.length > 0 || !existingDeployments?.length) {
-          queryClient.setQueryData(["instance", instanceId, "deployments"], newDeployments);
+        const existingDeployments = queryClient.getQueryData<any[]>(["instance", instanceId, "deployments"]) ?? [];
+        if (newDeployments.length > 0 || !existingDeployments.length) {
+          const newNames = new Set(newDeployments.map((d: any) => d.name));
+          const ghostsToKeep = existingDeployments.filter(
+            (d: any) => (d.status === "pending" || d.status === "running") && !newNames.has(d.name)
+          );
+          queryClient.setQueryData(["instance", instanceId, "deployments"], [...newDeployments, ...ghostsToKeep]);
         }
       }
     },

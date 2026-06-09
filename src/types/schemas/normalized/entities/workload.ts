@@ -48,7 +48,7 @@ export const normalizedServiceSchema = z.object({
   secrets: z.array(secretSchema).nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-  status: z.enum(["running", "sleeping"]).optional(),
+  status: z.enum(["running", "sleeping", "deploying"]).optional(),
   healthCheck: z.string().nullable().optional(),
   health: z.enum(["healthy", "degraded"]).optional(),
 });

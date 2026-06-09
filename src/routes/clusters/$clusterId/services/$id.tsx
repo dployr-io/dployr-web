@@ -77,7 +77,7 @@ function ViewService() {
   const breadcrumbs = viewServiceBreadcrumbs(service, clusterId);
   const { plan } = usePlanFeatures();
 
-  const { currentTab, setTabState, logTimeRange, selectedLogLevel, logDuration } = useServiceTabs();
+  const { currentTab, setTabState, logTimeRange, selectedLogLevel, logDuration, logSource } = useServiceTabs();
   const navigate = useNavigate();
   const [blueprintFormat, setBlueprintFormat] = useState<BlueprintFormat>("yaml");
 
@@ -300,12 +300,16 @@ function ViewService() {
   const { trafficData, totals, isLoading: isTrafficLoading } = useServiceTraffic(service?.name ?? null, clusterId);
 
   // Logs
-  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, setSearchQuery, handleScrollPositionChange } = useServiceLogs(service?.id, service?.name, selectedInstanceName ?? undefined, {
+  // Ghost rows (first deployment) have status "deploying" and id = deployment ID.
+  // Pass it as the active deployment so we subscribe to the build/deploy node stream.
+  const activeDeploymentId = service?.status === "deploying" ? service?.id : undefined;
+  const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, error: logsError, setSearchQuery, handleScrollPositionChange } = useServiceLogs(service?.id, service?.name, selectedInstanceName ?? undefined, {
     currentTab,
     logTimeRange,
     selectedLogLevel,
     logDuration,
-  });
+    logSource,
+  }, activeDeploymentId);
 
   useEffect(() => {
     if (!service) return;
@@ -447,7 +451,21 @@ function ViewService() {
                   timeRange={logTimeRange}
                   onTimeRangeChange={range => setTabState({ logRange: range, duration: range })}
                   isStreaming={isStreaming}
-                  showTimeFilter={false}
+                  error={logsError ?? undefined}
+                  showTimeFilter={true}
+                  extraFilters={[
+                    {
+                      id: "source",
+                      label: "Source",
+                      value: logSource,
+                      options: [
+                        { label: "All sources", value: "all" },
+                        { label: "Runtime", value: "runtime" },
+                        { label: "Deployments", value: "deployments" },
+                      ],
+                      onChange: value => setTabState({ logSource: value as any }),
+                    },
+                  ]}
                 />
               </TabsContent>
 
