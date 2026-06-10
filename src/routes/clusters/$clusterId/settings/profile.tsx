@@ -60,7 +60,7 @@ function System() {
     setClusterNameError("");
   }
 
-  async function handleSave(e: React.FormEvent) {
+  function handleSave(e: React.FormEvent) {
     e.preventDefault();
 
     const trimmed = clusterName.trim();
@@ -69,29 +69,31 @@ function System() {
       return;
     }
 
-    const clusterNameChanged = trimmed !== (userCluster?.name ?? "");
+    twoFactor.requireAuth(async () => {
+      const clusterNameChanged = trimmed !== (userCluster?.name ?? "");
 
-    if (clusterNameChanged) {
-      try {
-        await renameCluster.mutateAsync(trimmed);
-        setClusterNameError("");
-      } catch (renameErr: any) {
-        const message: string = renameErr?.response?.data?.error?.message ?? renameErr?.message ?? "Failed to rename cluster.";
-        setClusterNameError(message);
+      if (clusterNameChanged) {
+        try {
+          await renameCluster.mutateAsync(trimmed);
+          setClusterNameError("");
+        } catch (renameErr: any) {
+          const message: string = renameErr?.response?.data?.error?.message ?? renameErr?.message ?? "Failed to rename cluster.";
+          setClusterNameError(message);
+          return;
+        }
+      }
+
+      const profileResult = await submitProfile();
+      if (typeof profileResult === "object" && profileResult?.verificationRequired) {
+        setPendingEmail(profileResult.email);
+        setEmailVerificationOpen(true);
         return;
       }
-    }
 
-    const profileResult = await submitProfile();
-    if (typeof profileResult === "object" && profileResult?.verificationRequired) {
-      setPendingEmail(profileResult.email);
-      setEmailVerificationOpen(true);
-      return;
-    }
-
-    if (!profileResult) {
-      setEditMode(false);
-    }
+      if (!profileResult) {
+        setEditMode(false);
+      }
+    });
   }
 
   async function handleEmailVerify(code: string) {
