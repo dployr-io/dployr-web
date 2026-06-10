@@ -96,7 +96,15 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
         <div className="flex-1 min-h-0">
           <ConfirmationDialog pendingAction={pendingAction} setPendingAction={setPendingAction} />
 
-          <TwoFactorDialog open={twoFactor.isOpen} onOpenChange={twoFactor.setIsOpen} onVerify={twoFactor.verify} isSubmitting={twoFactor.isVerifying} />
+          <TwoFactorDialog
+            open={twoFactor.isOpen}
+            onOpenChange={twoFactor.setIsOpen}
+            onVerify={twoFactor.verify}
+            onSendEmailCode={twoFactor.method === "email" ? twoFactor.sendEmailCode : undefined}
+            method={twoFactor.method}
+            isSubmitting={twoFactor.isVerifying}
+            isSending={twoFactor.isSending}
+          />
 
           <section className="w-full space-y-12 overflow-y-auto max-h-full pb-8">{children}</section>
         </div>
@@ -130,7 +138,7 @@ export default function SettingsLayout({ children, twoFactor, confirmation }: Se
             </a>
           </div>
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Dployr ·{" "}
+            © {new Date().getFullYear()} dployr ·{" "}
             <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noreferrer" className="hover:underline">
               Apache-2.0
             </a>

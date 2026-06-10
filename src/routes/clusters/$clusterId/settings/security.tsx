@@ -3,25 +3,29 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import "@/css/app.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TimeAgo from "react-timeago";
+import { QRCodeSVG } from "qrcode.react";
 import AppLayout from "@/layouts/app-layout";
 import SettingsLayout from "@/layouts/settings/layout";
 import type { BreadcrumbItem } from "@/types";
 import HeadingSmall from "@/components/heading-small";
 import { ProtectedRoute } from "@/components/protected-route";
-import { use2FA } from "@/hooks/use-2fa";
+import { use2FA, use2FASetup, use2FAStatus } from "@/hooks/use-2fa";
 import { useConfirmation } from "@/hooks/use-confirmation";
 import { useSecurity, type CreatedApiToken, type SessionInfo } from "@/hooks/use-security";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldError } from "@/components/ui/field";
 import { APP_LINKS } from "@/lib/constants";
-import { Plus, Trash2, Copy, Check, KeyRound, Monitor, Smartphone, Tablet, Terminal } from "lucide-react";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { Plus, Trash2, Download, Copy, Check, KeyRound, Monitor, Smartphone, Tablet, Terminal, ShieldCheck, Mail, RefreshCw, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/clusters/$clusterId/settings/security")({
   component: SecurityPage,
@@ -230,6 +234,405 @@ function SessionRow({ session, onRevoke, isPending }: { session: SessionInfo; on
   );
 }
 
+type SetupStep = "qr" | "verify" | "backup";
+
+export function TOTPSetupDialog({ onClose }: { onClose: () => void }) {
+  const { setup, confirm } = use2FASetup();
+  const [step, setStep] = useState<SetupStep>("qr");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+
+  const handleStart = async () => {
+    try {
+      await setup.mutateAsync();
+      setStep("qr");
+    } catch {
+      // error toasted by hook
+    }
+  };
+
+  const handleVerify = async () => {
+    setError(null);
+    try {
+      const result = await confirm.mutateAsync(code);
+      setBackupCodes(result.backupCodes);
+      setStep("backup");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Invalid code. Try again."));
+    }
+  };
+
+  const downloadCodes = () => {
+    const blob = new Blob([backupCodes.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dployr-backup-codes.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Trigger setup on mount
+  useEffect(() => { handleStart(); }, []);
+
+  if (!setup.data && !setup.isPending) {
+    return (
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Set up authenticator app</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">Failed to start setup. Try again.</p>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleStart}>Try again</Button>
+        </DialogFooter>
+      </DialogContent>
+    );
+  }
+
+  if (step === "qr" || step === "verify") {
+    return (
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Set up authenticator app</DialogTitle>
+          <DialogDescription className="text-xs">
+            {step === "qr"
+              ? "Scan with Google Authenticator, Authy, 1Password, or any TOTP app."
+              : "Enter the code from your app to confirm it's working."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {step === "qr" && (
+          <div className="space-y-4">
+            {setup.isPending ? (
+              <Skeleton className="h-48 w-48 mx-auto rounded-lg" />
+            ) : setup.data ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="p-3 bg-white rounded-lg border">
+                  <QRCodeSVG value={setup.data.uri} size={176} />
+                </div>
+                <details className="w-full">
+                  <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                    Can't scan? Enter code manually
+                  </summary>
+                  <div className="mt-2 flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+                    <code className="flex-1 text-xs font-mono break-all select-all">{setup.data.secret}</code>
+                    <CopyButton text={setup.data.secret} />
+                  </div>
+                </details>
+              </div>
+            ) : null}
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={onClose}>Cancel</Button>
+              <Button onClick={() => setStep("verify")} disabled={!setup.data}>
+                Next
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {step === "verify" && (
+          <div className="space-y-4">
+            <Field>
+              <Input
+                type="text"
+                value={code}
+                onChange={e => { setCode(e.target.value.replace(/\D/g, "")); setError(null); }}
+                placeholder="000000"
+                maxLength={6}
+                autoFocus
+                autoComplete="one-time-code"
+                className="h-9 text-center text-lg tracking-widest font-mono"
+              />
+              {error && <FieldError errors={[{ message: error }]} className="text-[10px]" />}
+            </Field>
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setStep("qr")}>Back</Button>
+              <Button onClick={handleVerify} disabled={code.length !== 6 || confirm.isPending}>
+                {confirm.isPending ? "Verifying…" : "Confirm"}
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    );
+  }
+
+  // Step: backup codes
+  return (
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Backup codes</DialogTitle>
+        <DialogDescription className="text-xs">
+          One-time use. Download before closing.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="rounded-md border bg-muted/40 p-3 space-y-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
+          {backupCodes.map(c => (
+            <code key={c} className="text-xs font-mono text-center py-1 px-2 rounded bg-background border select-all">
+              {c}
+            </code>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+        These codes will not be shown to you again.
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={downloadCodes}>
+          <Download className="h-3.5 w-3.5" />
+          Download
+        </Button>
+        <Button onClick={onClose}>Done</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+
+export function RegenerateCodesDialog({ onClose }: { onClose: () => void }) {
+  const { regenerateCodes } = use2FASetup();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+
+  const handleRegenerate = async () => {
+    setError(null);
+    try {
+      const result = await regenerateCodes.mutateAsync(code);
+      setBackupCodes(result.backupCodes);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Invalid code"));
+    }
+  };
+
+  const downloadCodes = () => {
+    const blob = new Blob([backupCodes.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dployr-backup-codes.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (backupCodes.length > 0) {
+    return (
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>New backup codes</DialogTitle>
+          <DialogDescription className="text-xs">
+            Previous codes are invalidated. 
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-md border bg-muted/40 p-3">
+          <div className="grid grid-cols-2 gap-1.5">
+            {backupCodes.map(c => (
+              <code key={c} className="text-xs font-mono text-center py-1 px-2 rounded bg-background border select-all">
+                {c}
+              </code>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          These codes will not be shown to you again.
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={downloadCodes}>
+            <Download className="h-3.5 w-3.5" />
+            Download
+          </Button>
+          <Button onClick={onClose}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    );
+  }
+
+  return (
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Regenerate backup codes</DialogTitle>
+        <DialogDescription className="text-xs">
+          Your existing backup codes will be invalidated. Enter your authenticator code to confirm.
+        </DialogDescription>
+      </DialogHeader>
+
+      <Field>
+        <Input
+          type="text"
+          value={code}
+          onChange={e => { setCode(e.target.value.replace(/\D/g, "")); setError(null); }}
+          placeholder="000000"
+          maxLength={6}
+          autoFocus
+          autoComplete="one-time-code"
+          className="h-9 text-center text-lg tracking-widest font-mono"
+        />
+        {error && <FieldError errors={[{ message: error }]} className="text-[10px]" />}
+      </Field>
+
+      <DialogFooter>
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button onClick={handleRegenerate} disabled={code.length !== 6 || regenerateCodes.isPending}>
+          {regenerateCodes.isPending ? "Regenerating…" : "Regenerate"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+// ── Disable TOTP dialog ────────────────────────────────────────────────────
+
+function DisableTOTPDialog({ onClose }: { onClose: () => void }) {
+  const { disable } = use2FASetup();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDisable = async () => {
+    setError(null);
+    try {
+      await disable.mutateAsync(code);
+      onClose();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Invalid code"));
+    }
+  };
+
+  return (
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Remove authenticator app</DialogTitle>
+        <DialogDescription className="text-xs">
+          Your account will revert to email verification. Enter your current authenticator code to confirm.
+        </DialogDescription>
+      </DialogHeader>
+
+      <Field>
+        <Input
+          type="text"
+          value={code}
+          onChange={e => { setCode(e.target.value.replace(/[^0-9A-Za-z-]/g, "")); setError(null); }}
+          placeholder="000000"
+          maxLength={15}
+          autoFocus
+          autoComplete="one-time-code"
+          className="h-9 text-center text-lg tracking-widest font-mono"
+        />
+        {error && <FieldError errors={[{ message: error }]} className="text-[10px]" />}
+      </Field>
+
+      <DialogFooter>
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button
+          variant="destructive"
+          onClick={handleDisable}
+          disabled={code.length < 6 || disable.isPending}
+        >
+          {disable.isPending ? "Removing…" : "Remove authenticator"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+
+function TwoFASection() {
+  const { data: status, isLoading } = use2FAStatus();
+  const { user } = useAuth();
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [regenOpen, setRegenOpen] = useState(false);
+
+  if (isLoading) {
+    return <Skeleton className="h-12 w-full rounded-lg" />;
+  }
+
+  const totpEnabled = status?.totpEnabled ?? false;
+
+  return (
+    <div className="space-y-4">
+      <HeadingSmall
+        title="Two-factor authentication"
+        description="Require a second verification step when performing sensitive actions."
+      />
+
+      <div className="flex items-center justify-between rounded-lg border bg-muted/20 px-4 py-3">
+        <div className="flex items-center gap-3">
+          {totpEnabled ? (
+            <ShieldCheck className="h-4 w-4 text-green-600" />
+          ) : (
+            <Mail className="h-4 w-4 text-muted-foreground" />
+          )}
+          <div>
+            <p className="text-sm font-medium">
+              {totpEnabled ? "Authenticator app" : "Email"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {totpEnabled
+                ? `${status?.backupCodesRemaining ?? 0} backup ${status?.backupCodesRemaining === 1 ? "code" : "codes"} remaining`
+                : user?.email ?? "your email"}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {totpEnabled && (
+            <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 dark:bg-green-950/30 dark:border-green-900">
+              Active
+            </Badge>
+          )}
+          {!totpEnabled && (
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setSetupOpen(true)}>
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Set up authenticator app
+            </Button>
+          )}
+          {totpEnabled && (
+            <>
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setRegenOpen(true)}>
+                <RefreshCw className="h-3.5 w-3.5" />
+                New backup codes
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setDisableOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <Dialog open={setupOpen} onOpenChange={open => { if (!open) setSetupOpen(false); }}>
+        {setupOpen && <TOTPSetupDialog onClose={() => setSetupOpen(false)} />}
+      </Dialog>
+
+      <Dialog open={disableOpen} onOpenChange={open => { if (!open) setDisableOpen(false); }}>
+        {disableOpen && <DisableTOTPDialog onClose={() => setDisableOpen(false)} />}
+      </Dialog>
+
+      <Dialog open={regenOpen} onOpenChange={open => { if (!open) setRegenOpen(false); }}>
+        {regenOpen && <RegenerateCodesDialog onClose={() => setRegenOpen(false)} />}
+      </Dialog>
+    </div>
+  );
+}
+
 function SecurityPage() {
   const twoFactor = use2FA({ enabled: true });
   const confirmation = useConfirmation();
@@ -254,6 +657,8 @@ function SecurityPage() {
     <ProtectedRoute>
       <AppLayout breadcrumbs={breadcrumbs}>
         <SettingsLayout twoFactor={twoFactor} confirmation={confirmation}>
+          <TwoFASection />
+
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <HeadingSmall title="Access tokens" description="Scoped tokens for CI/CD pipelines and automation." />
