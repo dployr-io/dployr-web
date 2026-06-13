@@ -14,7 +14,6 @@ vi.mock("@/hooks/use-cluster-id", () => ({ useClusterId: () => "cluster-abc" }))
 vi.mock("@/hooks/use-instance-operations", () => ({
   useInstanceOperations: () => ({
     rotateToken: vi.fn(),
-    installVersion: vi.fn(),
     restartInstance: vi.fn(),
     rebootInstance: vi.fn(),
   }),

@@ -24,7 +24,7 @@ beforeEach(() => vi.clearAllMocks());
 describe("TwoFactorDialog — email method (default)", () => {
   it("renders the title", () => {
     renderDialog();
-    expect(screen.getByText("Verify your identity")).toBeInTheDocument();
+    expect(screen.getByText("Enter verification code")).toBeInTheDocument();
   });
 
   it("shows Send code button before code is sent", () => {

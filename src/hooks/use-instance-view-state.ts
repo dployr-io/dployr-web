@@ -12,7 +12,6 @@ interface InstanceViewState {
   isRotating: boolean;
   rotatedToken: string | null;
   showBootstrapInfo: boolean;
-  isInstalling: boolean;
   isRestarting: boolean;
   restartOpen: boolean;
   rebootOpen: boolean;
@@ -40,7 +39,6 @@ const initialState: InstanceViewState = {
   isRotating: false,
   rotatedToken: null,
   showBootstrapInfo: false,
-  isInstalling: false,
   isRestarting: false,
   restartOpen: false,
   rebootOpen: false,
@@ -146,7 +144,6 @@ export function useInstanceViewState(overrides: Partial<InstanceViewState> = {})
   const setBootstrapToken = useCallback((token: string | null) => setField("bootstrapToken", token), [setField]);
   const setRotatedToken = useCallback((token: string | null) => setField("rotatedToken", token), [setField]);
   const setShowBootstrapInfo = useCallback((value: boolean) => setField("showBootstrapInfo", value), [setField]);
-  const setIsInstalling = useCallback((value: boolean) => setField("isInstalling", value), [setField]);
   const setIsRestarting = useCallback((value: boolean) => setField("isRestarting", value), [setField]);
   const setForceRestart = useCallback((value: boolean) => setField("forceRestart", value), [setField]);
   const setForceReboot = useCallback((value: boolean) => setField("forceReboot", value), [setField]);
@@ -173,7 +170,6 @@ export function useInstanceViewState(overrides: Partial<InstanceViewState> = {})
     setIsRotating,
     setRotatedToken,
     setShowBootstrapInfo,
-    setIsInstalling,
     setIsRestarting,
     setRestartOpen,
     setRebootOpen,

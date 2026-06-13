@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import type { Log, LogLevel, LogTimeRange } from "@/types";
 import { formatMetadata, getLabelColor } from "@/lib/format-metadata";
+import { stripMessageTimestamp } from "@/lib/log-utils";
 import { ChevronDown, ChevronRight, Pause, Play } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -98,7 +99,7 @@ const LogEntry = memo(({ log }: { log: Log }) => {
         )}
 
         {/* Message */}
-        <span className={`text-xs font-medium ${levelColor}`}>{log.message}</span>
+        <span className={`text-xs font-medium ${levelColor}`}>{stripMessageTimestamp(log.message)}</span>
       </div>
 
       {/* Collapsible metadata */}

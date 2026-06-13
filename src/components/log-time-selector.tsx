@@ -16,10 +16,12 @@ import { ChevronDown, Clock, Radio } from "lucide-react";
 export function getTimeRangeMs(range: LogTimeRange): number | null {
   if (range === "live") return null;
   const multipliers: Record<string, number> = {
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
+    m:  60 * 1000,
+    h:  60 * 60 * 1000,
+    d:  24 * 60 * 60 * 1000,
+    mo: 30 * 24 * 60 * 60 * 1000,
   };
-  const match = range.match(/^(\d+)(m|h)$/);
+  const match = range.match(/^(\d+)(m|h|d|mo)$/);
   if (!match) return null;
   return parseInt(match[1], 10) * multipliers[match[2]];
 }
@@ -33,14 +35,15 @@ interface LogTimeSelectorProps {
 
 const timeRangeOptions: { value: LogTimeRange; label: string; description?: string }[] = [
   { value: "live", label: "Live", description: "Follow new logs" },
-  { value: "5m", label: "Last 5 mins" },
   { value: "15m", label: "Last 15 mins" },
-  { value: "30m", label: "Last 30 mins" },
   { value: "1h", label: "Last 1 hour" },
-  { value: "3h", label: "Last 3 hours" },
   { value: "6h", label: "Last 6 hours" },
-  { value: "12h", label: "Last 12 hours" },
   { value: "24h", label: "Last 24 hours" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "6mo", label: "Last 6 months" },
+  { value: "12mo", label: "Last 12 months" },
+  { value: "36mo", label: "Last 3 years" },
 ];
 
 export function LogTimeSelector({ value, onChange, isStreaming, className }: LogTimeSelectorProps) {

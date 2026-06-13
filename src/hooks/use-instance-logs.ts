@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { Log, LogLevel, LogStreamMode, LogTimeRange } from "@/types";
+import type { Log, LogLevel, LogSource, LogStreamMode, LogTimeRange } from "@/types";
 import type { LogSourceFilter } from "@/hooks/use-standardized-tabs";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInstanceStream } from "@/hooks/use-instance-stream";
@@ -55,7 +55,8 @@ export function useLogs({ instanceName, path, initialMode, duration = "live", se
 
         if (message.kind === "log_chunk" && Array.isArray(message.entries)) {
           const entries = message.entries as any[];
-          const newLogs = parseLogEntries(entries, logCounterRef);
+          const logSource = ((message.logSource ?? message.source) as LogSource) ?? undefined;
+          const newLogs = parseLogEntries(entries, logCounterRef, logSource);
           logBufferRef.current.push(...newLogs);
 
           if (typeof message.offset === "number") {
@@ -105,13 +106,14 @@ export function useLogs({ instanceName, path, initialMode, duration = "live", se
         kind: "log_subscribe",
         streamId: subscriberId,
         path,
-        startOffset,
+        startFrom: startOffset,
         duration,
       };
 
       if (instanceName) payload.instanceName = instanceName;
       if (logSource === "runtime") payload.source = "runtime";
       else if (logSource === "deployments") payload.source = "build|deploy";
+      else if (logSource === "build") payload.source = "build";
 
       sendJson(payload);
       hasSubscribedRef.current = true;

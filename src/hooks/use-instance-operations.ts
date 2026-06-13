@@ -5,22 +5,6 @@ import { useCallback } from "react";
 import axios from "axios";
 
 export function useInstanceOperations() {
-  const installVersion = useCallback(
-    async (
-      instanceName: string,
-      clusterId: string,
-      version?: string
-    ): Promise<{ taskId: string; status: string; message: string }> => {
-      const response = await axios.post(
-        `${import.meta.env.VITE_BASE_URL}/v1/instances/${encodeURIComponent(instanceName)}/system/install`,
-        { version },
-        { params: { clusterId }, withCredentials: true }
-      );
-      return response.data.data;
-    },
-    []
-  );
-
   const rebootInstance = useCallback(
     async (
       instanceName: string,
@@ -67,7 +51,6 @@ export function useInstanceOperations() {
 
   return {
     isConnected: true,
-    installVersion,
     rebootInstance,
     restartInstance,
     rotateToken,

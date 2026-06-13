@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 function App() {
-  const { login, verifyOtp, isAuthenticated, verifyOTP, setVerifyOtp, otpValue, setOtpValue, isSubmitting, handleGoogleSignIn, handleMicrosoftSignIn, handleGitHubSignIn } = useAuth();
+  const { login, verifyOtp, isAuthenticated, verifyOTP, setVerifyOtp, otpValue, setOtpValue, isSubmitting, handleGoogleSignIn, handleMicrosoftSignIn, handleGitHubSignIn, requireTotp } = useAuth();
   const router = useRouter();
   const { useAuthError } = useUrlState();
   const [{ authError }, setError] = useAuthError();
@@ -50,7 +50,7 @@ function App() {
     },
     onSubmit: async ({ value }) => {
       try {
-        setEmail(email);
+        setEmail(value.email);
         clearError();
 
         await login({
@@ -71,24 +71,23 @@ function App() {
   });
 
   const handleOtpComplete = async (value: string) => {
-    if (value.length === 6) {
-      try {
-        if (!email) {
-          console.error("Attempt to verify otp without existing email");
-          return;
-        }
+    if (!value) return;
+    try {
+      if (!email) {
+        console.error("Attempt to verify otp without existing email");
+        return;
+      }
 
-        await verifyOtp({
-          code: value,
-          email: email,
-        });
-        router.navigate({ to: "/clusters" });
-      } catch (error: any) {
-        const message = error?.response?.data?.error?.message;
-        console.error("OTP verification failed:", error);
-        if (message) {
-          setError({ authError: message });
-        }
+      await verifyOtp({
+        code: value,
+        email: email,
+      });
+      router.navigate({ to: "/clusters" });
+    } catch (error: any) {
+      const message = error?.response?.data?.error?.message;
+      console.error("OTP verification failed:", error);
+      if (message) {
+        setError({ authError: message });
       }
     }
   };
@@ -125,8 +124,8 @@ function App() {
                 {errorMessage && <AlertBanner message={errorMessage} helpLink="" onDismiss={() => setError({ authError: "" })} />}
 
                 <div className="flex flex-col gap-1">
-                  <div className="text-xl font-bold">{verifyOTP ? "Verify your email" : "Sign in"}</div>
-                  <div className="text-[#878580]">{verifyOTP ? "Enter the code we sent to your inbox" : "Welcome back"}</div>
+                  <div className="text-xl font-bold">{verifyOTP ? (requireTotp ? "Two-factor authentication" : "Verify your email") : "Sign in"}</div>
+                  <div className="text-[#878580]">{verifyOTP ? (requireTotp ? "Enter the code from your authenticator app" : "Enter the code we sent to your inbox") : "Welcome back"}</div>
                 </div>
               </div>
 
@@ -156,30 +155,47 @@ function App() {
               )}
               {verifyOTP ? (
                 <div className="flex flex-col gap-4">
-                  <InputOTP
-                    containerClassName="w-full"
-                    maxLength={6}
-                    value={otpValue}
-                    onChange={value => {
-                      setOtpValue(value);
-                      if (value.length === 6) {
-                        handleOtpComplete(value);
-                      }
-                    }}
-                    disabled={isSubmitting}
-                  >
-                    <InputOTPGroup className="flex-1">
-                      <InputOTPSlot index={0} className="flex-1 h-12" />
-                      <InputOTPSlot index={1} className="flex-1 h-12" />
-                      <InputOTPSlot index={2} className="flex-1 h-12" />
-                    </InputOTPGroup>
-                    <InputOTPSeparator />
-                    <InputOTPGroup className="flex-1">
-                      <InputOTPSlot index={3} className="flex-1 h-12" />
-                      <InputOTPSlot index={4} className="flex-1 h-12" />
-                      <InputOTPSlot index={5} className="flex-1 h-12" />
-                    </InputOTPGroup>
-                  </InputOTP>
+                  {requireTotp ? (
+                    <form onSubmit={e => { e.preventDefault(); handleOtpComplete(otpValue); }} className="flex flex-col gap-4">
+                      <Input
+                        value={otpValue}
+                        onChange={e => setOtpValue(e.target.value)}
+                        placeholder="000000"
+                        className="h-12 text-center tracking-widest"
+                        disabled={isSubmitting}
+                        autoFocus
+                        autoComplete="one-time-code"
+                      />
+                      <Button type="submit" disabled={isSubmitting || !otpValue}>
+                        {isSubmitting ? <Loader2 className="animate-spin" /> : "Verify"}
+                      </Button>
+                    </form>
+                  ) : (
+                    <InputOTP
+                      containerClassName="w-full"
+                      maxLength={6}
+                      value={otpValue}
+                      onChange={value => {
+                        setOtpValue(value);
+                        if (value.length === 6) {
+                          handleOtpComplete(value);
+                        }
+                      }}
+                      disabled={isSubmitting}
+                    >
+                      <InputOTPGroup className="flex-1">
+                        <InputOTPSlot index={0} className="flex-1 h-12" />
+                        <InputOTPSlot index={1} className="flex-1 h-12" />
+                        <InputOTPSlot index={2} className="flex-1 h-12" />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup className="flex-1">
+                        <InputOTPSlot index={3} className="flex-1 h-12" />
+                        <InputOTPSlot index={4} className="flex-1 h-12" />
+                        <InputOTPSlot index={5} className="flex-1 h-12" />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  )}
 
                   <Button variant="ghost" size="sm" onClick={() => setVerifyOtp(false)} className="cursor-pointer self-start" disabled={isSubmitting}>
                     <ChevronLeft /> Back

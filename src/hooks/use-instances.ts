@@ -188,20 +188,6 @@ export function useInstances() {
     },
   });
 
-  const installVersion = useMutation({
-    mutationFn: async ({ name, version }: { name: string; version?: string }): Promise<any> => {
-      if (!clusterId) {
-        throw new Error("Cluster ID is required");
-      }
-      return await instanceOps.installVersion(name, clusterId, version);
-    },
-    onError: (error: any) => {
-      const errorMessage = getApiErrorMessage(error, "An error occurred while installing version.");
-
-      setError({ message: errorMessage, helpLink: "" });
-    },
-  });
-
   const restartInstance = useMutation({
     mutationFn: async ({ name, force }: { name: string; force?: boolean }): Promise<any> => {
       if (!clusterId) {
@@ -242,7 +228,6 @@ export function useInstances() {
     updateInstance,
     rotateInstanceToken,
     deleteInstance,
-    installVersion,
     restartInstance,
     rebootInstance,
     goToPage,

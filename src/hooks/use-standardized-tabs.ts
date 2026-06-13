@@ -3,11 +3,10 @@
 
 import { useCallback } from "react";
 import { useQueryStates, parseAsStringLiteral } from "nuqs";
+import { LOG_RANGES } from "@/types";
 import type { LogLevel, LogTimeRange } from "@/types";
-
-const LOG_RANGES = ["live", "5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h"] as const;
 const LOG_LEVELS = ["ALL", "DEBUG", "INFO", "NOTICE", "WARNING", "ERROR", "CRITICAL", "ALERT", "EMERGENCY"] as const;
-const LOG_SOURCES = ["all", "runtime", "deployments"] as const;
+const LOG_SOURCES = ["all", "runtime", "deployments", "build"] as const;
 export type LogSourceFilter = typeof LOG_SOURCES[number];
 
 export type TabValue = string;

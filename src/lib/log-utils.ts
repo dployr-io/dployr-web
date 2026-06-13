@@ -1,7 +1,7 @@
 // Copyright 2025 Emmanuel Madehin
 // SPDX-License-Identifier: Apache-2.0
 
-import type { Log, LogLevel } from "@/types";
+import type { Log, LogLevel, LogSource } from "@/types";
 
 export type LogStreamMode = "tail" | "historical";
 
@@ -16,7 +16,7 @@ export interface LogBufferRefs {
 /**
  * Parse a raw log entry into a Log object
  */
-export function parseLogEntry(entry: any, logCounter: number): Log {
+export function parseLogEntry(entry: any, logCounter: number, source?: LogSource): Log {
   let { msg, message: entryMessage, level, time, timestamp, ...rest } = entry || {};
 
   // Loki stores log lines verbatim, so msg may arrive as a JSON-stringified object.
@@ -47,15 +47,13 @@ export function parseLogEntry(entry: any, logCounter: number): Log {
     message: msg ?? entryMessage ?? "",
     level: (level?.toUpperCase() || "INFO") as LogLevel,
     timestamp: new Date(time ?? timestamp ?? Date.now()),
+    ...(source ? { source } : {}),
     ...(Object.keys(metadata).length > 0 ? { metadata } : {}),
   };
 }
 
-/**
- * Parse multiple log entries from a message
- */
-export function parseLogEntries(entries: any[], logCounterRef: React.MutableRefObject<number>): Log[] {
-  return entries.map((entry: any) => parseLogEntry(entry, logCounterRef.current++));
+export function parseLogEntries(entries: any[], logCounterRef: React.MutableRefObject<number>, source?: LogSource): Log[] {
+  return entries.map((entry: any) => parseLogEntry(entry, logCounterRef.current++, source));
 }
 
 /**
@@ -192,4 +190,25 @@ export function resetLogState(
 export function isNearBottom(container: HTMLElement, threshold: number = 100): boolean {
   const { scrollTop, scrollHeight, clientHeight } = container;
   return scrollHeight - scrollTop - clientHeight < threshold;
+}
+
+// Ordered most-specific first. All patterns are anchored to the start of the string so
+// timestamps embedded mid-message (e.g. Apache combined log IP prefix) are never stripped.
+const LEADING_TIMESTAMP_PATTERNS: RegExp[] = [
+  // PHP built-in server / Apache ErrorLog: [Sat Jun 13 09:14:57 2026] or [Sat Jun  3 09:14:57 2026]
+  /^\[\w{3} \w{3}\s+\d{1,2} \d{2}:\d{2}:\d{2} \d{4}\]\s*/,
+  // ISO 8601: 2026-06-13T09:14:57Z  2026-06-13T09:14:57.123Z  2026-06-13T09:14:57+00:00
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\s*/,
+  // Date with space separator: 2026-06-13 09:14:57  2026-06-13 09:14:57.123
+  /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?\s*/,
+  // nginx / Go stdlib: 2026/06/13 09:14:57
+  /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}\s*/,
+];
+
+export function stripMessageTimestamp(message: string): string {
+  for (const pattern of LEADING_TIMESTAMP_PATTERNS) {
+    const stripped = message.replace(pattern, "");
+    if (stripped !== message) return stripped;
+  }
+  return message;
 }

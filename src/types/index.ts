@@ -357,15 +357,19 @@ export interface ApiDeployment {
   finishedAt: number | null;
 }
 
+export type LogSource = "build" | "deploy" | "runtime";
+
 export interface Log {
   id: string;
   message: string;
   level: LogLevel | null;
   timestamp: Date;
+  source?: LogSource;
   metadata?: Record<string, unknown>;
 }
 
-export type LogTimeRange = "live" | "5m" | "15m" | "30m" | "1h" | "3h" | "6h" | "12h" | "24h";
+export const LOG_RANGES = ["live", "15m", "1h", "6h", "24h", "7d", "30d", "3mo", "6mo", "12mo", "36mo"] as const;
+export type LogTimeRange = typeof LOG_RANGES[number];
 
 export type LogType = "app" | "install";
 export type LogStreamMode = "tail" | "historical";

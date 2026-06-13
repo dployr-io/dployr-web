@@ -300,16 +300,13 @@ function ViewService() {
   const { trafficData, totals, isLoading: isTrafficLoading } = useServiceTraffic(service?.name ?? null, clusterId);
 
   // Logs
-  // Ghost rows (first deployment) have status "deploying" and id = deployment ID.
-  // Pass it as the active deployment so we subscribe to the build/deploy node stream.
-  const activeDeploymentId = service?.status === "deploying" ? service?.id : undefined;
   const { logs, filteredLogs, searchQuery, logsEndRef, isStreaming, error: logsError, setSearchQuery, handleScrollPositionChange } = useServiceLogs(service?.id, service?.name, selectedInstanceName ?? undefined, {
     currentTab,
     logTimeRange,
     selectedLogLevel,
     logDuration,
     logSource,
-  }, activeDeploymentId);
+  });
 
   useEffect(() => {
     if (!service) return;
@@ -462,6 +459,7 @@ function ViewService() {
                         { label: "All sources", value: "all" },
                         { label: "Runtime", value: "runtime" },
                         { label: "Deployments", value: "deployments" },
+                        { label: "Build", value: "build" },
                       ],
                       onChange: value => setTabState({ logSource: value as any }),
                     },
