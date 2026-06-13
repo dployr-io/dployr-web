@@ -27,12 +27,14 @@ interface AuthContextType {
   otpValue: string;
   setOtpValue: (value: string) => void;
   isSubmitting: boolean;
+  requireTotp: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [verifyOTP, setVerifyOtp] = useState(false);
+  const [requireTotp, setRequireTotp] = useState(false);
   const [otpValue, setOtpValue] = useState("");
   const [, setEmail] = useState("");
   const { useAuthError } = useUrlState();
@@ -86,8 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       return res.data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       setEmail(variables.email);
+      setRequireTotp(data?.data?.requireTotp ?? false);
       setVerifyOtp(true);
     },
     onError: (error: any) => {
@@ -111,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       setVerifyOtp(false);
+      setRequireTotp(false);
       setOtpValue("");
       setEmail("");
       refetch();
@@ -191,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     otpValue,
     setOtpValue,
     isSubmitting: loginMutation.isPending || otpMutation.isPending,
+    requireTotp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

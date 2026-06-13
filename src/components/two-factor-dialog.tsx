@@ -29,7 +29,7 @@ export function TwoFactorDialog({
   onSendEmailCode,
   method = "email",
   email,
-  title = "Verify your identity",
+  title = "Enter verification code",
   description: descriptionProp,
   isSubmitting = false,
   isSending = false,
@@ -88,7 +88,7 @@ export function TwoFactorDialog({
     ? codeSent
       ? `Code sent to ${email ?? "your email"}. It expires in a few minutes.`
       : `We'll send a one-time code to ${email ?? "your email"}.`
-    : "Enter the 6-digit code from your authenticator app. You can also use a backup code.");
+    : "Enter the 6-digit code from your authenticator app.");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,7 +125,7 @@ export function TwoFactorDialog({
                 type="text"
                 value={code}
                 onChange={handleCodeChange}
-                placeholder={isEmail ? "Enter code" : "000000 or XXXXX-XXXXX"}
+                placeholder={isEmail ? "Enter code" : "000000"}
                 autoComplete="one-time-code"
                 autoFocus
                 disabled={isSubmitting}
@@ -161,7 +161,7 @@ export function TwoFactorDialog({
               </Button>
             )}
 
-            {(!isEmail || codeSent) && (
+            {(!isEmail || codeSent || !onSendEmailCode) && (
               <Button
                 type="submit"
                 size="sm"
