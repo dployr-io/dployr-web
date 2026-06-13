@@ -23,7 +23,6 @@ import { getRolePriority, cn } from "@/lib/utils";
 import { useInstances } from "@/hooks/use-instances";
 import { FormattedFile } from "@/components/formatted-file";
 import { useInstancesForm } from "@/hooks/use-instances-form";
-import { useVersion } from "@/hooks/use-version";
 import { use2FA } from "@/hooks/use-2fa";
 import { useInstanceTabs } from "@/hooks/use-standardized-tabs";
 import { useInstanceLogs } from "@/hooks/use-standardized-logs";
@@ -34,7 +33,6 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import { usePlanFeatures } from "@/hooks/use-plan-features";
 import { FeatureGate, FileExplorerGatePlaceholder } from "@/components/feature-gate";
 import { LogsWindow } from "@/components/logs-window";
-import { VersionSelector } from "@/components/version-selector";
 import { useDns } from "@/hooks/use-dns";
 import { DomainConnectDialog } from "@/components/domain-connect-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -62,10 +60,9 @@ function ViewInstance() {
   // Use standardized tabs hook
   const { currentTab, logTimeRange, selectedLogLevel, logDuration, setTabState } = useInstanceTabs();
 
-  const { instances, rotateInstanceToken, installVersion, restartInstance, rebootInstance } = useInstances();
+  const { instances, rotateInstanceToken, restartInstance, rebootInstance } = useInstances();
   const instance = instances?.find(i => i.id === instanceId);
   const { update, isConnected: statusConnected, error, debugEvents } = useInstanceStatus(instance?.tag);
-  const { compatibility } = useVersion({ currentVersion: update?.node.version });
 
   const breadcrumbs = viewInstanceBreadcrumbs(clusterId, instanceId, instance?.tag);
   const { user } = useAuth();
@@ -86,7 +83,6 @@ function ViewInstance() {
     isRotating,
     rotatedToken,
     showBootstrapInfo,
-    isInstalling,
     isRestarting,
     restartOpen,
     rebootOpen,
@@ -104,7 +100,6 @@ function ViewInstance() {
     setIsRotating,
     setRotatedToken,
     setShowBootstrapInfo,
-    setIsInstalling,
     setIsRestarting,
     setRestartOpen,
     setRebootOpen,
@@ -248,16 +243,6 @@ function ViewInstance() {
     }
   };
 
-  const handleInstallVersion = async (version?: string) => {
-    if (!instance?.tag) return;
-    setIsInstalling(true);
-    try {
-      await installVersion.mutateAsync({ name: instance.tag, version });
-    } finally {
-      setIsInstalling(false);
-    }
-  };
-
   const handleRestartSubmit = async () => {
     if (!instance?.tag) return;
     setIsRestarting(true);
@@ -365,18 +350,7 @@ function ViewInstance() {
                 {/* Metrics bar */}
                 <div className="flex items-center justify-between gap-x-6 rounded-xl border bg-background/40 px-4 py-3">
                   <MetricCard label="Uptime" value={uptime} />
-                  <MetricCard
-                    label="Version"
-                    value={
-                      <VersionSelector
-                        currentVersion={update?.node.version || "-"}
-                        latestVersion={compatibility?.latestVersion}
-                        upgradeLevel={compatibility?.upgradeLevel}
-                        onInstall={handleInstallVersion}
-                        isInstalling={isInstalling}
-                      />
-                    }
-                  />
+                  <MetricCard label="Version" value={update?.node.version || "-"} />
                   <MetricCard label="Platform" value={`${update?.node.os || "-"} · ${update?.node.arch || "-"}`} />
                   <MetricCard label="Status" value={<StatusBadge status={update?.status.state || "-"} variant="compact" />} />
                   <MetricCard label="Mode" value={<StatusBadge status={update?.status.mode || "-"} variant="compact" />} />
