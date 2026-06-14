@@ -8,7 +8,7 @@
 export { nodeSchema, type Node } from "./node";
 export { statusSchema, type Status } from "./status";
 export { healthSchema, healthStatusValue, type Health, type HealthStatus } from "./health";
-export { resourcesSchema, cpuSchema, memorySchema, swapSchema, diskSchema, loadAverageSchema, type Resources, type Cpu, type Memory, type Swap, type Disk, type LoadAverage } from "./resources";
+export { resourcesSchema, cpuSchema, memorySchema, swapSchema, diskSchema, loadAverageSchema, clusterResourcesSchema, type Resources, type Cpu, type Memory, type Swap, type Disk, type LoadAverage, type ClusterResources } from "./resources";
 export {
   workloadsSchema,
   deploymentSchema,

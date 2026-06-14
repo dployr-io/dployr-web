@@ -63,8 +63,15 @@ export function normalizeHealth(health: InstanceStreamUpdateV1_1["health"]): Nor
 /**
  * Normalize resources from v1.1 format
  */
-export function normalizeResources(resources: InstanceStreamUpdateV1_1["resources"]): NormalizedResources {
+export function normalizeResources(
+  resources: InstanceStreamUpdateV1_1["resources"],
+  clusterResources?: InstanceStreamUpdateV1_1["cluster_resources"],
+  clusterId?: string,
+): NormalizedResources {
   if (!resources) return { ...defaultResources };
+
+  const cr = clusterId ? clusterResources?.[clusterId] : undefined;
+
   return {
     cpu: resources.cpu
       ? {
@@ -82,8 +89,15 @@ export function normalizeResources(resources: InstanceStreamUpdateV1_1["resource
             : undefined,
         }
       : null,
-    memory:
-      resources.memory && resources.memory.total_bytes !== undefined
+    memory: cr
+      ? {
+          totalBytes: cr.memory_limit_bytes,
+          usedBytes: cr.memory_used_bytes,
+          freeBytes: cr.memory_limit_bytes - cr.memory_used_bytes,
+          availableBytes: cr.memory_limit_bytes - cr.memory_used_bytes,
+          bufferCacheBytes: 0,
+        }
+      : resources.memory && resources.memory.total_bytes !== undefined
         ? {
             totalBytes: resources.memory.total_bytes,
             usedBytes: resources.memory.used_bytes,
@@ -293,7 +307,7 @@ export function normalizeDiagnostics(diagnostics: InstanceStreamUpdateV1_1["diag
 /**
  * Normalize v1.1 instance stream update to normalized format
  */
-export function normalizeFromV1_1(update: InstanceStreamUpdateV1_1): NormalizedInstanceData {
+export function normalizeFromV1_1(update: InstanceStreamUpdateV1_1, clusterId?: string): NormalizedInstanceData {
   return {
     schema: "v1.1" as SchemaVersion,
     instance: {
@@ -302,7 +316,7 @@ export function normalizeFromV1_1(update: InstanceStreamUpdateV1_1): NormalizedI
     node: normalizeNode(update.node),
     status: normalizeStatus(update.status),
     health: normalizeHealth(update.health),
-    resources: normalizeResources(update.resources),
+    resources: normalizeResources(update.resources, update.cluster_resources, clusterId),
     workloads: normalizeWorkloads(update.workloads),
     proxy: normalizeProxy(update.proxy),
     processes: normalizeProcesses(update.processes),

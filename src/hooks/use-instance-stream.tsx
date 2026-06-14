@@ -59,6 +59,9 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   // Stable ref so connect() always has latest clusterId without being in deps
   const clusterIdRef = useRef(clusterId);
+  // Last received cluster_resources per instance — persisted across deltas so
+  // a resource-only delta can still scope memory to the correct cluster slice.
+  const clusterResourcesRef = useRef<Record<string, Record<string, { memory_used_bytes: number; memory_limit_bytes: number }>>>({});
   const applyDeltaRef = useRef<typeof applyDelta>(null!);
 
   const [isConnected, setIsConnected] = useState(false);
@@ -108,9 +111,17 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
           case "health":
             updated.health = normalizeHealth(data as any);
             break;
+          case "cluster_resources": {
+            clusterResourcesRef.current[instanceId] = data as any;
+            break;
+          }
           case "resources": {
             const rawRes = data as any;
-            const nr = normalizeResources(rawRes);
+            const nr = normalizeResources(
+              rawRes,
+              clusterResourcesRef.current[instanceId],
+              clusterIdRef.current ?? undefined,
+            );
             const prev = (existing ?? base).resources;
             // Preserve existing sub-fields absent from this delta to avoid flicker
             updated.resources = {

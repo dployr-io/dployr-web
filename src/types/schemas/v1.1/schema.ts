@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { z } from "zod";
-import { nodeSchema, statusSchema, healthSchema, resourcesSchema, workloadsSchema, proxySchema, processesSchema, filesystemSchema, diagnosticsSchema } from "./entities";
+import { nodeSchema, statusSchema, healthSchema, resourcesSchema, clusterResourcesSchema, workloadsSchema, proxySchema, processesSchema, filesystemSchema, diagnosticsSchema } from "./entities";
 
 /**
  * Instance Stream Update v1.1 Schema
@@ -28,6 +28,7 @@ export const instanceStreamUpdateV1_1Schema = z.object({
   status: statusSchema.optional(),
   health: healthSchema.optional(),
   resources: resourcesSchema.optional(),
+  cluster_resources: z.record(z.string(), clusterResourcesSchema).optional(),
   workloads: workloadsSchema.optional(),
   proxy: proxySchema.optional(),
   processes: processesSchema.optional(),

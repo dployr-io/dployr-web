@@ -103,9 +103,10 @@ export function detectSchemaVersion(data: unknown): SchemaVersion | null {
  * Parse and normalize instance stream update data
  * Automatically detects schema version and normalizes to internal format
  *
+ * @param clusterId - For shared nodes, the cluster UUID to scope resource stats
  * @returns Normalized data or null if parsing fails
  */
-export function parseAndNormalize(data: unknown): NormalizedInstanceData | null {
+export function parseAndNormalize(data: unknown, clusterId?: string): NormalizedInstanceData | null {
   if (!data) {
     return null;
   }
@@ -115,7 +116,7 @@ export function parseAndNormalize(data: unknown): NormalizedInstanceData | null 
   switch (version) {
     case "v1.1":
       if (isV1_1(data)) {
-        return normalizeFromV1_1(data);
+        return normalizeFromV1_1(data, clusterId);
       }
       break;
 

@@ -66,9 +66,18 @@ export const resourcesSchema = z.object({
   disks: z.array(diskSchema).optional(),
 });
 
+/**
+ * Per-cluster cgroup v2 memory stats (shared nodes only).
+ */
+export const clusterResourcesSchema = z.object({
+  memory_used_bytes: z.number(),
+  memory_limit_bytes: z.number(),
+});
+
 export type LoadAverage = z.infer<typeof loadAverageSchema>;
 export type Cpu = z.infer<typeof cpuSchema>;
 export type Memory = z.infer<typeof memorySchema>;
 export type Swap = z.infer<typeof swapSchema>;
 export type Disk = z.infer<typeof diskSchema>;
 export type Resources = z.infer<typeof resourcesSchema>;
+export type ClusterResources = z.infer<typeof clusterResourcesSchema>;
