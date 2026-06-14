@@ -39,6 +39,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useDns } from "@/hooks/use-dns";
 import { DomainConnectDialog } from "@/components/domain-connect-dialog";
+import { use2FA } from "@/hooks/use-2fa";
+import { TwoFactorDialog } from "@/components/two-factor-dialog";
 
 export const Route = createFileRoute("/clusters/$clusterId/services/$id")({
   component: ViewService,
@@ -182,6 +184,7 @@ function ViewService() {
   }, [newDomain, service?.name, setupDns]);
 
   const { handleRemoveService } = useServiceRemove();
+  const twoFactor = use2FA({ enabled: true });
   const { stop: stopService, start: startService } = useServiceStop(service?.name ?? null);
 
   // Stop confirmation
@@ -214,7 +217,7 @@ function ViewService() {
   const [decommissionConfirm, setDecommissionConfirm] = useState("");
   const handleDecommission = useCallback(async () => {
     if (!service || !service.name || decommissionConfirm !== service.name) return;
-    const result = await handleRemoveService(service.name);
+    const result = await handleRemoveService(service.id);
     setDecommissionOpen(false);
     setDecommissionConfirm("");
     if (result.success) {
@@ -693,7 +696,7 @@ function ViewService() {
                     </Button>
                   )}
                   <div className="h-3.5 w-px bg-border mx-1" />
-                  <Button size="sm" variant="ghost" className="h-7 text-xs gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setDecommissionOpen(true)}>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => twoFactor.requireAuth(() => setDecommissionOpen(true))}>
                     Decommission
                   </Button>
                 </div>
@@ -897,6 +900,7 @@ function ViewService() {
         open={dnsDialogOpen}
         onOpenChange={open => { setDnsDialogOpen(open); if (!open) stopPolling(); }}
       />
+      <TwoFactorDialog open={twoFactor.isOpen} onOpenChange={twoFactor.setIsOpen} onVerify={twoFactor.verify} isSubmitting={twoFactor.isVerifying} method={twoFactor.method} onSendEmailCode={twoFactor.method === "email" ? twoFactor.sendEmailCode : undefined} isSending={twoFactor.isSending} />
       </AppLayout>
     </ProtectedRoute>
   );
