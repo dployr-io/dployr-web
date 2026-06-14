@@ -36,7 +36,7 @@ const TIER_ORDER = ["hobby", "indie", "pro"];
 // Only the features that are NEW in each tier (not repeated from lower tiers)
 const PLAN_NEW_FEATURES: Record<string, string[]> = {
   hobby: [
-    "512MB RAM · 1 vCPU · 10GB disk",
+    "64MB RAM · 0.1 vCPU · 10GB disk",
     "1 workload (sleeps when idle)",
     "All runtimes",
     "CLI + dashboard",
@@ -46,7 +46,7 @@ const PLAN_NEW_FEATURES: Record<string, string[]> = {
     "RBAC + audit log",
     "30-day log retention",
   ],
-  indie: ["1GB RAM · 1 vCPU · 25GB disk", "Shared always-on instance", "Up to 5 workloads", "5 seats", "Slack / Discord / webhooks", "Migration support", "12-month log retention"],
+  indie: ["512MB RAM · 0.25 vCPU · 25GB disk", "Shared always-on instance", "Up to 5 workloads", "5 seats", "Slack / Discord / webhooks", "Migration support", "12-month log retention"],
   pro: ["2GB RAM · 1 vCPU · 50GB disk", "Dedicated instance", "Up to 25 workloads", "36-month log retention", "25 seats", "Priority support", "Console access", "File explorer", "Watchdog"],
 };
 
@@ -57,11 +57,12 @@ interface FeatureRow {
 }
 
 const FEATURE_ROWS: FeatureRow[] = [
-  { label: "Specifications", values: { hobby: "512MB · 1vCPU · 10GB", indie: "1GB · 1vCPU · 10GB", pro: "2GB · 1vCPU· 10GB" } },
+  { label: "Specifications", values: { hobby: "64MB · 0.1vCPU · 10GB", indie: "512MB · 0.25vCPU · 25GB", pro: "2GB · 1vCPU · 50GB" } },
   { label: "Workloads", values: { hobby: "1", indie: "5", pro: "25" } },
   { label: "Seats", values: { hobby: "1", indie: "5", pro: "25" } },
   { label: "Instance", values: { hobby: "Sleeps when idle", indie: "Shared always-on", pro: "Dedicated" } },
   { label: "Log retention", values: { hobby: "30 days", indie: "12 months", pro: "36 months" } },
+  { label: "Custom domains", values: { hobby: "2 per service", indie: "10 per service", pro: "25 per service" } },
   { label: "All runtimes", values: { hobby: true, indie: true, pro: true } },
   { label: "CLI + dashboard", values: { hobby: true, indie: true, pro: true } },
   { label: "Blueprints", values: { hobby: true, indie: true, pro: true } },
