@@ -18,6 +18,7 @@ import { useEvents } from "@/hooks/use-events";
 import { useClusters } from "@/hooks/use-clusters";
 import { UserInfo } from "@/components/user-info";
 import { useUrlState } from "@/hooks/use-url-state";
+import { EVENT_TYPES, EVENT_CATEGORY_LABELS } from "@/lib/constants/events";
 
 export const Route = createFileRoute("/clusters/$clusterId/events")({
   component: Notifications,
@@ -61,16 +62,7 @@ function Notifications() {
     return map;
   }, [usersArray]);
 
-  const availableTypes = useMemo(() => {
-    const types = Array.from(
-      new Set(
-        eventsArray
-          .map((e) => e?.type)
-          .filter((type): type is string => typeof type === "string" && type.length > 0)
-      )
-    ).sort();
-    return types;
-  }, [eventsArray]);
+  const eventCategories = Object.entries(EVENT_TYPES);
 
   const pageSize = pagination?.pageSize ?? 20;
   const totalPages = pagination?.totalPages ?? 1;
@@ -174,18 +166,26 @@ function Notifications() {
                           <ChevronDown className="ml-auto size-4 transition-transform group-data-[state=open]:rotate-180" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-40 rounded-lg" align="start">
+                      <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] min-w-40 max-h-[min(400px,70vh)] overflow-y-auto rounded-lg" align="start">
                         <DropdownMenuItem onClick={() => setEventsUrlState({ type: "ALL", page: 1 })}>
                           All event types
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {availableTypes.map((type) => (
-                          <DropdownMenuItem
-                            key={type}
-                            onClick={() => setEventsUrlState({ type, page: 1 })}
-                          >
-                            {type}
-                          </DropdownMenuItem>
+                        {eventCategories.map(([category, types]) => (
+                          <div key={category}>
+                            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              {EVENT_CATEGORY_LABELS[category]}
+                            </div>
+                            {types.map((type) => (
+                              <DropdownMenuItem
+                                key={type.code}
+                                onClick={() => setEventsUrlState({ type: type.code, page: 1 })}
+                                className={selectedType === type.code ? "bg-sidebar-accent" : ""}
+                              >
+                                {type.label}
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
