@@ -354,12 +354,29 @@ function ViewInstance() {
                   <MetricCard label="Platform" value={`${update?.node.os || "-"} · ${update?.node.arch || "-"}`} />
                   <MetricCard label="Status" value={<StatusBadge status={update?.status.state || "-"} variant="compact" />} />
                   <MetricCard label="Mode" value={<StatusBadge status={update?.status.mode || "-"} variant="compact" />} />
-                  <MetricCard label="CPU" icon={<Cpu className="h-3 w-3" />} value={update?.resources.cpu?.count?.toString() || "-"} />
+                  <MetricCard
+                    label="CPU"
+                    icon={<Cpu className="h-3 w-3" />}
+                    value={update?.resources.cpu ? (
+                      <span>
+                        {(100 - update.resources.cpu.idlePercent).toFixed(1)}%
+                        <span className="ml-1.5 text-xs font-normal text-muted-foreground">· {update.resources.cpu.count} CPU</span>
+                      </span>
+                    ) : "-"}
+                    progress={update?.resources.cpu ? 100 - update.resources.cpu.idlePercent : undefined}
+                    className="w-32"
+                  />
                   <MetricCard
                     label="Memory"
                     icon={<MemoryStick className="h-3 w-3" />}
-                    value={update?.resources.memory ? `${formatBytes(update.resources.memory.usedBytes)} / ${formatBytes(update.resources.memory.totalBytes)}` : "-"}
+                    value={update?.resources.memory ? (
+                      <span className="whitespace-nowrap">
+                        {((update.resources.memory.usedBytes / update.resources.memory.totalBytes) * 100).toFixed(1)}%
+                        <span className="ml-1.5 text-xs font-normal text-muted-foreground">· {formatBytes(update.resources.memory.usedBytes)} / {formatBytes(update.resources.memory.totalBytes)}</span>
+                      </span>
+                    ) : "-"}
                     progress={update?.resources.memory ? (update.resources.memory.usedBytes / update.resources.memory.totalBytes) * 100 : undefined}
+                    className="w-32"
                   />
 
                   <div className="flex gap-2 shrink-0">
@@ -575,7 +592,7 @@ function ViewInstance() {
             </Tabs>
 
             {/* Dialogs */}
-            <TwoFactorDialog open={twoFactor.isOpen} onOpenChange={twoFactor.setIsOpen} onVerify={twoFactor.verify} isSubmitting={twoFactor.isVerifying} />
+            <TwoFactorDialog open={twoFactor.isOpen} onOpenChange={twoFactor.setIsOpen} onVerify={twoFactor.verify} isSubmitting={twoFactor.isVerifying} method={twoFactor.method} onSendEmailCode={twoFactor.method === "email" ? twoFactor.sendEmailCode : undefined} isSending={twoFactor.isSending} />
 
             <Dialog open={rotateOpen} onOpenChange={setRotateOpen}>
               <DialogContent className="sm:max-w-md">

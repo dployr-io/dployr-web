@@ -221,7 +221,7 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
       try {
         const message = JSON.parse(event.data as string);
 
-        if (message.kind === "error") {
+        if (message.kind === "error" && !message.requestId) {
           const errorMsg = message.message || "An error occurred";
           const errorCode = message.code ? `[${message.code}] ` : "";
           setError(`${errorCode}${errorMsg}`);

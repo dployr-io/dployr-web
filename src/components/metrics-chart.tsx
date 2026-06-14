@@ -308,9 +308,6 @@ export function InstanceMetricsChart({ data, height = 180, className, processSna
     );
   }
 
-  const currentMemory = chartData[chartData.length - 1].memory;
-  const currentCpu = chartData[chartData.length - 1].cpu;
-
   return (
     <div className={cn("rounded-xl border bg-background/40", className)}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
@@ -322,7 +319,6 @@ export function InstanceMetricsChart({ data, height = 180, className, processSna
           >
             <Cpu className="h-3.5 w-3.5 text-cyan-500" />
             <span className="text-muted-foreground">CPU</span>
-            <span className="font-mono">{currentCpu.toFixed(1)}%</span>
           </button>
           <button
             onClick={() => setShowMemory(!showMemory)}
@@ -330,7 +326,6 @@ export function InstanceMetricsChart({ data, height = 180, className, processSna
           >
             <HardDrive className="h-3.5 w-3.5 text-orange-500" />
             <span className="text-muted-foreground">Memory</span>
-            <span className="font-mono">{currentMemory.toFixed(1)}%</span>
           </button>
         </div>
       </div>
