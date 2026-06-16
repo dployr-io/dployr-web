@@ -75,8 +75,8 @@ export function normalizeResources(
   return {
     cpu: resources.cpu
       ? {
-          count: resources.cpu.count,
-          userPercent: resources.cpu.user_percent,
+          count: cr?.cpu_limit_millicores ? cr.cpu_limit_millicores / 1000 : resources.cpu.count,
+          userPercent: cr?.cpu_usage_percent ?? resources.cpu.user_percent,
           systemPercent: resources.cpu.system_percent,
           idlePercent: resources.cpu.idle_percent,
           iowaitPercent: resources.cpu.iowait_percent,

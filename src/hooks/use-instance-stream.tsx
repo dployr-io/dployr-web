@@ -100,7 +100,14 @@ export function InstanceStreamProvider({ children }: InstanceStreamProviderProps
       const base = existing ?? { ...createDefaultNormalizedData(), instance: { tag: instanceId } };
       const updated: NormalizedInstanceData = { ...base };
 
-      for (const [section, { data, version }] of Object.entries(sections)) {
+      // Process cluster_resources before resources so normalization sees fresh data.
+      const orderedSections = Object.entries(sections).sort(([a], [b]) => {
+        if (a === "cluster_resources") return -1;
+        if (b === "cluster_resources") return 1;
+        return 0;
+      });
+
+      for (const [section, { data, version }] of orderedSections) {
         switch (section) {
           case "node":
             updated.node = normalizeNode(data as any);

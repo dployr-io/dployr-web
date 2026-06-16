@@ -72,6 +72,8 @@ export const resourcesSchema = z.object({
 export const clusterResourcesSchema = z.object({
   memory_used_bytes: z.number(),
   memory_limit_bytes: z.number(),
+  cpu_limit_millicores: z.number().optional(),
+  cpu_usage_percent: z.number().optional(),
 });
 
 export type LoadAverage = z.infer<typeof loadAverageSchema>;

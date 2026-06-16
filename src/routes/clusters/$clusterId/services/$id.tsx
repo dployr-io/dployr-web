@@ -93,7 +93,7 @@ function ViewService() {
   const [editedRuntime, setEditedRuntime] = useState("");
   const [editedVersion, setEditedVersion] = useState("");
   const [editedHealthCheck, setEditedHealthCheck] = useState("");
-  const updateService = useServiceUpdate(service?.name ?? null);
+  const updateService = useServiceUpdate(service?.id ?? null);
 
   // Tracks the last values committed to the server so hasChanges clears immediately
   // on save success rather than waiting for the websocket to push back updated state.
@@ -216,7 +216,7 @@ function ViewService() {
   const [decommissionOpen, setDecommissionOpen] = useState(false);
   const [decommissionConfirm, setDecommissionConfirm] = useState("");
   const handleDecommission = useCallback(async () => {
-    if (!service || !service.name || decommissionConfirm !== service.name) return;
+    if (!service || !service.id || !service.name || decommissionConfirm !== service.name) return;
     const result = await handleRemoveService(service.id);
     setDecommissionOpen(false);
     setDecommissionConfirm("");

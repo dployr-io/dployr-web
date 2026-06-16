@@ -249,6 +249,7 @@ export interface Instance {
   address: string;
   publicKey: string;
   tag: string;
+  kind: "pool" | "dedicated";
   role: NodeRole;
   resources?: {
     cpu: number; // usage percentage 0-100

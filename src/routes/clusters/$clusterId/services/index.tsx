@@ -19,11 +19,11 @@ import TimeAgo from "react-timeago";
 import { StatusBadge } from "@/components/status-badge";
 import { useClusters } from "@/hooks/use-clusters";
 import { useQueryClient } from "@tanstack/react-query";
-import type { NormalizedInstanceData } from "@/types";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useInstances } from "@/hooks/use-instances";
 import { useRemotes } from "@/hooks/use-remotes";
 import { useDeploymentCreator } from "@/hooks/use-deployment-creator";
+import { useDns } from "@/hooks/use-dns";
 import { CreateServiceForm } from "@/components/create-service";
 import { CodeEditor } from "@/components/ui/code-editor-cm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -62,12 +62,17 @@ function Services() {
   const { clusterId } = useClusters();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { domains: customDomains } = useDns();
   const { instances } = useInstances();
   const { remotes, isLoading: isRemotesLoading } = useRemotes();
 
   const [quickDeployInstanceId, setQuickDeployInstanceId] = useState<string>("");
   const [blueprintInstanceId, setBlueprintInstanceId] = useState<string>("");
   const [showDrafts, setShowDrafts] = useState(false);
+
+  const dedicatedInstances = instances.filter(i => i.kind === "dedicated");
+  const hasDedicatedInstances = dedicatedInstances.length > 0;
+  const poolInstance = instances.find(i => i.kind === "pool");
 
   const {
     showExitDialog,
@@ -107,10 +112,10 @@ function Services() {
     }
   }, [deploy]); // intentionally only re-run when `deploy` changes
 
-  // Auto-select most recent instance once instances are loaded
+  // Auto-select most recent dedicated instance once instances are loaded
   useEffect(() => {
-    if (!quickDeployInstanceId && instances.length > 0 && isCreating) {
-      const mostRecent = instances.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
+    if (!quickDeployInstanceId && dedicatedInstances.length > 0 && isCreating) {
+      const mostRecent = dedicatedInstances.reduce((a, b) => (b.createdAt > a.createdAt ? b : a));
       setQuickDeployInstanceId(mostRecent.id);
       setBlueprintInstanceId(mostRecent.id);
     }
@@ -126,20 +131,9 @@ function Services() {
     closeForm();
   }, [handleBack, closeForm]);
 
-  const getFallbackDomain = (service: any) => {
-    if (!service._instanceName) return `${service.name}.dployr.run`;
-    const instanceData = queryClient.getQueryData<NormalizedInstanceData>(["instance-status", service._instanceName]);
-    if (!instanceData?.proxy?.routes) return `${service.name}.dployr.run`;
-    const proxyRoute = instanceData.proxy.routes.find(route => {
-      const upstreamPort = route.upstream?.match(/:(\d+)/)?.[1];
-      return route.domain.includes(service.name) || route.upstream?.includes(service.name) || upstreamPort === String(service.port);
-    });
-    return proxyRoute?.domain || `${service.name}.dployr.run`;
-  };
-
   const getDisplayDomain = (service: any) => {
-    const custom = domains?.find(d => d.serviceName === service.name && d.status === "active");
-    return custom ? custom.domain : getFallbackDomain(service);
+    const custom = customDomains?.find(d => d.serviceName === service.name && d.status === "active");
+    return custom ? custom.domain : `${service.name}.dployr.run`;
   };
 
   return (
@@ -378,23 +372,25 @@ function Services() {
 
                 <TabsContent value="quick" className="my-6 space-y-4">
                   <div className="space-y-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="instance">
-                        Target Instance <span className="text-destructive">*</span>
-                      </Label>
-                      <Select value={quickDeployInstanceId} onValueChange={setQuickDeployInstanceId}>
-                        <SelectTrigger id="instance">
-                          <SelectValue placeholder="Select an instance" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {instances.map(instance => (
-                            <SelectItem key={instance.id} value={instance.id}>
-                              {instance.tag || instance.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {hasDedicatedInstances && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="instance">
+                          Target Instance <span className="text-destructive">*</span>
+                        </Label>
+                        <Select value={quickDeployInstanceId} onValueChange={setQuickDeployInstanceId}>
+                          <SelectTrigger id="instance">
+                            <SelectValue placeholder="Select an instance" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {dedicatedInstances.map(instance => (
+                              <SelectItem key={instance.id} value={instance.id}>
+                                {instance.tag || instance.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                     <CreateServiceForm
                       name={currentDraft?.name || ""}
                       nameError={validationErrors.name || ""}
@@ -432,7 +428,7 @@ function Services() {
                       healthCheck={currentDraft?.health_check || ""}
                       healthCheckError={validationErrors.health_check || ""}
                       clusterId={clusterId!}
-                      instanceId={quickDeployInstanceId}
+                      instanceId={quickDeployInstanceId || poolInstance?.id || ""}
                       setField={setField}
                       onSourceValueChanged={value => {
                         updateDraft("source", value);
@@ -450,14 +446,17 @@ function Services() {
                     <div className="flex justify-end">
                       <Button
                         onClick={() => {
-                          const instance = instances.find(i => i.id === quickDeployInstanceId);
-                          if (instance) {
-                            handleDeploy(instance.tag);
-                            closeForm();
-                            queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] });
+                          const selectedInstance = hasDedicatedInstances
+                            ? dedicatedInstances.find(i => i.id === quickDeployInstanceId)
+                            : poolInstance;
+                          const instanceTag = selectedInstance?.tag;
+                          handleDeploy(instanceTag);
+                          closeForm();
+                          if (instanceTag) {
+                            queryClient.invalidateQueries({ queryKey: ["instance-status", instanceTag] });
                           }
                         }}
-                        disabled={!quickDeployInstanceId || Object.keys(validationErrors).length > 0}
+                        disabled={(hasDedicatedInstances && !quickDeployInstanceId) || Object.keys(validationErrors).length > 0}
                         size="lg"
                       >
                         <Rocket className="h-4 w-4" />
@@ -479,31 +478,36 @@ function Services() {
                     errors={schemaErrors}
                     showFormatSelector
                     instanceSelector={
-                      <Select value={blueprintInstanceId} onValueChange={setBlueprintInstanceId}>
-                        <SelectTrigger className="h-6 bg-transparent border-neutral-600 text-xs text-neutral-300 w-auto min-w-fit max-w-none">
-                          <SelectValue placeholder="Select instance" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {instances.map(instance => (
-                            <SelectItem key={instance.id} value={instance.id}>
-                              {instance.tag || instance.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      hasDedicatedInstances ? (
+                        <Select value={blueprintInstanceId} onValueChange={setBlueprintInstanceId}>
+                          <SelectTrigger className="h-6 bg-transparent border-neutral-600 text-xs text-neutral-300 w-auto min-w-fit max-w-none">
+                            <SelectValue placeholder="Select instance" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {dedicatedInstances.map(instance => (
+                              <SelectItem key={instance.id} value={instance.id}>
+                                {instance.tag || instance.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : undefined
                     }
                   />
                   <div className="flex justify-end">
                     <Button
                       onClick={() => {
-                        const instance = instances.find(i => i.id === blueprintInstanceId);
-                        if (instance) {
-                          handleDeploy(instance.tag);
-                          closeForm();
-                          queryClient.invalidateQueries({ queryKey: ["instance-status", instance.tag] });
+                        const selectedInstance = hasDedicatedInstances
+                          ? dedicatedInstances.find(i => i.id === blueprintInstanceId)
+                          : poolInstance;
+                        const instanceTag = selectedInstance?.tag;
+                        handleDeploy(instanceTag);
+                        closeForm();
+                        if (instanceTag) {
+                          queryClient.invalidateQueries({ queryKey: ["instance-status", instanceTag] });
                         }
                       }}
-                      disabled={schemaErrors.length > 0 || !blueprintInstanceId}
+                      disabled={schemaErrors.length > 0 || (hasDedicatedInstances && !blueprintInstanceId)}
                       size="lg"
                     >
                       <Rocket className="h-4 w-4" />

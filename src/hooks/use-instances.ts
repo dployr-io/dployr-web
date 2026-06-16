@@ -48,6 +48,7 @@ export function useInstances() {
               address: item.address,
               publicKey: item.metadata?.clientCert?.pem ?? "",
               tag: item.tag,
+              kind: (item.kind ?? "dedicated") as Instance["kind"],
               role: (item.role ?? "instance") as Instance["role"],
               resources: item.resources ?? {
                 cpu: 0,

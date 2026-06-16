@@ -155,7 +155,7 @@ export function useDeploymentCreator(instanceId?: string) {
   }, [blueprintFormat, currentDraft, fromBlueprint]);
 
   const handleDeploy = useCallback(
-    async (instanceName: string) => {
+    async (instanceName?: string) => {
       if (currentTab === "blueprint-editor") {
         syncDraftFromBlueprint();
       }
@@ -217,7 +217,7 @@ export function useDeploymentCreator(instanceId?: string) {
       if (!deployResult.success) return;
 
       // Clean up draft after successful deploy initiation
-      setLastDeployedInstance(instanceName);
+      setLastDeployedInstance(instanceName ?? null);
       discardDraft();
       setIsCreating(false);
       lastSyncedDraftRef.current = null;

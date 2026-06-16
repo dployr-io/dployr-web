@@ -11,7 +11,6 @@ import { getApiErrorHelpLink, getApiErrorMessage } from "@/lib/api-error";
 import { useAppAlert } from "@/contexts/app-alert-context";
 
 const DEPLOYMENT_ERRORS = {
-  MISSING_PARAMS: "Instance name is required for deployment.",
   SEND_FAILED: "Failed to send deployment request",
   BLUEPRINT_NOT_FOUND: "Service blueprint not found",
 } as const;
@@ -31,21 +30,17 @@ export function useDeployment() {
   const { sendJson } = useInstanceStream();
 
   const deploy = useCallback(
-    async (instanceName: string, payload: Partial<Omit<DeploymentDraft, "id" | "updatedAt">>): Promise<DeploymentResult> => {
-      if (!instanceName) {
-        const error = DEPLOYMENT_ERRORS.MISSING_PARAMS;
-        setAppError({ message: error });
-        return { success: false, error };
-      }
-
+    async (instanceName: string | undefined, payload: Partial<Omit<DeploymentDraft, "id" | "updatedAt">>): Promise<DeploymentResult> => {
       try {
         const response = await axios.post<ApiSuccessResponse<{ deployment: any; taskId: string }>>(
           `${import.meta.env.VITE_BASE_URL}/v1/deployments`,
-          { instanceName, payload },
+          { instanceName, ...payload },
           { withCredentials: true, params: { clusterId } }
         );
 
-        sendJson({ kind: "heartbeat", versions: { [instanceName]: { workloads: 0 } } });
+        if (instanceName) {
+          sendJson({ kind: "heartbeat", versions: { [instanceName]: { workloads: 0 } } });
+        }
 
         const data = response.data.data;
         return { success: true, deployment: data?.deployment, taskId: data?.taskId };
