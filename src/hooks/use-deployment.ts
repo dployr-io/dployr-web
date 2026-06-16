@@ -13,6 +13,7 @@ import { useAppAlert } from "@/contexts/app-alert-context";
 const DEPLOYMENT_ERRORS = {
   SEND_FAILED: "Failed to send deployment request",
   BLUEPRINT_NOT_FOUND: "Service blueprint not found",
+  MISSING_PARAMS: "Missing required deployment parameters",
 } as const;
 
 interface DeploymentResult {
@@ -31,16 +32,20 @@ export function useDeployment() {
 
   const deploy = useCallback(
     async (instanceName: string | undefined, payload: Partial<Omit<DeploymentDraft, "id" | "updatedAt">>): Promise<DeploymentResult> => {
+      if (!instanceName) {
+        const message = DEPLOYMENT_ERRORS.MISSING_PARAMS;
+        setAppError({ message });
+        return { success: false, error: message };
+      }
+
       try {
         const response = await axios.post<ApiSuccessResponse<{ deployment: any; taskId: string }>>(
           `${import.meta.env.VITE_BASE_URL}/v1/deployments`,
-          { instanceName, ...payload },
+          { instanceName, payload },
           { withCredentials: true, params: { clusterId } }
         );
 
-        if (instanceName) {
-          sendJson({ kind: "heartbeat", versions: { [instanceName]: { workloads: 0 } } });
-        }
+        sendJson({ kind: "heartbeat", versions: { [instanceName]: { workloads: 0 } } });
 
         const data = response.data.data;
         return { success: true, deployment: data?.deployment, taskId: data?.taskId };
